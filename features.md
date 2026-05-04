@@ -1,5 +1,7 @@
 # HIMS: Laboratory & Inventory System Features
 
+hellp heuh
+
 ## 🔬 Advanced Laboratory Management System
 The laboratory module is a fully integrated, automated, and secure end-to-end workflow designed for high patient throughput and zero-friction communication.
 
