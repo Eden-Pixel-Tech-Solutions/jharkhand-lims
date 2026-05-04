@@ -277,13 +277,13 @@
   color: var(--text-label);
 }
 
-/* Inputs are slightly shorter, border is dark grey for high contrast */
+/* Inputs are slightly taller for better readability and to prevent text clipping */
 .preg-input,
 .preg-select,
 .preg-textarea {
   width: 100%;
-  height: 32px; /* Very compact */
-  padding: 0 8px;
+  height: 38px; /* Standard, comfortable height */
+  padding: 8px 12px;
   border: 1px solid var(--border-field);
   border-radius: var(--radius-sm);  /* Sharp borders */
   background: var(--field-bg);
@@ -321,7 +321,7 @@
 .preg-select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
+  background-position: right 12px center;
   padding-right: 32px;
   cursor: pointer;
 }

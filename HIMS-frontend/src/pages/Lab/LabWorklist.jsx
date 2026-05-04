@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
 import '../../assets/CSS/LabWorklist.css';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:7000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
 
 const DEPARTMENTS = [
   { id: 'all', name: 'All Departments', icon: '🏥' },

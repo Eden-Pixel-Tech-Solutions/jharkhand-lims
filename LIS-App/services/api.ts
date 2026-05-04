@@ -519,7 +519,7 @@ class ApiClient {
   > {
     const headers = await this.getHeaders();
     const response = await fetch(
-      "http://localhost:7000/api/dashboard/stats",
+      "http://172.16.11.160:7005/api/dashboard/stats",
       {
         headers,
       },

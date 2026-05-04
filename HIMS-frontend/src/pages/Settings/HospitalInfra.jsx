@@ -44,7 +44,7 @@ function HospitalInfra() {
   const fetchInfra = async () => {
     setLoading(true);
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:7000';
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
       const res = await fetch(`${API_BASE}/api/infra?type=${activeTab}`);
       const data = await res.json();
       if (data.success) setItems(data.items);
@@ -88,7 +88,7 @@ function HospitalInfra() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this facility?')) return;
     try {
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:7000';
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
       const res = await fetch(`${API_BASE}/api/infra/delete/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) fetchInfra();
@@ -96,7 +96,7 @@ function HospitalInfra() {
   };
 
   // ── Lab Machines Handlers ──
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:7000';
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
 
   const openMachinesModal = async (lab) => {
     setSelectedLab(lab);
@@ -167,7 +167,7 @@ function HospitalInfra() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:7000';
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
     const url = editingItem
       ? `${API_BASE}/api/infra/update/${editingItem.id}`
       : `${API_BASE}/api/infra/add`;

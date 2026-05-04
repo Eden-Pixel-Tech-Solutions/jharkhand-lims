@@ -150,7 +150,7 @@ function PatientDetails({ onSaveSuccess }) {
         branch_id: localStorage.getItem('branch_id')
       };
 
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:7000';
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
       const res = await fetch(`${API_BASE}/api/patients/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -175,7 +175,7 @@ function PatientDetails({ onSaveSuccess }) {
     setIsSearching(true);
     try {
       const typeParam = searchType !== 'ALL' ? `&type=${searchType}` : '';
-      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:7000';
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
       const res = await fetch(`${API_BASE}/api/patients/search?q=${encodeURIComponent(searchQuery)}${typeParam}`);
       const result = await res.json();
       if (result.success) {
@@ -220,7 +220,7 @@ function PatientDetails({ onSaveSuccess }) {
               </div>
               <div className="preg-meta-item">
                 <span className="preg-meta-label">Date</span>
-                <Input type="date" name="regDate" value={data.regDate} onChange={ch} style={{ height: 32, fontSize: 13 }} />
+                <Input type="date" name="regDate" value={data.regDate} onChange={ch} />
               </div>
 
               <button

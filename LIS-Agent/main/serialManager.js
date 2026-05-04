@@ -3,7 +3,7 @@ const axios = require('axios');
 const db = require('../db/sqlite');
 
 let currentPort = null;
-const API_BASE = 'http://localhost:7005';
+const API_BASE = 'http://172.16.11.160:7005';
 
 async function startListening(testInfo, win) {
   try {
@@ -22,8 +22,8 @@ async function startListening(testInfo, win) {
     }
 
     if (!protocol) {
-        console.error("No protocol available. Cannot parse data.");
-        return false;
+      console.error("No protocol available. Cannot parse data.");
+      return false;
     }
 
     // 2. INITIALIZE PORT
@@ -49,29 +49,29 @@ async function startListening(testInfo, win) {
 
     currentPort.on('data', async (chunk) => {
       buffer = Buffer.concat([buffer, chunk]);
-      
+
       if (protocol.protocol_type === "HL7") {
         // --- IMPROVED HL7 DETECTION ---
         const raw = buffer.toString('utf8');
         if (raw.includes("MSH|")) {
-           // HL7 messages often end with File/Block separator (0x1C 0x0D)
-           const EOF_HL7 = "\x1C\x0D";
-           const msgEndIndex = raw.indexOf(EOF_HL7);
-           
-           if (msgEndIndex !== -1) {
-             const fullMsg = raw.substring(raw.indexOf("MSH|"), msgEndIndex);
-             console.log("📦 Detected FULL HL7 Message Block");
-             
-             // Clear buffer
-             buffer = buffer.slice(msgEndIndex + 2);
-             
-             parseHL7Message(fullMsg, protocol, testInfo, win);
-           } else if (raw.length > 2000) { 
-             // Fallback: If buffer gets too large without EOF, process by segment
-             console.log("⚠️ Buffer large, attempting partial HL7 parse...");
-             parseHL7Message(raw, protocol, testInfo, win);
-             buffer = Buffer.alloc(0);
-           }
+          // HL7 messages often end with File/Block separator (0x1C 0x0D)
+          const EOF_HL7 = "\x1C\x0D";
+          const msgEndIndex = raw.indexOf(EOF_HL7);
+
+          if (msgEndIndex !== -1) {
+            const fullMsg = raw.substring(raw.indexOf("MSH|"), msgEndIndex);
+            console.log("📦 Detected FULL HL7 Message Block");
+
+            // Clear buffer
+            buffer = buffer.slice(msgEndIndex + 2);
+
+            parseHL7Message(fullMsg, protocol, testInfo, win);
+          } else if (raw.length > 2000) {
+            // Fallback: If buffer gets too large without EOF, process by segment
+            console.log("⚠️ Buffer large, attempting partial HL7 parse...");
+            parseHL7Message(raw, protocol, testInfo, win);
+            buffer = Buffer.alloc(0);
+          }
         }
       } else {
         // --- BINARY PARSING LOGIC ---
@@ -111,7 +111,7 @@ async function parseHL7Message(raw, protocol, testInfo, win) {
       if (line.startsWith("OBX")) {
         const fields = line.split("|");
         // fields[3] is Test ID (e.g. 6690-2^WBC^LN)
-        const testIdPart = fields[3]?.split("^")[0]; 
+        const testIdPart = fields[3]?.split("^")[0];
         const resultValue = fields[5];
         const unit = fields[6];
         const refRange = fields[7];
@@ -119,20 +119,20 @@ async function parseHL7Message(raw, protocol, testInfo, win) {
         if (!testIdPart) continue;
 
         // MATCHING LOGIC (Robust string matching)
-        const machineTest = protocol.tests.find(t => 
-          t.id === testIdPart || 
+        const machineTest = protocol.tests.find(t =>
+          t.id === testIdPart ||
           t.label.toLowerCase() === testIdPart.toLowerCase()
         );
 
         if (machineTest) {
           const parameterName = machineTest.name;
-          
+
           // Filter against selected parameters (matching by ID or Name)
-          const isRequested = testInfo.parameters && testInfo.parameters.some(p => 
-            p.id.toString() === testIdPart || 
+          const isRequested = testInfo.parameters && testInfo.parameters.some(p =>
+            p.id.toString() === testIdPart ||
             p.name.toLowerCase() === parameterName.toLowerCase()
           );
-          
+
           if (isRequested) {
             console.log(`🎯 HL7 MATCH! [${parameterName}] Result: ${resultValue} ${unit}`);
             results.push({
@@ -143,8 +143,8 @@ async function parseHL7Message(raw, protocol, testInfo, win) {
             });
 
             // Update UI
-            win.webContents.send('test-completed', { 
-              sampleId: testInfo.sampleId, 
+            win.webContents.send('test-completed', {
+              sampleId: testInfo.sampleId,
               result_value: resultValue,
               unit: unit,
               test_name: parameterName,
@@ -184,19 +184,19 @@ async function parseBinaryFrame(frame, protocol, testInfo, win) {
   try {
     const testCode = frame[1];
     const unitCode = frame[2];
-    
+
     const machineTest = protocol.frame_structure["2"].tests.find(t => t.id === testCode);
     const machineTestName = machineTest ? machineTest.name : `Test-${testCode}`;
-    
+
     const machineUnit = protocol.frame_structure["3"].units.find(u => u.id === unitCode);
     const unitName = machineUnit ? machineUnit.unit : "";
-    
+
     const resultValue = frame.readFloatBE(9).toFixed(2);
     const refHigh = frame.readFloatBE(13).toFixed(2);
     const refLow = frame.readFloatBE(17).toFixed(2);
 
     const isRequested = testInfo.parameters && testInfo.parameters.some(p => p.id.toString() === testCode.toString());
-    
+
     if (isRequested) {
       console.log(`🎯 BINARY MATCH! [${machineTestName}] Result: ${resultValue} ${unitName}`);
 
@@ -208,14 +208,14 @@ async function parseBinaryFrame(frame, protocol, testInfo, win) {
         results: [{
           parameter_name: machineTestName,
           result_value: resultValue,
-          unit: unitName, 
+          unit: unitName,
           reference_range: `${refLow} - ${refHigh}`
         }],
         status: 'Completed'
       });
-      
-      win.webContents.send('test-completed', { 
-        sampleId: testInfo.sampleId, 
+
+      win.webContents.send('test-completed', {
+        sampleId: testInfo.sampleId,
         result_value: resultValue,
         unit: unitName,
         test_name: machineTestName,

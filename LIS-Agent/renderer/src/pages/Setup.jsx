@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE = 'http://localhost:7005';
+const API_BASE = 'http://172.16.11.160:7005';
 
 export default function Setup() {
   const [labs, setLabs] = useState([]);
