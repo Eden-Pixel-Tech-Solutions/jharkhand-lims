@@ -1,0 +1,6 @@
+[
+	{
+		"pkg": "capacitor-usb-serial",
+		"classpath": "com.leeskies.capacitor.usbserialplugin.UsbSerialPlugin"
+	}
+]

@@ -1,0 +1,5 @@
+{
+	"appId": "com.anonymous.lisagent",
+	"appName": "LIS-Agent",
+	"webDir": "renderer/dist"
+}
