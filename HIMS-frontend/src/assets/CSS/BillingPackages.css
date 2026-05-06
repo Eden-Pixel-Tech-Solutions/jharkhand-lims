@@ -3,12 +3,12 @@
    Font: DM Sans (display) + JetBrains Mono (numbers)
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
 
 /* ── Design Tokens ────────────────────────────────────────── */
 :root {
-  --bp-font:       'DM Sans', -apple-system, sans-serif;
-  --bp-mono:       'DM Mono', 'JetBrains Mono', monospace;
+  --bp-font:       'Roboto', -apple-system, sans-serif;
+  --bp-mono:       'Roboto', sans-serif;
 
   --bp-ink:        #0a0f1e;
   --bp-ink-2:      #334155;

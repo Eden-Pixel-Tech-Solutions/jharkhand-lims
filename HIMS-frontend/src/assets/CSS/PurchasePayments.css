@@ -109,11 +109,11 @@
 }
 
 .ap-tab-btn:hover {
-  color: #2563eb;
+  color: #0d2554;
 }
 
 .ap-tab-btn.active {
-  color: #2563eb;
+  color: #0d2554;
 }
 
 .ap-tab-btn.active::after {
@@ -123,7 +123,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: #2563eb;
+  background: #0d2554;
   border-radius: 2px;
 }
 
@@ -291,15 +291,15 @@
 
 .ap-input:focus, .ap-select:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: #0d2554;
   background: white;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 4px rgba(13, 37, 84, 0.1);
 }
 
 .ap-submit-btn {
   width: 100%;
   padding: 14px;
-  background: #2563eb;
+  background: #0d2554;
   color: white;
   border: none;
   border-radius: 12px;
@@ -311,9 +311,9 @@
 }
 
 .ap-submit-btn:hover {
-  background: #1d4ed8;
+  background: #1a3a7a;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 4px 12px rgba(13, 37, 84, 0.25);
 }
 
 .ap-pay-btn {

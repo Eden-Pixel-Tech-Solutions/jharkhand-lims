@@ -333,7 +333,7 @@ export default function LabWorklist() {
       {/* Now Serving Banner */}
       {!loading && worklist.length > 0 && (
         <div className="now-serving-banner" style={{
-          background: 'linear-gradient(135deg, var(--brand-blue) 0%, #3b82f6 100%)',
+          background: 'linear-gradient(135deg, #0d2554 0%, #1e3a8a 100%)',
           color: 'white',
           padding: '24px',
           borderRadius: 'var(--radius-lg)',

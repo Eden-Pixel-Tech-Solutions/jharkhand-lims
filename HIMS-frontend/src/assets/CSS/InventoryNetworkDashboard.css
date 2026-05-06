@@ -1,7 +1,7 @@
 /* ─── Inventory Network Dashboard CSS ─────────────────────────────────────── */
 
 :root {
-  --font-serif: Georgia, 'Times New Roman', Times, serif;
+  --font-serif: 'Roboto', sans-serif;
   --navy:  #0d2554;
   --border: #e2e8f0;
   --bg:    #f8fafc;

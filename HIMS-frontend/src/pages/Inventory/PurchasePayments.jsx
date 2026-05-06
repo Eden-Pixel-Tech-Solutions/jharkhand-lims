@@ -194,7 +194,7 @@ function PurchasePayments() {
       fontSize: '14px',
       boxShadow: 'none',
       '&:hover': {
-        borderColor: '#2563eb'
+        borderColor: '#0d2554'
       }
     })
   };
@@ -281,7 +281,7 @@ function PurchasePayments() {
                     return (
                       <tr key={inv.id} className={isOverdue ? 'overdue' : ''}>
                         <td style={{ fontWeight: 600 }}>{inv.invoice_number}</td>
-                        <td style={{ color: '#2563eb', fontWeight: 500 }}>{inv.vendor_name}</td>
+                        <td style={{ color: '#0d2554', fontWeight: 500 }}>{inv.vendor_name}</td>
                         <td>{new Date(inv.invoice_date).toLocaleDateString()}</td>
                         <td>
                           <span style={{ color: isOverdue ? '#dc2626' : 'inherit', fontWeight: isOverdue ? 700 : 'normal' }}>

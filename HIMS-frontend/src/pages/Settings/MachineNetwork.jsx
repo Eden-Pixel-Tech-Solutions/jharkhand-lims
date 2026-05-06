@@ -154,7 +154,7 @@ const MachineNetwork = () => {
           <button className="btn-primary" onClick={exportAllAnalyzers} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
             📥 Export All Analyzers
           </button>
-          <button className="btn-primary" onClick={() => window.location.reload()} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: 'var(--brand-blue)', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
+          <button className="btn-primary btn-refresh" onClick={() => window.location.reload()} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
             Refresh Data
           </button>
         </div>

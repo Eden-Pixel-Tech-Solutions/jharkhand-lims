@@ -343,8 +343,8 @@ function BillingOverview() {
               onClick={() => setStatusFilter(s)}
               style={{
                 padding: '9px 16px', borderRadius: 10, border: '1.5px solid',
-                borderColor: statusFilter === s ? '#1d4ed8' : '#e2e8f0',
-                background:  statusFilter === s ? '#1d4ed8' : '#fff',
+                borderColor: statusFilter === s ? '#0d2554' : '#e2e8f0',
+                background:  statusFilter === s ? '#0d2554' : '#fff',
                 color:       statusFilter === s ? '#fff' : '#475569',
                 fontWeight: 600, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s',
               }}
@@ -354,14 +354,14 @@ function BillingOverview() {
 
         <button
           onClick={() => { setStartDate(''); setEndDate(''); setSearch(''); setStatusFilter('All'); }}
-          style={{ padding: '10px 16px', background: '#f1f5f9', border: 'none', borderRadius: 10, color: '#64748b', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+          style={{ padding: '10px 16px', background: '#0d2554', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
         >Reset</button>
 
         <button
           onClick={handleExportCSV}
           style={{ 
             padding: '10px 18px', 
-            background: '#10b981', 
+            background: '#0d2554', 
             color: '#fff', 
             border: 'none', 
             borderRadius: 10, 
@@ -418,7 +418,7 @@ function BillingOverview() {
                     <td style={{ padding: '12px 16px' }}>
                       <button
                         onClick={() => openBill(b)}
-                        style={{ padding: '6px 14px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                        style={{ padding: '6px 14px', background: '#0d2554', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                       >View</button>
                     </td>
                   </tr>
@@ -501,19 +501,19 @@ function BillingOverview() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
                   <button
                     onClick={() => printReceipt(billDetail)}
-                    style={{ padding: '11px', background: '#f1f5f9', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    style={{ padding: '11px', background: '#0d2554', border: '1.5px solid #0d2554', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
                     🖨️ A5 Receipt
                   </button>
                   <button
                     onClick={() => printThermal(billDetail)}
-                    style={{ padding: '11px', background: '#f1f5f9', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    style={{ padding: '11px', background: '#0d2554', border: '1.5px solid #0d2554', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
                     📑 Thermal Slip
                   </button>
                   <button
                     onClick={() => sendWhatsApp(billDetail)}
-                    style={{ gridColumn: 'span 2', padding: '11px', background: '#dcfce7', border: '1.5px solid #86efac', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    style={{ gridColumn: 'span 2', padding: '11px', background: '#0d2554', border: '1.5px solid #0d2554', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
                     💬 Send WhatsApp Message
                   </button>
@@ -523,7 +523,7 @@ function BillingOverview() {
                 {billDetail.payment_status !== 'Paid' && (
                   <button
                     onClick={() => setPayModal(true)}
-                    style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg, #1d4ed8, #7c3aed)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(29,78,216,0.35)' }}
+                    style={{ width: '100%', padding: '13px', background: '#0d2554', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(13,37,84,0.35)' }}
                   >
                     💳 Process Payment
                   </button>
@@ -555,7 +555,7 @@ function BillingOverview() {
                   <div style={{ display: 'flex', gap: 12 }}>
                     <button onClick={() => setPayModal(false)} style={{ flex: 1, padding: '11px', background: '#f1f5f9', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer', color: '#475569' }}>Cancel</button>
                     <button onClick={submitPayment} disabled={paying}
-                      style={{ flex: 2, padding: '11px', background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', opacity: paying ? 0.7 : 1 }}>
+                      style={{ flex: 2, padding: '11px', background: '#0d2554', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', opacity: paying ? 0.7 : 1 }}>
                       {paying ? 'Processing…' : 'Confirm Payment'}
                     </button>
                   </div>

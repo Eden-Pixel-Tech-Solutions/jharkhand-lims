@@ -135,3 +135,11 @@
   color: #d97706;
   border: 1px solid #fef3c7;
 }
+
+.btn-refresh {
+  background: #0d2554 !important;
+}
+
+.btn-refresh:hover {
+  background: #1a3a7a !important;
+}

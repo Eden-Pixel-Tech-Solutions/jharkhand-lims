@@ -6,7 +6,7 @@
    Version: 2.0 — Modern Professional Build
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
 
 /* ── Design Tokens ─────────────────────────────────────────── */
 :root {
@@ -102,7 +102,7 @@
    PAGE WRAPPER
 ══════════════════════════════════════════════════════════ */
 .lab-report-download-page {
-  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-family: 'Roboto', -apple-system, sans-serif;
   padding: 24px 32px 48px;
   max-width: 1500px;
   margin: 0 auto;
@@ -130,7 +130,7 @@
 }
 
 .report-header-section h1 {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: clamp(20px, 2vw, 28px);
   font-weight: 800;
   color: var(--text-primary);
@@ -148,12 +148,12 @@
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-  background: var(--blue-600);
+  background: #0d2554;
   border-radius: var(--r-md);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14,2 14,8 20,8'/%3E%3Cline x1='16' y1='13' x2='8' y2='13'/%3E%3Cline x1='16' y1='17' x2='8' y2='17'/%3E%3Cpolyline points='10,9 9,9 8,9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;
-  box-shadow: var(--shadow-blue);
+  box-shadow: 0 4px 12px rgba(13, 37, 84, 0.2);
 }
 
 .subtitle {
@@ -194,14 +194,14 @@
   color: var(--slate-500);
   text-transform: uppercase;
   letter-spacing: .08em;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
 }
 
 .filter-group input {
   padding: 9px 12px;
   border: 1.5px solid var(--border);
   border-radius: var(--r-md);
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 13px;
   color: var(--text-primary);
   background: var(--bg-sunken);
@@ -238,7 +238,7 @@
   padding: 9px 18px;
   border: none;
   border-radius: var(--r-full);
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -250,15 +250,15 @@
 }
 
 .search-btn {
-  background: var(--blue-600);
+  background: #0d2554;
   color: white;
-  box-shadow: var(--shadow-blue);
+  box-shadow: 0 4px 12px rgba(13, 37, 84, 0.2);
 }
 
 .search-btn:hover {
-  background: var(--blue-700);
+  background: #1a3a7a;
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(37,99,235,.30);
+  box-shadow: 0 6px 20px rgba(13, 37, 84, 0.30);
 }
 
 .reset-btn {
@@ -310,7 +310,7 @@
   padding: 7px 16px;
   border: 1.5px solid var(--border);
   border-radius: var(--r-full);
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 11.5px;
   font-weight: 700;
   cursor: pointer;
@@ -344,7 +344,7 @@
 }
 
 .table-toolbar-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
@@ -355,7 +355,7 @@
 }
 
 .table-result-count {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 10.5px;
   font-weight: 500;
   color: var(--text-muted);
@@ -381,7 +381,7 @@
   text-align: left;
   padding: 12px 16px;
   background: var(--slate-50);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 10px;
   font-weight: 600;
   color: var(--slate-500);
@@ -416,7 +416,7 @@
 
 /* ── Sample ID cell ────────────────────────────────────────── */
 .sample-id {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-weight: 600;
   font-size: 12.5px;
   color: var(--blue-800);
@@ -437,7 +437,7 @@
 
 /* ── Date cells ────────────────────────────────────────────── */
 .date-cell {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 12px;
   color: var(--text-muted);
 }
@@ -452,7 +452,7 @@
   color: var(--ok-text);
   border: 1.5px solid var(--ok-border);
   border-radius: var(--r-full);
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -476,7 +476,7 @@
   padding: 56px 24px;
   color: var(--text-muted);
   font-size: 13px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   letter-spacing: .03em;
 }
 
@@ -548,7 +548,7 @@
 }
 
 .modal-header h2 {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 16px;
   font-weight: 700;
   color: white;
@@ -588,7 +588,7 @@
   padding: 7px 16px;
   border: none;
   border-radius: var(--r-full);
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
@@ -653,7 +653,7 @@
 .report-preview {
   padding: 40px 44px;
   background: white;
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 /* ── Report masthead ───────────────────────────────────────── */
@@ -688,7 +688,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 10px;
   font-weight: 800;
   color: rgba(255,255,255,.5);
@@ -698,7 +698,7 @@
 .hospital-info { flex: 1; }
 
 .hospital-name {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 22px;
   font-weight: 800;
   color: var(--slate-900);
@@ -719,7 +719,7 @@
 }
 
 .report-title {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: var(--blue-600);
@@ -730,7 +730,7 @@
 
 .report-id-badge {
   display: inline-block;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 10px;
   font-weight: 600;
   color: var(--slate-500);
@@ -747,7 +747,7 @@
 }
 
 .section-title {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 9.5px;
   font-weight: 700;
   color: var(--blue-700);
@@ -774,7 +774,7 @@
 }
 
 .info-label {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 9px;
   font-weight: 600;
   color: var(--text-muted);
@@ -802,7 +802,7 @@
 .results-table th {
   padding: 10px 12px;
   text-align: left;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 9px;
   font-weight: 600;
   color: rgba(255,255,255,.6);
@@ -832,7 +832,7 @@
 
 /* ── Result value with status color ───────────────────────── */
 .result-value {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-weight: 600;
   font-size: 14px;
   color: var(--text-primary);
@@ -858,7 +858,7 @@
   gap: 4px;
   padding: 3px 10px;
   border-radius: var(--r-full);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 9.5px;
   font-weight: 700;
   text-transform: uppercase;
@@ -877,7 +877,7 @@
 
 /* ── Reference range ───────────────────────────────────────── */
 .reference-range {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 11.5px;
   color: var(--text-muted);
 }
@@ -918,7 +918,7 @@
 
 .info-label.verified-by {
   color: #7c3aed;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
@@ -945,7 +945,7 @@
 .signature-line {
   border-top: 1px solid var(--slate-400);
   padding-top: 8px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 10.5px;
   font-weight: 600;
   color: var(--text-muted);
@@ -961,7 +961,7 @@
   border-top: 1px dashed var(--slate-200);
   font-size: 11px;
   color: var(--text-muted);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   letter-spacing: .03em;
 }
 

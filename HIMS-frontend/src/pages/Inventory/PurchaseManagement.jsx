@@ -302,9 +302,12 @@ function PurchaseManagement() {
         {/* REQUISITIONS TAB */}
         {activeTab === 'requisitions' && (
           <div>
-            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '16px'}}>
-              <h3 style={{margin: 0}}>Purchase Requisitions (From Labs)</h3>
-              <button className="btn-primary" onClick={() => setIsPRModalOpen(true)}>+ Create PR</button>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0', padding: '24px 24px 16px', borderBottom: '1.5px solid #f1f5f9'}}>
+              <div>
+                <h3 style={{margin: 0, color: '#1e293b', fontSize: '18px', fontWeight: 700}}>Purchase Requisitions (From Labs)</h3>
+                <p style={{margin: '4px 0 0 0', fontSize: '13px', color: '#64748b'}}>Review and process supply requests from laboratory departments</p>
+              </div>
+              <button className="btn-primary" style={{ background: '#0d2554' }} onClick={() => setIsPRModalOpen(true)}>+ Create PR</button>
             </div>
             <table className="inv-table">
               <thead><tr><th>PR Number</th><th>Branch</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead>
@@ -346,9 +349,12 @@ function PurchaseManagement() {
         {/* ORDERS TAB */}
         {activeTab === 'orders' && (
           <div>
-            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '16px'}}>
-              <h3 style={{margin: 0}}>Purchase Orders (To Vendors)</h3>
-              <button className="btn-primary" onClick={() => { setPoForm({ vendor_id: '', expected_delivery_date: '', items: [{ item_id: '', quantity: '', unit_price: '' }], pr_id: null }); setIsPOModalOpen(true); }}>+ Create Direct PO</button>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0', padding: '24px 24px 16px', borderBottom: '1.5px solid #f1f5f9'}}>
+              <div>
+                <h3 style={{margin: 0, color: '#1e293b', fontSize: '18px', fontWeight: 700}}>Purchase Orders (To Vendors)</h3>
+                <p style={{margin: '4px 0 0 0', fontSize: '13px', color: '#64748b'}}>Generate and track official orders sent to registered suppliers</p>
+              </div>
+              <button className="btn-primary" style={{ background: '#0d2554' }} onClick={() => { setPoForm({ vendor_id: '', expected_delivery_date: '', items: [{ item_id: '', quantity: '', unit_price: '' }], pr_id: null }); setIsPOModalOpen(true); }}>+ Create Direct PO</button>
             </div>
             <table className="inv-table">
               <thead><tr><th>PO Number</th><th>Vendor</th><th>Expected Delivery</th><th>Total Amount</th><th>Status</th><th>Actions</th></tr></thead>
@@ -389,10 +395,10 @@ function PurchaseManagement() {
         {/* SUGGESTIONS TAB */}
         {activeTab === 'suggestions' && (
           <div>
-            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '16px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0', padding: '24px 24px 16px', borderBottom: '1.5px solid #f1f5f9'}}>
               <div>
-                <h3 style={{margin: 0}}>AI Purchase Suggestions</h3>
-                <p style={{fontSize: '12px', color: 'var(--text-soft)', margin: 0}}>Based on ADU and Lead Times.</p>
+                <h3 style={{margin: 0, color: '#1e293b', fontSize: '18px', fontWeight: 700}}>AI Purchase Suggestions</h3>
+                <p style={{margin: '4px 0 0 0', fontSize: '13px', color: '#64748b'}}>Smart inventory optimization based on ADU and Lead Times</p>
               </div>
               <button className="btn-primary" onClick={generateAI} disabled={loading} style={{background:'#10b981'}}>🔮 Run AI Scan</button>
             </div>

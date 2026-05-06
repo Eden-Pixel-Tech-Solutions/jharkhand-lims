@@ -43,7 +43,7 @@
 
 .refresh-btn {
   padding: 8px 16px;
-  background: #3b82f6;
+  background: #0d2554;
   color: white;
   border: none;
   border-radius: 8px;
@@ -54,7 +54,7 @@
 }
 
 .refresh-btn:hover {
-  background: #2563eb;
+  background: #1a3a7a;
 }
 
 .tests-table-container {

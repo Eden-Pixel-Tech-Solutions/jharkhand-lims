@@ -173,7 +173,7 @@
 }
 
 .param-code {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: #6366f1;
@@ -214,7 +214,7 @@
 }
 
 .calculated-badge {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 12px;
   font-weight: 600;
   color: #7c3aed;
@@ -388,7 +388,7 @@
 }
 
 .formula-input {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   background: #fafafa !important;
 }
 
@@ -437,7 +437,7 @@
 }
 
 .reference-value {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px;
   color: #3730a3;
   font-weight: 500;

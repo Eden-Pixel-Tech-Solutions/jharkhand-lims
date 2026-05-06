@@ -3,8 +3,7 @@
    Optimized for high-volume daily data entry.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -30,7 +29,7 @@
   
   --radius-sm:      4px;       /* Sharper, professional corners */
   --radius-md:      6px;
-  --font-sans:      'Inter', system-ui, sans-serif;
+  --font-sans:      'Roboto', system-ui, sans-serif;
   --trans-fast:     100ms ease-out;
 }
 
@@ -736,8 +735,8 @@
   --bil-text-soft:   #718096;
   --bil-text-xsoft:  #a0aec0;
 
-  --bil-font:        'IBM Plex Sans', system-ui, sans-serif;
-  --bil-mono:        'IBM Plex Mono', monospace;
+  --bil-font:        'Roboto', system-ui, sans-serif;
+  --bil-mono:        'Roboto', sans-serif;
 
   --bil-radius:      6px;
   --bil-radius-lg:   10px;
