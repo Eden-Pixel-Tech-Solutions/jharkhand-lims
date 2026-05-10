@@ -1,4 +1,18 @@
 import { useState, useEffect } from 'react';
+import { 
+  Building2, 
+  Mail, 
+  CreditCard, 
+  Bell, 
+  Globe, 
+  Hospital, 
+  Plus, 
+  Trash2, 
+  Pencil,
+  Save,
+  CheckCircle,
+  AlertCircle
+} from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
 
@@ -187,40 +201,40 @@ function Settings() {
         <div style={{ width: '250px', background: 'white', borderRadius: 'var(--radius-lg)', padding: '16px', boxShadow: 'var(--shadow-sm)', alignSelf: 'flex-start' }}>
           <button
             onClick={() => setActiveTab('about')}
-            style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'about' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'about' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s' }}
+            style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'about' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'about' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
           >
-            🏢 About (Hospital Profile)
+            <Building2 size={18} /> About (Hospital Profile)
           </button>
           <button
             onClick={() => setActiveTab('email')}
-            style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'email' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'email' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s' }}
+            style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'email' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'email' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
           >
-            📧 Email & SMTP
+            <Mail size={18} /> Email & SMTP
           </button>
           <button
             onClick={() => setActiveTab('billing')}
-            style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'billing' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'billing' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s' }}
+            style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'billing' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'billing' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
           >
-            💳 Billing & Taxes
+            <CreditCard size={18} /> Billing & Taxes
           </button>
           <button
             onClick={() => setActiveTab('notifications')}
-            style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'notifications' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'notifications' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s' }}
+            style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'notifications' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'notifications' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
           >
-            🔔 Notifications
+            <Bell size={18} /> Notifications
           </button>
           <button
             onClick={() => setActiveTab('localization')}
-            style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'localization' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'localization' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s' }}
+            style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'localization' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'localization' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
           >
-            🌍 Localization
+            <Globe size={18} /> Localization
           </button>
           {(roleLevel === 'Central' || roleLevel === 'Sub-Central') && (
             <button
               onClick={() => setActiveTab('facilities')}
-              style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'facilities' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'facilities' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+              style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'facilities' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'facilities' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
             >
-              🏥 Facility Setup
+              <Hospital size={18} /> Facility Setup
             </button>
           )}
         </div>
@@ -319,9 +333,9 @@ function Settings() {
                 <button
                   type="submit"
                   disabled={saving || loading}
-                  style={{ background: 'var(--blue-primary)', color: 'white', padding: '10px 24px', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                  style={{ background: 'var(--blue-primary)', color: 'white', padding: '10px 24px', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
-                  {saving ? 'Saving...' : 'Save Configuration'}
+                  <Save size={18} /> {saving ? 'Saving...' : 'Save Configuration'}
                 </button>
               </div>
             </form>
@@ -366,8 +380,8 @@ function Settings() {
                 <span style={{ color: '#78350f', fontSize: '13px' }}> Enable 2FA on your Google account → go to <em>Security → App Passwords</em> → generate a password for "Mail". Use that as SMTP password.</span>
               </div>
               <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'flex-end' }}>
-                <button type="submit" disabled={saving} style={{ background: 'var(--blue-primary)', color: 'white', padding: '10px 24px', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}>
-                  {saving ? 'Saving...' : 'Save SMTP Settings'}
+                <button type="submit" disabled={saving} style={{ background: 'var(--blue-primary)', color: 'white', padding: '10px 24px', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Save size={18} /> {saving ? 'Saving...' : 'Save SMTP Settings'}
                 </button>
               </div>
             </form>
@@ -383,13 +397,17 @@ function Settings() {
                   <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>Facility Categories</h3>
                   <form onSubmit={handleAddCategory} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                     <input type="text" required value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="New category name" style={{ flex: 1, padding: '8px', border: '1px solid var(--border-light)', borderRadius: '6px' }} />
-                    <button type="submit" style={{ background: 'var(--blue-primary)', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Add</button>
+                    <button type="submit" style={{ background: 'var(--blue-primary)', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Plus size={16} /> Add
+                    </button>
                   </form>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     {categories.map(c => (
-                      <li key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', border: '1px solid var(--border-light)', borderRadius: '6px', marginBottom: '8px', background: 'var(--bg-input)' }}>
+                      <li key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', border: '1px solid var(--border-light)', borderRadius: '6px', marginBottom: '8px', background: 'var(--bg-input)', alignItems: 'center' }}>
                         {c.name}
-                        <button onClick={() => handleDeleteCategory(c.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+                        <button onClick={() => handleDeleteCategory(c.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Trash2 size={16} />
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -402,17 +420,21 @@ function Settings() {
                     {districts.map(d => (
                       <li key={d.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', border: '1px solid var(--border-light)', borderRadius: '6px', marginBottom: '8px', background: 'var(--bg-input)' }}>
                         {editDistrict && editDistrict.id === d.id ? (
-                          <form onSubmit={handleUpdateDistrict} style={{ display: 'flex', gap: '8px', width: '100%' }}>
-                            <input autoFocus required value={editDistrictName} onChange={e => setEditDistrictName(e.target.value)} style={{ flex: 1, padding: '4px', border: '1px solid #ccc' }} />
-                            <button type="submit" style={{ background: 'var(--blue-primary)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Save</button>
-                            <button type="button" onClick={() => setEditDistrict(null)} style={{ background: '#e2e8f0', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+                          <form onSubmit={handleUpdateDistrict} style={{ display: 'flex', gap: '8px', width: '100%', alignItems: 'center' }}>
+                            <input autoFocus required value={editDistrictName} onChange={e => setEditDistrictName(e.target.value)} style={{ flex: 1, padding: '8px', border: '1px solid var(--blue-primary)', borderRadius: '4px' }} />
+                            <button type="submit" style={{ background: 'var(--blue-primary)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '8px 12px' }}>Save</button>
+                            <button type="button" onClick={() => setEditDistrict(null)} style={{ background: '#e2e8f0', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '8px 12px' }}>Cancel</button>
                           </form>
                         ) : (
                           <>
                             {d.name}
-                            <div>
-                              <button onClick={() => { setEditDistrict(d); setEditDistrictName(d.name); }} style={{ background: 'none', border: 'none', color: 'var(--blue-primary)', cursor: 'pointer', fontWeight: 600, marginRight: '12px' }}>Edit</button>
-                              <button onClick={() => handleDeleteDistrict(d.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                              <button onClick={() => { setEditDistrict(d); setEditDistrictName(d.name); }} style={{ background: 'none', border: 'none', color: 'var(--blue-primary)', cursor: 'pointer', fontWeight: 600 }}>
+                                <Pencil size={16} />
+                              </button>
+                              <button onClick={() => handleDeleteDistrict(d.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 600 }}>
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           </>
                         )}
@@ -466,9 +488,12 @@ function Settings() {
                   <option value="bn">Bengali (বাংলা)</option>
                   <option value="gu">Gujarati (ગુજરાતી)</option>
                 </select>
-                <div style={{ marginTop: '24px', padding: '16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
-                  <strong style={{ color: '#166534', fontSize: '14px' }}>✨ Real-Time Translation</strong>
-                  <p style={{ color: '#15803d', fontSize: '13px', margin: '8px 0 0 0' }}>This feature uses Google Translate to instantly localize all dashboard text, patient records, and system settings into your local Indian language.</p>
+                <div style={{ marginTop: '24px', padding: '16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <Sparkles size={20} color="#166534" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ color: '#166534', fontSize: '14px' }}>Real-Time Translation</strong>
+                    <p style={{ color: '#15803d', fontSize: '13px', margin: '4px 0 0 0' }}>This feature uses Google Translate to instantly localize all dashboard text, patient records, and system settings into your local Indian language.</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -497,9 +522,9 @@ function Settings() {
                 <button
                   type="submit"
                   disabled={saving || loading}
-                  style={{ background: 'var(--blue-primary)', color: 'white', padding: '10px 24px', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                  style={{ background: 'var(--blue-primary)', color: 'white', padding: '10px 24px', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
-                  {saving ? 'Saving...' : 'Save Settings'}
+                  <Save size={18} /> {saving ? 'Saving...' : 'Save Settings'}
                 </button>
               </div>
             </form>

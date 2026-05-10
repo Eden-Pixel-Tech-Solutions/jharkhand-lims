@@ -1,27 +1,20 @@
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { 
-  Hospital, 
-  Database, 
-  LayoutGrid, 
-  Map as MapIcon, 
-  Activity, 
-  ShieldCheck, 
-  Clock, 
-  Users, 
-  Search, 
   Plus, 
-  Edit2, 
-  Trash2, 
-  X, 
-  Maximize, 
-  Minimize, 
+  Search, 
+  Map as MapIcon, 
+  Grid, 
+  Layout, 
+  Building2, 
+  Building, 
   Home, 
-  ChevronDown, 
-  Navigation, 
-  RefreshCw,
-  AlertCircle,
-  MapPin,
-  GitBranch,
-  Layers
+  Phone, 
+  Tag, 
+  MapPin, 
+  Globe, 
+  ArrowUp,
+  X,
+  Loader2
 } from 'lucide-react';
 import '../../assets/CSS/Hospitals.css';
 
@@ -247,9 +240,9 @@ function NetworkGraph({ branches, selectedId, onSelect }) {
         {tooltip.text}
       </div>
       <div className="h-graph-controls">
-        <button className="h-ctrl-btn" onClick={zoomIn} title="Zoom in"><Plus size={16} /></button>
-        <button className="h-ctrl-btn" onClick={zoomOut} title="Zoom out"><Minimize size={16} /></button>
-        <button className="h-ctrl-btn" onClick={reset} title="Reset view"><Home size={16} /></button>
+        <button className="h-ctrl-btn" onClick={zoomIn} title="Zoom in">+</button>
+        <button className="h-ctrl-btn" onClick={zoomOut} title="Zoom out">−</button>
+        <button className="h-ctrl-btn" onClick={reset} title="Reset view" style={{ fontSize: 13 }}>⌂</button>
       </div>
       <div style={{
         position: 'absolute', bottom: 20, left: 16,
@@ -456,7 +449,10 @@ function MapView({ branches, selectedId, onSelect, onCoordsUpdate }) {
           </div>
           <button className="h-map-fix-btn" onClick={() => setShowFixer(f => !f)}>
             {showFixer ? 'Hide' : 'Fix Now'}
-            <ChevronDown size={14} style={{ transform: showFixer ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"
+              style={{ transform: showFixer ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </button>
         </div>
       )}
@@ -478,12 +474,17 @@ function MapView({ branches, selectedId, onSelect, onCoordsUpdate }) {
             >
               {batchRunning ? (
                 <>
-                  <RefreshCw size={12} className="animate-spin" />
+                  <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+                    style={{ animation: 'spin 0.8s linear infinite' }}>
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
                   Running…
                 </>
               ) : (
                 <>
-                  <RefreshCw size={12} />
+                  <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-.08-8.53" />
+                  </svg>
                   Geocode All ({branchesMissingCoords.filter(b => b.address).length})
                 </>
               )}
@@ -534,7 +535,9 @@ function MapView({ branches, selectedId, onSelect, onCoordsUpdate }) {
                         onClick={() => geocodeSingle(b)}
                         disabled={batchRunning}
                       >
-                        <MapPin size={12} />
+                        <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+                        </svg>
                         Locate
                       </button>
                     )}
@@ -811,7 +814,7 @@ export default function Hospitals() {
       <header className="h-topbar">
         <div className="h-topbar-left">
           <div className="h-topbar-icon">
-            <Hospital size={20} color="white" />
+            <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>
           </div>
           <div>
             <div className="h-topbar-title">Hospital Network</div>
@@ -835,10 +838,10 @@ export default function Hospitals() {
       {/* ── Stats Strip ─────────────────────────────────────────── */}
       <div className="h-stats-strip">
         {[
-          { label: 'Total Facilities', val: stats.total, icon: <Hospital size={18} />, cls: 'navy' },
-          { label: 'Central Hubs', val: stats.central, icon: <Database size={18} />, cls: 'navy' },
-          { label: 'Sub-Central', val: stats.sub, icon: <Layers size={18} />, cls: 'blue' },
-          { label: 'Centers / Labs', val: stats.centers, icon: <GitBranch size={18} />, cls: 'sky' },
+          { label: 'Total Facilities', val: stats.total, icon: <Building2 size={18} />, cls: 'navy' },
+          { label: 'Central Hubs', val: stats.central, icon: <Building size={18} />, cls: 'navy' },
+          { label: 'Sub-Central', val: stats.sub, icon: <Home size={18} />, cls: 'blue' },
+          { label: 'Centers / Labs', val: stats.centers, icon: <Layout size={18} />, cls: 'sky' },
         ].map(s => (
           <div className="h-stat-cell" key={s.label}>
             <div className={`h-stat-icon ${s.cls}`}>{s.icon}</div>
@@ -858,7 +861,7 @@ export default function Hospitals() {
           <div className="h-sidebar-section">
             <div className="h-sidebar-label">Search</div>
             <div className="h-search">
-              <Search className="h-search-icon" size={14} />
+              <svg className="h-search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
               <input type="text" placeholder="Name, code, district…" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
           </div>
@@ -905,11 +908,14 @@ export default function Hospitals() {
           {/* View toggle — now 3 buttons */}
           <div className="h-view-toggle">
             <button className={`h-vtbtn ${viewMode === 'graph' ? 'active' : ''}`} onClick={() => setViewMode('graph')}>
-              <GitBranch size={14} />
+              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="5" r="2" /><circle cx="5" cy="19" r="2" /><circle cx="19" cy="19" r="2" />
+                <line x1="12" y1="7" x2="5" y2="17" /><line x1="12" y1="7" x2="19" y2="17" />
+              </svg>
               Graph
             </button>
             <button className={`h-vtbtn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
-              <LayoutGrid size={14} />
+              <Grid size={14} />
               Grid
             </button>
             <button className={`h-vtbtn ${viewMode === 'map' ? 'active' : ''}`} onClick={() => setViewMode('map')}>
@@ -920,18 +926,12 @@ export default function Hospitals() {
 
           {loading ? (
             <div className="h-loading">
-              <svg width="24" height="24" fill="none" stroke="#94a3b8" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56">
-                  <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite" />
-                </path>
-              </svg>
+              <Loader2 size={24} className="h-spin" />
               Loading facilities…
             </div>
           ) : branches.length === 0 ? (
             <div className="h-empty">
-              <svg fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              </svg>
+              <Building2 size={48} />
               No facilities added yet
             </div>
           ) : viewMode === 'graph' ? (
@@ -964,10 +964,10 @@ export default function Hospitals() {
                       {b.branch_level || 'Center'}
                     </div>
                     <div className="h-gc-fields">
-                      <div className="h-gc-field"><span>📍</span><span><strong>{b.district_name}</strong></span></div>
-                      {b.category && <div className="h-gc-field"><span>🏷</span><span>{b.category}</span></div>}
-                      {b.contact_number && <div className="h-gc-field"><span>📞</span><span>{b.contact_number}</span></div>}
-                      {b.parent_branch_name && <div className="h-gc-field"><span>↑</span><span>Reports to <strong>{b.parent_branch_name}</strong></span></div>}
+                      <div className="h-gc-field"><MapPin size={14} /><span><strong>{b.district_name}</strong></span></div>
+                      {b.category && <div className="h-gc-field"><Tag size={14} /><span>{b.category}</span></div>}
+                      {b.contact_number && <div className="h-gc-field"><Phone size={14} /><span>{b.contact_number}</span></div>}
+                      {b.parent_branch_name && <div className="h-gc-field"><ArrowUp size={14} /><span>Reports to <strong>{b.parent_branch_name}</strong></span></div>}
                     </div>
                   </div>
                   {canEdit(b) && (
@@ -994,12 +994,12 @@ export default function Hospitals() {
               <div className="h-detail-code">{selectedNode.hospital_code}</div>
               <div className="h-detail-rows">
                 {[
-                  { icon: '📍', label: 'District', val: selectedNode.district_name },
-                  { icon: '🏷', label: 'Category', val: selectedNode.category },
-                  { icon: '📞', label: 'Contact', val: selectedNode.contact_number },
-                  { icon: '📌', label: 'Address', val: selectedNode.address },
-                  { icon: '↑', label: 'Reports To', val: selectedNode.parent_branch_name },
-                  { icon: '🌐', label: 'Coordinates', val: selectedNode.latitude && selectedNode.longitude ? `${selectedNode.latitude}, ${selectedNode.longitude}` : null },
+                  { icon: <MapPin size={14} />, label: 'District', val: selectedNode.district_name },
+                  { icon: <Tag size={14} />, label: 'Category', val: selectedNode.category },
+                  { icon: <Phone size={14} />, label: 'Contact', val: selectedNode.contact_number },
+                  { icon: <MapPin size={14} />, label: 'Address', val: selectedNode.address },
+                  { icon: <ArrowUp size={14} />, label: 'Reports To', val: selectedNode.parent_branch_name },
+                  { icon: <Globe size={14} />, label: 'Coordinates', val: selectedNode.latitude && selectedNode.longitude ? `${selectedNode.latitude}, ${selectedNode.longitude}` : null },
                 ].filter(r => r.val).map(r => (
                   <div className="h-detail-row" key={r.label}>
                     <div className="h-detail-row-icon">{r.icon}</div>
@@ -1017,7 +1017,10 @@ export default function Hospitals() {
                     className="btn-map-view"
                     onClick={() => setViewMode('map')}
                   >
-                    <MapIcon size={14} />
+                    <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                      <line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" />
+                    </svg>
                     View on Map
                   </button>
                 </div>

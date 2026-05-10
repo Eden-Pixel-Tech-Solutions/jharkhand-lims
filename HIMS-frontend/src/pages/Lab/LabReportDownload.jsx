@@ -1,5 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { 
+  Search, 
+  RotateCcw, 
+  FileText, 
+  Library, 
+  Eye, 
+  Download, 
+  Printer, 
+  X 
+} from 'lucide-react';
 import '../../assets/CSS/LabReportDownload.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://172.16.11.160:5000';
@@ -246,11 +256,11 @@ const LabReportDownload = () => {
               onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
             />
           </div>
-          <button className="search-btn" onClick={handleSearch}>
-            🔍 Search
+          <button className="search-btn" onClick={handleSearch} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Search size={16} /> Search
           </button>
-          <button className="reset-btn" onClick={() => { setSearchQuery(''); setDateRange({ from: '', to: '' }); fetchApprovedReports(); }}>
-            ↺ Reset
+          <button className="reset-btn" onClick={() => { setSearchQuery(''); setDateRange({ from: '', to: '' }); fetchApprovedReports(); }} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <RotateCcw size={16} /> Reset
           </button>
         </div>
       </div>
@@ -265,11 +275,11 @@ const LabReportDownload = () => {
               <span className="table-result-count">{reports.length} Records Found</span>
             </div>
             <div className="table-toolbar-actions">
-              <button className="toolbar-export-btn" onClick={handleExportCSV}>
-                📄 Export List (CSV)
+              <button className="toolbar-export-btn" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileText size={16} /> Export List (CSV)
               </button>
-              <button className="toolbar-download-all-btn" onClick={handleDownloadAllPDFs}>
-                📚 Download All (PDF)
+              <button className="toolbar-download-all-btn" onClick={handleDownloadAllPDFs} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Library size={16} /> Download All (PDF)
               </button>
             </div>
           </div>
@@ -298,8 +308,8 @@ const LabReportDownload = () => {
                     <td className="date-cell">{formatDate(report.tested_at)}</td>
                     <td className="date-cell">{formatDate(report.verified_at)}</td>
                     <td>
-                      <button className="view-btn" onClick={() => handleViewReport(report)}>
-                        👁 View / Download
+                      <button className="view-btn" onClick={() => handleViewReport(report)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Eye size={14} /> View / Download
                       </button>
                     </td>
                   </tr>
@@ -317,14 +327,14 @@ const LabReportDownload = () => {
             <div className="modal-header">
               <h2>Lab Test Report Document</h2>
               <div className="modal-actions">
-                <button className="download-btn" onClick={() => handleDownloadPDF(reportDetails?.sample_id)}>
-                  📥 Download PDF
+                <button className="download-btn" onClick={() => handleDownloadPDF(reportDetails?.sample_id)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Download size={16} /> Download PDF
                 </button>
-                <button className="print-btn" onClick={handlePrint}>
-                  🖨️ Print
+                <button className="print-btn" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Printer size={16} /> Print
                 </button>
-                <button className="close-modal-btn" onClick={() => setSelectedReport(null)}>
-                  ✕
+                <button className="close-modal-btn" onClick={() => setSelectedReport(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={18} />
                 </button>
               </div>
             </div>

@@ -1,5 +1,9 @@
-//patientRegistration.jsx
 import { useState, useEffect } from 'react';
+import { 
+  ArrowLeft,
+  MapPin,
+  Check
+} from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
 import PatientDetails from './PatientDetails';
@@ -121,18 +125,20 @@ function PatientRegistration() {
                   borderRadius: '20px',
                   fontSize: '12px',
                   fontWeight: '600',
-                  border: '1px solid #bae6fd'
+                  border: '1px solid #bae6fd',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}>
-                  📍 {labName}
+                  <MapPin size={12} />
+                  {labName}
                 </span>
               </div>
               <span>Complete sections or search for an existing patient</span>
             </div>
 
             <button className="preg-back-btn" onClick={() => window.history.back()}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
-              </svg>
+              <ArrowLeft size={14} />
               Exit
             </button>
           </div>

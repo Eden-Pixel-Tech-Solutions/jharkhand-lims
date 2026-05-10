@@ -1,4 +1,14 @@
 import { useState, useEffect } from 'react';
+import { 
+  Download, 
+  Plus, 
+  TrendingDown, 
+  Clock, 
+  CheckCircle,
+  ReceiptText,
+  NotebookTabs,
+  X 
+} from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
 import Select from 'react-select';
@@ -209,11 +219,11 @@ function PurchasePayments() {
           <p>Manage supplier invoices, payments, and running ledgers</p>
         </div>
         <div className="ap-actions" style={{ display: 'flex', gap: '12px' }}>
-          <button className="ap-submit-btn" style={{ width: 'auto', padding: '12px 24px', background: '#059669' }} onClick={handleExportCSV}>
-            Export CSV
+          <button className="ap-submit-btn" style={{ width: 'auto', padding: '12px 24px', background: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={handleExportCSV}>
+            <Download size={16} /> Export CSV
           </button>
-          <button className="ap-submit-btn" style={{ width: 'auto', padding: '12px 24px' }} onClick={() => setIsInvoiceModalOpen(true)}>
-            + Record Supplier Bill
+          <button className="ap-submit-btn" style={{ width: 'auto', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => setIsInvoiceModalOpen(true)}>
+            <Plus size={18} /> Record Supplier Bill
           </button>
         </div>
       </div>
@@ -221,21 +231,27 @@ function PurchasePayments() {
       {/* KPI Stats */}
       <div className="ap-stats-grid">
         <div className="ap-stat-card">
-          <div className="ap-stat-icon" style={{ background: '#fee2e2', color: '#dc2626' }}>💸</div>
+          <div className="ap-stat-icon" style={{ background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <TrendingDown size={20} />
+          </div>
           <div className="ap-stat-info">
             <h3>Overdue Amount</h3>
             <p className="stat-value" style={{ color: '#dc2626' }}>₹{parseFloat(stats.overdue_amount).toLocaleString()}</p>
           </div>
         </div>
         <div className="ap-stat-card">
-          <div className="ap-stat-icon" style={{ background: '#fef3c7', color: '#d97706' }}>⏳</div>
+          <div className="ap-stat-icon" style={{ background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Clock size={20} />
+          </div>
           <div className="ap-stat-info">
             <h3>Total Outstanding</h3>
             <p className="stat-value">₹{parseFloat(stats.total_payable).toLocaleString()}</p>
           </div>
         </div>
         <div className="ap-stat-card">
-          <div className="ap-stat-icon" style={{ background: '#dcfce7', color: '#10b981' }}>✅</div>
+          <div className="ap-stat-icon" style={{ background: '#dcfce7', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CheckCircle size={20} />
+          </div>
           <div className="ap-stat-info">
             <h3>Paid This Month</h3>
             <p className="stat-value" style={{ color: '#10b981' }}>₹{parseFloat(stats.paid_this_month).toLocaleString()}</p>
@@ -244,11 +260,11 @@ function PurchasePayments() {
       </div>
 
       <div className="ap-tabs-nav">
-        <button className={`ap-tab-btn ${activeTab === 'invoices' ? 'active' : ''}`} onClick={() => setActiveTab('invoices')}>
-          Supplier Invoices
+        <button className={`ap-tab-btn ${activeTab === 'invoices' ? 'active' : ''}`} onClick={() => setActiveTab('invoices')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ReceiptText size={16} /> Supplier Invoices
         </button>
-        <button className={`ap-tab-btn ${activeTab === 'ledger' ? 'active' : ''}`} onClick={() => setActiveTab('ledger')}>
-          Supplier Ledger
+        <button className={`ap-tab-btn ${activeTab === 'ledger' ? 'active' : ''}`} onClick={() => setActiveTab('ledger')} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <NotebookTabs size={16} /> Supplier Ledger
         </button>
       </div>
 
@@ -372,7 +388,9 @@ function PurchasePayments() {
           <div className="ap-modal" onClick={e => e.stopPropagation()}>
             <div className="ap-modal-header">
               <h2>Record Supplier Invoice</h2>
-              <button className="ap-modal-close" onClick={() => setIsInvoiceModalOpen(false)}>&times;</button>
+              <button className="ap-modal-close" onClick={() => setIsInvoiceModalOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} />
+              </button>
             </div>
             <form onSubmit={handleCreateInvoice} className="ap-modal-body">
               <div className="ap-field">
@@ -415,7 +433,9 @@ function PurchasePayments() {
           <div className="ap-modal" onClick={e => e.stopPropagation()}>
             <div className="ap-modal-header">
               <h2>Record Payment</h2>
-              <button className="ap-modal-close" onClick={() => setIsPaymentModalOpen(false)}>&times;</button>
+              <button className="ap-modal-close" onClick={() => setIsPaymentModalOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} />
+              </button>
             </div>
             <form onSubmit={handleMakePayment} className="ap-modal-body">
               <div className="ap-payment-summary">

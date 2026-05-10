@@ -1,16 +1,34 @@
 import { useState, useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
-import { Monitor, RefreshCw, FlaskConical, Beaker, Microchip, Microscope, Activity } from 'lucide-react';
+import { 
+  Monitor, 
+  RefreshCw, 
+  FlaskConical, 
+  Beaker, 
+  Microchip, 
+  Microscope, 
+  Activity,
+  LayoutGrid,
+  Droplets,
+  Bug,
+  ClipboardList,
+  Check,
+  PieChart,
+  Printer,
+  X,
+  MapPin,
+  Clock
+} from 'lucide-react';
 import '../../assets/CSS/LabWorklist.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
 
 const DEPARTMENTS = [
-  { id: 'all', name: 'All Departments', icon: '🏥' },
-  { id: 'hematology', name: 'Hematology', icon: '🩸' },
-  { id: 'biochemistry', name: 'Biochemistry', icon: '🧪' },
-  { id: 'serology', name: 'Serology', icon: '🔬' },
-  { id: 'microbiology', name: 'Microbiology', icon: '🦠' }
+  { id: 'all', name: 'All Departments', icon: <LayoutGrid size={18} /> },
+  { id: 'hematology', name: 'Hematology', icon: <Droplets size={18} /> },
+  { id: 'biochemistry', name: 'Biochemistry', icon: <FlaskConical size={18} /> },
+  { id: 'serology', name: 'Serology', icon: <Microscope size={18} /> },
+  { id: 'microbiology', name: 'Microbiology', icon: <Bug size={18} /> }
 ];
 
 const STATUS_COLORS = {
@@ -294,8 +312,15 @@ export default function LabWorklist() {
       {/* Header */}
       <div className="worklist-header">
         <div className="header-title-section">
-          <h1>🧪 Laboratory Worklist</h1>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <FlaskConical size={28} color="#1d4ed8" />
+            Laboratory Worklist
+          </h1>
           <p>Real-time sample collection & monitoring</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#e0f2fe', color: '#0369a1', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: '700', border: '1px solid #bae6fd' }}>
+          <MapPin size={16} />
+          {branches.find(b => b.branch_id == selectedBranch)?.name || 'Default Branch'}
         </div>
       </div>
 
@@ -352,7 +377,7 @@ export default function LabWorklist() {
           <div className="loading">Loading worklist...</div>
         ) : worklist.length === 0 ? (
           <div className="empty-state">
-            <span className="empty-icon">📋</span>
+            <span className="empty-icon"><ClipboardList size={48} /></span>
             <p>No pending tests for {getDepartmentName(selectedDepartment)}</p>
           </div>
         ) : (
@@ -397,8 +422,9 @@ export default function LabWorklist() {
                           {item.status}
                         </span>
                         {item.pending_params && item.pending_params.length > 0 && (
-                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '600', maxWidth: '120px' }}>
-                            ⏳ Waiting for: {item.pending_params.join(', ')}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#64748b', fontWeight: '600', maxWidth: '120px' }}>
+                            <Clock size={10} />
+                            Waiting for: {item.pending_params.join(', ')}
                           </div>
                         )}
                       </div>
@@ -408,15 +434,19 @@ export default function LabWorklist() {
                         <button
                           className="acknowledge-btn"
                           onClick={() => handleAcknowledge(item)}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                         >
-                          ✓ Acknowledge
+                          <Check size={14} />
+                          Acknowledge
                         </button>
                       ) : item.status === 'Test Done' ? (
                         <button
                           className="view-results-btn"
                           onClick={() => handleViewResults(item)}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                         >
-                          📊 View Results
+                          <PieChart size={14} />
+                          View Results
                         </button>
                       ) : (
                         <span className="sample-id-text">{item.sample_id}</span>
@@ -443,11 +473,11 @@ export default function LabWorklist() {
               <div className="dept-info">{printLabel.department} | {printLabel.sampleType}</div>
             </div>
             <div className="preview-actions">
-              <button className="print-again-btn" onClick={handlePrint}>
-                🖨️ Print Again
+              <button className="print-again-btn" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Printer size={14} /> Print Again
               </button>
-              <button className="close" onClick={() => setPrintLabel(null)}>
-                ✕ Close
+              <button className="close" onClick={() => setPrintLabel(null)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <X size={14} /> Close
               </button>
             </div>
           </div>

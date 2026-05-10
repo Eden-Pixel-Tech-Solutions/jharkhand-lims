@@ -1,4 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
+import { 
+  Box, 
+  ClipboardList, 
+  LayoutGrid, 
+  Building2, 
+  Download, 
+  CheckCircle, 
+  X, 
+  Search,
+  RotateCcw,
+  IndianRupee,
+  AlertTriangle,
+  Clock,
+  PackageX
+} from 'lucide-react';
 import '../../assets/CSS/InventoryNetworkDashboard.css';
 
 const API = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
@@ -152,7 +167,9 @@ export default function InventoryOverview() {
       {/* Header */}
       <div className="inv-net-header">
         <div className="inv-net-header-left">
-          <div className="inv-net-header-icon">🗂️</div>
+          <div className="inv-net-header-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Box size={24} color="#1d4ed8" />
+          </div>
           <div>
             <div className="inv-net-header-title">{titleMap[roleLevel] || 'Inventory Overview'}</div>
             <div className="inv-net-header-sub">Real-time stock visibility · {new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}</div>
@@ -161,17 +178,20 @@ export default function InventoryOverview() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           {(roleLevel === 'Central' || roleLevel === 'Sub-Central') && facilityStock.length > 0 && (
             <div className="inv-net-view-toggle">
-              <button className={viewMode === 'catalog' ? 'active' : ''} onClick={() => setViewMode('catalog')}>📋 Catalog</button>
-              <button className={viewMode === 'facility' ? 'active' : ''} onClick={() => setViewMode('facility')}>🏥 By Facility</button>
+              <button className={viewMode === 'catalog' ? 'active' : ''} onClick={() => setViewMode('catalog')} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ClipboardList size={14} /> Catalog
+              </button>
+              <button className={viewMode === 'facility' ? 'active' : ''} onClick={() => setViewMode('facility')} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Building2 size={14} /> By Facility
+              </button>
             </div>
           )}
           <div className="inv-net-role-badge">{roleLevel}</div>
           <button
-            className="inv-net-clear-btn"
-            style={{ marginLeft: 5, background: '#10b981', color: 'white', borderColor: '#10b981' }}
+            className="inv-net-export-btn"
             onClick={viewMode === 'catalog' ? exportCatalogCSV : exportFacilityCSV}
           >
-            📥 Export CSV
+            <Download size={16} /> Export CSV
           </button>
         </div>
       </div>
@@ -183,8 +203,10 @@ export default function InventoryOverview() {
           <span className="inv-summary-label">Total Items</span>
         </div>
         <div className="inv-summary-pill ok" onClick={() => setStatus('OK')}>
-          <span className="inv-summary-num">{summary.ok}</span>
-          <span className="inv-summary-label">✓ OK</span>
+          <span className="inv-summary-num">
+            <CheckCircle size={18} /> {summary.ok}
+          </span>
+          <span className="inv-summary-label">OK</span>
         </div>
         <div className="inv-summary-pill low" onClick={() => setStatus('Low')}>
           <span className="inv-summary-num">{summary.low}</span>
@@ -200,12 +222,16 @@ export default function InventoryOverview() {
         </div>
         {roleLevel === 'Central' && (
           <div className="inv-summary-pill value">
-            <span className="inv-summary-num">{fmtRs(summary.totalValue)}</span>
+            <span className="inv-summary-num">
+              <IndianRupee size={18} /> {fmt(summary.totalValue)}
+            </span>
             <span className="inv-summary-label">Total Value</span>
           </div>
         )}
         {statusFilter !== 'All' && (
-          <button className="inv-net-clear-btn" onClick={() => setStatus('All')}>✕ Clear Filter</button>
+          <button className="inv-net-clear-btn" onClick={() => setStatus('All')}>
+            <X size={14} /> Clear Filter
+          </button>
         )}
       </div>
 
@@ -213,10 +239,12 @@ export default function InventoryOverview() {
       {viewMode === 'catalog' && (
         <>
           {/* Filters */}
-          <div className="inv-net-filters">
+          <div className="inv-net-filters" style={{ position: 'relative' }}>
+            <Search style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={16} />
             <input
               className="inv-net-search"
-              placeholder="🔍  Search by name or code…"
+              style={{ paddingLeft: '40px' }}
+              placeholder="Search by name or code…"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />

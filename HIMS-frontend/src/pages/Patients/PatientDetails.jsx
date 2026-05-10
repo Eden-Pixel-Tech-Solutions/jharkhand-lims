@@ -1,4 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
+import { 
+  Search, 
+  User, 
+  Camera, 
+  ArrowRight, 
+  Check 
+} from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
 import '../../assets/CSS/PatientRegistration.css';
@@ -243,9 +250,7 @@ function PatientDetails({ onSaveSuccess }) {
 
               <div style={{ marginLeft: 24, position: 'relative', flex: 1, maxWidth: '300px' }} ref={searchRef}>
                 <div style={{ position: 'relative' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" style={{ position: 'absolute', left: 12, top: 11 }}>
-                    <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
+                  <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: 12, top: 11 }} />
                   <input
                     type="text"
                     className="preg-input"
@@ -276,7 +281,7 @@ function PatientDetails({ onSaveSuccess }) {
                               <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '13px' }}>{p.first_name} {p.last_name}</div>
                               <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>{p.reg_no} • {p.telephone || 'No phone'}</div>
                             </div>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue-primary)" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                            <ArrowRight size={16} color="var(--blue-primary)" />
                           </div>
                         ))}
                       </div>
@@ -294,10 +299,7 @@ function PatientDetails({ onSaveSuccess }) {
                 {photo
                   ? <img src={photo} alt="patient" />
                   : <>
-                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M12 11c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z" />
-                      <path d="M4 20c0-3.31 3.58-6 8-6s8 2.69 8 6" />
-                    </svg>
+                    <User size={22} color="currentColor" strokeWidth={1.5} />
                     <span>Add Photo</span>
                   </>
                 }
@@ -493,10 +495,8 @@ function PatientDetails({ onSaveSuccess }) {
         </span>
         <button className="btn-ghost" onClick={() => window.history.back()}>Cancel</button>
         <button className="btn-primary" onClick={handleSave}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-          Save &amp; Continue
+          <Check size={15} strokeWidth={2.5} />
+          Save & Continue
         </button>
       </div>
 
@@ -512,9 +512,7 @@ function PatientDetails({ onSaveSuccess }) {
             <div className="camera-actions">
               <button type="button" className="btn-ghost" onClick={closeCam}>Cancel</button>
               <button type="button" className="btn-primary" onClick={capturePhoto}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="3" /><path d="M3 9a2 2 0 012-2h1l2-3h8l2 3h1a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                </svg>
+                <Camera size={14} />
                 Capture
               </button>
             </div>

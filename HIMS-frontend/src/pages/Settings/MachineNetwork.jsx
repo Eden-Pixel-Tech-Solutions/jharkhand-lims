@@ -1,4 +1,14 @@
 import React, { useState } from 'react';
+import { 
+  Download, 
+  RefreshCw, 
+  Cpu, 
+  Activity, 
+  Network, 
+  LifeBuoy, 
+  X,
+  FileText
+} from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
 import '../../assets/CSS/MachineNetwork.css';
@@ -146,10 +156,12 @@ const MachineNetwork = () => {
           <p>Real-time status of laboratory analyzers across all branches</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button className="btn-primary" onClick={exportAllAnalyzers} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
-            📥 Export All Analyzers
+          <button className="btn-primary" onClick={exportAllAnalyzers} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
+            <Download size={16} />
+            Export All Analyzers
           </button>
-          <button className="btn-primary btn-refresh" onClick={() => window.location.reload()} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
+          <button className="btn-primary btn-refresh" onClick={() => window.location.reload()} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '8px', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>
+            <RefreshCw size={16} />
             Refresh Data
           </button>
         </div>
@@ -187,9 +199,10 @@ const MachineNetwork = () => {
                 <button
                   className="btn-ghost"
                   onClick={() => exportBranchAnalyzers(branch.branchName, branch.machines)}
-                  style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', border: '1px solid var(--border-light)', cursor: 'pointer', background: 'white' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', border: '1px solid var(--border-light)', cursor: 'pointer', background: 'white' }}
                 >
-                  📥 Branch CSV
+                  <FileText size={14} />
+                  Branch CSV
                 </button>
               </div>
               <table className="machine-table">
@@ -220,8 +233,9 @@ const MachineNetwork = () => {
                       <td>
                         <button
                           onClick={() => handleOpenSupport(machine, branch.branchName)}
-                          style={{ background: 'var(--blue-pale)', color: 'var(--blue-primary)', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--blue-pale)', color: 'var(--blue-primary)', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}
                         >
+                          <LifeBuoy size={14} />
                           Create Support
                         </button>
                       </td>
@@ -239,9 +253,10 @@ const MachineNetwork = () => {
           <button
             className="btn-primary"
             onClick={handleExportCSV}
-            style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '13px', background: '#10b981', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', background: '#10b981', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}
           >
-            📥 Export CSV
+            <Download size={14} />
+            Export CSV
           </button>
         </div>
 
@@ -292,12 +307,10 @@ const MachineNetwork = () => {
             <div className="modal-header">
               <h3>Create Support Ticket</h3>
               <button
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b' }}
                 onClick={() => setShowSupportModal(false)}
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+                <X size={20} />
               </button>
             </div>
             <form onSubmit={handleSupportSubmit}>

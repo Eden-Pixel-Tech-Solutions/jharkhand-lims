@@ -1,4 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
+import { 
+  FilePlus, 
+  FileStack, 
+  Sparkles, 
+  Plus, 
+  Download, 
+  X,
+  FileCheck,
+  FileX,
+  Zap,
+  ArrowRight
+} from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
 import Select from 'react-select';
@@ -292,9 +304,15 @@ function PurchaseManagement() {
       </div>
 
       <div className="inv-tabs" style={{ display: 'flex', gap: '20px', marginBottom: '20px', borderBottom: '1px solid var(--border-light)' }}>
-        <button onClick={() => setActiveTab('requisitions')} style={{ background: 'none', border: 'none', padding: '10px 0', cursor: 'pointer', fontWeight: 600, color: activeTab === 'requisitions' ? 'var(--blue-primary)' : 'var(--text-soft)', borderBottom: activeTab === 'requisitions' ? '2px solid var(--blue-primary)' : '2px solid transparent' }}>Purchase Requisitions (PR)</button>
-        <button onClick={() => setActiveTab('orders')} style={{ background: 'none', border: 'none', padding: '10px 0', cursor: 'pointer', fontWeight: 600, color: activeTab === 'orders' ? 'var(--blue-primary)' : 'var(--text-soft)', borderBottom: activeTab === 'orders' ? '2px solid var(--blue-primary)' : '2px solid transparent' }}>Purchase Orders (PO)</button>
-        <button onClick={() => setActiveTab('suggestions')} style={{ background: 'none', border: 'none', padding: '10px 0', cursor: 'pointer', fontWeight: 600, color: activeTab === 'suggestions' ? '#10b981' : 'var(--text-soft)', borderBottom: activeTab === 'suggestions' ? '2px solid #10b981' : '2px solid transparent' }}>🔮 AI Auto-Suggestions</button>
+        <button onClick={() => setActiveTab('requisitions')} style={{ background: 'none', border: 'none', padding: '10px 0', cursor: 'pointer', fontWeight: 600, color: activeTab === 'requisitions' ? 'var(--blue-primary)' : 'var(--text-soft)', borderBottom: activeTab === 'requisitions' ? '2px solid var(--blue-primary)' : '2px solid transparent', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FilePlus size={16} /> Purchase Requisitions (PR)
+        </button>
+        <button onClick={() => setActiveTab('orders')} style={{ background: 'none', border: 'none', padding: '10px 0', cursor: 'pointer', fontWeight: 600, color: activeTab === 'orders' ? 'var(--blue-primary)' : 'var(--text-soft)', borderBottom: activeTab === 'orders' ? '2px solid var(--blue-primary)' : '2px solid transparent', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FileStack size={16} /> Purchase Orders (PO)
+        </button>
+        <button onClick={() => setActiveTab('suggestions')} style={{ background: 'none', border: 'none', padding: '10px 0', cursor: 'pointer', fontWeight: 600, color: activeTab === 'suggestions' ? '#10b981' : 'var(--text-soft)', borderBottom: activeTab === 'suggestions' ? '2px solid #10b981' : '2px solid transparent', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Sparkles size={16} /> AI Auto-Suggestions
+        </button>
       </div>
 
       <div className="inv-card">
@@ -307,7 +325,9 @@ function PurchaseManagement() {
                 <h3 style={{ margin: 0, color: '#1e293b', fontSize: '18px', fontWeight: 700 }}>Purchase Requisitions (From Labs)</h3>
                 <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Review and process supply requests from laboratory departments</p>
               </div>
-              <button className="btn-primary" style={{ background: '#0d2554' }} onClick={() => setIsPRModalOpen(true)}>+ Create PR</button>
+              <button className="btn-primary" style={{ background: '#0d2554', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => setIsPRModalOpen(true)}>
+                <Plus size={16} /> Create PR
+              </button>
             </div>
             <table className="inv-table">
               <thead><tr><th>PR Number</th><th>Branch</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead>
@@ -330,12 +350,18 @@ function PurchaseManagement() {
                       <div style={{ display: 'flex', gap: '8px' }}>
                         {pr.status === 'PENDING' && (
                           <>
-                            <button onClick={() => updatePRStatus(pr.id, 'APPROVED')} className="btn-primary" style={{ padding: '4px 8px', fontSize: '12px' }}>Approve</button>
-                            <button onClick={() => updatePRStatus(pr.id, 'REJECTED')} className="btn-secondary" style={{ padding: '4px 8px', fontSize: '12px', color: 'red' }}>Reject</button>
+                            <button onClick={() => updatePRStatus(pr.id, 'APPROVED')} className="btn-primary" style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <FileCheck size={14} /> Approve
+                            </button>
+                            <button onClick={() => updatePRStatus(pr.id, 'REJECTED')} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', color: 'red', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <FileX size={14} /> Reject
+                            </button>
                           </>
                         )}
                         {pr.status === 'APPROVED' && (
-                          <button onClick={() => convertPRtoPO(pr)} className="btn-primary" style={{ padding: '4px 8px', fontSize: '12px', background: '#9333ea' }}>Generate PO</button>
+                          <button onClick={() => convertPRtoPO(pr)} className="btn-primary" style={{ padding: '6px 12px', fontSize: '12px', background: '#9333ea', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <ArrowRight size={14} /> Generate PO
+                          </button>
                         )}
                       </div>
                     </td>
@@ -354,7 +380,9 @@ function PurchaseManagement() {
                 <h3 style={{ margin: 0, color: '#1e293b', fontSize: '18px', fontWeight: 700 }}>Purchase Orders (To Vendors)</h3>
                 <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Generate and track official orders sent to registered suppliers</p>
               </div>
-              <button className="btn-primary" style={{ background: '#0d2554' }} onClick={() => { setPoForm({ vendor_id: '', expected_delivery_date: '', items: [{ item_id: '', quantity: '', unit_price: '' }], pr_id: null }); setIsPOModalOpen(true); }}>+ Create Direct PO</button>
+              <button className="btn-primary" style={{ background: '#0d2554', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => { setPoForm({ vendor_id: '', expected_delivery_date: '', items: [{ item_id: '', quantity: '', unit_price: '' }], pr_id: null }); setIsPOModalOpen(true); }}>
+                <Plus size={16} /> Create Direct PO
+              </button>
             </div>
             <table className="inv-table">
               <thead><tr><th>PO Number</th><th>Vendor</th><th>Expected Delivery</th><th>Total Amount</th><th>Status</th><th>Actions</th></tr></thead>
@@ -381,7 +409,7 @@ function PurchaseManagement() {
                         style={{ padding: '6px 12px', fontSize: '12px', background: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}
                         onClick={() => downloadPO(po)}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <Download size={14} />
                         {pdfLoading ? 'Generating...' : 'PDF'}
                       </button>
                     </td>
@@ -400,7 +428,9 @@ function PurchaseManagement() {
                 <h3 style={{ margin: 0, color: '#1e293b', fontSize: '18px', fontWeight: 700 }}>AI Purchase Suggestions</h3>
                 <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Smart inventory optimization based on ADU and Lead Times</p>
               </div>
-              <button className="btn-primary" onClick={generateAI} disabled={loading} style={{ background: '#10b981' }}>🔮 Run AI Scan</button>
+              <button className="btn-primary" onClick={generateAI} disabled={loading} style={{ background: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Zap size={16} /> Run AI Scan
+              </button>
             </div>
             <table className="inv-table">
               <thead><tr><th>Item Details</th><th>Preferred Vendor</th><th>Suggested Qty</th><th>Estimated Cost</th><th>Status</th></tr></thead>
@@ -425,7 +455,12 @@ function PurchaseManagement() {
       {isPRModalOpen && (
         <div className="inv-modal-overlay" onClick={() => setIsPRModalOpen(false)}>
           <div className="inv-drawer" style={{ width: '800px' }} onClick={e => e.stopPropagation()}>
-            <div className="inv-drawer-header"><h2>Create Purchase Requisition</h2><button className="inv-drawer-close" onClick={() => setIsPRModalOpen(false)}>&times;</button></div>
+            <div className="inv-drawer-header">
+              <h2>Create Purchase Requisition</h2>
+              <button className="inv-drawer-close" onClick={() => setIsPRModalOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} />
+              </button>
+            </div>
             <form onSubmit={handleCreatePR} className="inv-drawer-body">
               <div className="inv-form-group"><label>Requesting Department/Branch *</label>
                 <Select options={branches.map(b => ({ value: b.id, label: b.name }))} onChange={s => setPrForm({ ...prForm, branch_id: s?.value })} required />
@@ -438,7 +473,9 @@ function PurchaseManagement() {
                   <div style={{ flex: 2 }}><input type="text" placeholder="Remarks (optional)" className="inv-input" value={it.remarks} onChange={e => { const n = [...prForm.items]; n[idx].remarks = e.target.value; setPrForm({ ...prForm, items: n }); }} /></div>
                 </div>
               ))}
-              <button type="button" onClick={() => setPrForm({ ...prForm, items: [...prForm.items, { item_id: '', quantity: '', remarks: '' }] })} style={{ background: '#e0e7ff', color: '#4338ca', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}>+ Add Item</button>
+              <button type="button" onClick={() => setPrForm({ ...prForm, items: [...prForm.items, { item_id: '', quantity: '', remarks: '' }] })} style={{ background: '#e0e7ff', color: '#4338ca', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                <Plus size={14} /> Add Item
+              </button>
             </form>
             <div className="inv-drawer-footer"><button className="action-btn" onClick={() => setIsPRModalOpen(false)}>Cancel</button><button onClick={handleCreatePR} className="btn-primary">Submit PR</button></div>
           </div>
@@ -449,7 +486,12 @@ function PurchaseManagement() {
       {isPOModalOpen && (
         <div className="inv-modal-overlay" onClick={() => setIsPOModalOpen(false)}>
           <div className="inv-drawer" style={{ width: '800px' }} onClick={e => e.stopPropagation()}>
-            <div className="inv-drawer-header"><h2>Generate Purchase Order</h2><button className="inv-drawer-close" onClick={() => setIsPOModalOpen(false)}>&times;</button></div>
+            <div className="inv-drawer-header">
+              <h2>Generate Purchase Order</h2>
+              <button className="inv-drawer-close" onClick={() => setIsPOModalOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} />
+              </button>
+            </div>
             <form onSubmit={handleCreatePO} className="inv-drawer-body">
               <div className="inv-grid-2">
                 <div className="inv-form-group"><label>Vendor *</label>
@@ -467,7 +509,9 @@ function PurchaseManagement() {
                   <div style={{ flex: 1 }}><input type="number" step="0.01" placeholder="Unit Price (₹)" className="inv-input" required value={it.unit_price} onChange={e => { const n = [...poForm.items]; n[idx].unit_price = e.target.value; setPoForm({ ...poForm, items: n }); }} /></div>
                 </div>
               ))}
-              <button type="button" onClick={() => setPoForm({ ...poForm, items: [...poForm.items, { item_id: '', quantity: '', unit_price: '' }] })} style={{ background: '#e0e7ff', color: '#4338ca', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}>+ Add Item</button>
+              <button type="button" onClick={() => setPoForm({ ...poForm, items: [...poForm.items, { item_id: '', quantity: '', unit_price: '' }] })} style={{ background: '#e0e7ff', color: '#4338ca', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                <Plus size={14} /> Add Item
+              </button>
             </form>
             <div className="inv-drawer-footer"><button className="action-btn" onClick={() => setIsPOModalOpen(false)}>Cancel</button><button onClick={handleCreatePO} className="btn-primary">Generate PO</button></div>
           </div>
@@ -480,7 +524,9 @@ function PurchaseManagement() {
           <div className="inv-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
             <div className="inv-modal-header">
               <h2>Purchase Requisition Details</h2>
-              <button className="inv-modal-close" onClick={() => setViewPR(null)}>&times;</button>
+              <button className="inv-modal-close" onClick={() => setViewPR(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} />
+              </button>
             </div>
             <div className="inv-modal-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#f8fafc', padding: '16px', borderRadius: '8px', marginBottom: '20px' }}>
@@ -539,15 +585,18 @@ function PurchaseManagement() {
             <div className="inv-modal-header">
               <h2>Purchase Order Document</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                  onClick={() => downloadPO(viewPO)}
-                  disabled={pdfLoading}
-                  className="btn-primary"
-                  style={{ background: '#2563eb' }}
-                >
-                  {pdfLoading ? '⏳ Generating PDF...' : '⬇️ Download A4 PDF'}
-                </button>
-                <button className="inv-modal-close" onClick={() => setViewPO(null)}>&times;</button>
+                  <button
+                    onClick={() => downloadPO(viewPO)}
+                    disabled={pdfLoading}
+                    className="btn-primary"
+                    style={{ background: '#2563eb', display: 'flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    {pdfLoading ? <Clock size={16} /> : <Download size={16} />}
+                    {pdfLoading ? 'Generating PDF...' : 'Download A4 PDF'}
+                  </button>
+                  <button className="inv-modal-close" onClick={() => setViewPO(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <X size={20} />
+                  </button>
               </div>
             </div>
             <div className="inv-modal-body" id="printable-po" style={{ padding: '40px', background: 'white' }}>

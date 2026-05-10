@@ -1,5 +1,16 @@
 //hospital-infra.jsx
 import { useState, useEffect } from 'react';
+import { 
+  Plus, 
+  Building2, 
+  Layers, 
+  Cpu, 
+  Pencil, 
+  Trash2, 
+  X,
+  Activity,
+  Settings2
+} from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
 import '../../assets/CSS/HospitalInfra.css';
@@ -226,10 +237,8 @@ function HospitalInfra() {
             <h1>Hospital Infrastructure</h1>
             <p>Manage facility types, floor locations, and current availability</p>
           </div>
-          <button className="btn-primary" onClick={handleOpenAdd}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
+          <button className="btn-primary" onClick={handleOpenAdd} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={18} />
             Add New {activeTab}
           </button>
         </div>
@@ -259,36 +268,40 @@ function HospitalInfra() {
                     title={item.status}
                   ></span>
                 </div>
-                <div className="infra-details">
-                  <div className="infra-detail-item">
-                    <span>🏢</span> {item.block || 'Main Block'}
-                  </div>
-                  <div className="infra-detail-item">
-                    <span>🪜</span> Floor {item.floor || 0}
-                  </div>
-                  {item.capacity && activeTab !== 'Lab' && (
-                    <div className="infra-detail-item">
-                      <span>👥</span> Cap: {item.capacity}
+                  <div className="infra-details">
+                    <div className="infra-detail-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Building2 size={14} color="#64748b" /> {item.block || 'Main Block'}
                     </div>
-                  )}
-                  {item.machines_count && activeTab === 'Lab' && (
-                    <div className="infra-detail-item">
-                      <span>🔧</span> Machines: {item.machines_count}
+                    <div className="infra-detail-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Layers size={14} color="#64748b" /> Floor {item.floor || 0}
                     </div>
-                  )}
-                </div>
+                    {item.capacity && activeTab !== 'Lab' && (
+                      <div className="infra-detail-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Activity size={14} color="#64748b" /> Cap: {item.capacity}
+                      </div>
+                    )}
+                    {item.machines_count && activeTab === 'Lab' && (
+                      <div className="infra-detail-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Cpu size={14} color="#64748b" /> Machines: {item.machines_count}
+                      </div>
+                    )}
+                  </div>
                 <div className="infra-actions">
                   {activeTab === 'Lab' && (
                     <button
                       className="btn-ghost"
-                      style={{ height: 28, fontSize: 11, color: 'var(--brand-blue)' }}
+                      style={{ height: 28, fontSize: 11, color: 'var(--brand-blue)', display: 'flex', alignItems: 'center', gap: '4px' }}
                       onClick={() => openMachinesModal(item)}
                     >
-                      Machines
+                      <Settings2 size={12} /> Machines
                     </button>
                   )}
-                  <button className="btn-ghost" style={{ height: 28, fontSize: 11 }} onClick={() => handleEdit(item)}>Edit</button>
-                  <button className="btn-ghost" style={{ height: 28, fontSize: 11, color: 'var(--danger)' }} onClick={() => handleDelete(item.id)}>Remove</button>
+                  <button className="btn-ghost" style={{ height: 28, fontSize: 11, display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleEdit(item)}>
+                    <Pencil size={12} /> Edit
+                  </button>
+                  <button className="btn-ghost" style={{ height: 28, fontSize: 11, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => handleDelete(item.id)}>
+                    <Trash2 size={12} /> Remove
+                  </button>
                 </div>
               </div>
             ))
@@ -307,12 +320,10 @@ function HospitalInfra() {
                 <h3>{editingItem ? 'Edit' : 'Add New'} {activeTab}</h3>
                 <button
                   className="btn-ghost"
-                  style={{ border: 'none', background: 'transparent', padding: 0 }}
+                  style={{ border: 'none', background: 'transparent', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   onClick={() => setShowModal(false)}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  <X size={20} />
                 </button>
               </div>
               <form onSubmit={handleSubmit}>
@@ -378,12 +389,10 @@ function HospitalInfra() {
                 <h3>Analyser Machines — {selectedLab.name}</h3>
                 <button
                   className="btn-ghost"
-                  style={{ border: 'none', background: 'transparent', padding: 0 }}
+                  style={{ border: 'none', background: 'transparent', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   onClick={() => setShowMachinesModal(false)}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  <X size={20} />
                 </button>
               </div>
 
@@ -441,14 +450,11 @@ function HospitalInfra() {
                   </div>
                   <button
                     className="btn-primary"
-                    style={{ marginTop: '12px', height: '32px', fontSize: '13px' }}
+                    style={{ marginTop: '12px', height: '32px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
                     onClick={handleAddMachine}
                     disabled={!machineForm.machine_id || !machineForm.name}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Add Machine
+                    <Plus size={14} /> Add Machine
                   </button>
                 </div>
 
@@ -511,13 +517,11 @@ function HospitalInfra() {
                             </select>
                             <button
                               className="btn-ghost"
-                              style={{ height: '28px', width: '28px', padding: 0, color: '#dc2626' }}
+                              style={{ height: '28px', width: '28px', padding: 0, color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                               onClick={() => handleDeleteMachine(machine.id)}
                               title="Delete"
                             >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                              </svg>
+                              <Trash2 size={16} />
                             </button>
                           </div>
                         </div>

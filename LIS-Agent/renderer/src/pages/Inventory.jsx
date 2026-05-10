@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { 
+  Box, 
+  ShoppingCart, 
+  Truck, 
+  FileText 
+} from 'lucide-react';
 
 const Inventory = () => {
   const [activeTab, setActiveTab] = useState('stock');
@@ -32,10 +38,10 @@ const Inventory = () => {
   };
 
   const tabs = [
-    { id: 'stock', name: 'Item Wise Stock', icon: '📦' },
-    { id: 'purchase', name: 'Purchase Orders', icon: '🛒' },
-    { id: 'transfers', name: 'Stock Transfers', icon: '🚚' },
-    { id: 'transactions', name: 'Transactions', icon: '📑' },
+    { id: 'stock', name: 'Item Wise Stock', icon: <Box size={16} /> },
+    { id: 'purchase', name: 'Purchase Orders', icon: <ShoppingCart size={16} /> },
+    { id: 'transfers', name: 'Stock Transfers', icon: <Truck size={16} /> },
+    { id: 'transactions', name: 'Transactions', icon: <FileText size={16} /> },
   ];
 
   return (

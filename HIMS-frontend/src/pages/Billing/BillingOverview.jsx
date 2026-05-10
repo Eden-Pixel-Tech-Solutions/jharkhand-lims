@@ -1,4 +1,18 @@
 import { useState, useEffect } from 'react';
+import { 
+  Receipt, 
+  IndianRupee, 
+  CheckCircle, 
+  Clock, 
+  Search, 
+  Download, 
+  Printer, 
+  MessageSquare, 
+  CreditCard,
+  X,
+  RotateCcw,
+  FileText
+} from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
 
@@ -298,13 +312,13 @@ function BillingOverview() {
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18, marginBottom: 28 }}>
         {[
-          { label: 'Total Bills', value: totalBills, unit: '', bg: '#eff6ff', accent: '#1d4ed8', icon: '🧾' },
-          { label: 'Total Revenue', value: fmt(totalRevenue), unit: '', bg: '#f0fdf4', accent: '#16a34a', icon: '💰' },
-          { label: 'Amount Paid', value: fmt(totalPaid), unit: '', bg: '#f5f3ff', accent: '#7c3aed', icon: '✅' },
-          { label: 'Pending Amount', value: fmt(totalPending), unit: '', bg: '#fff7ed', accent: '#c2410c', icon: '⏳' },
+          { label: 'Total Bills', value: totalBills, unit: '', bg: '#eff6ff', accent: '#1d4ed8', icon: <Receipt size={24} /> },
+          { label: 'Total Revenue', value: fmt(totalRevenue), unit: '', bg: '#f0fdf4', accent: '#16a34a', icon: <IndianRupee size={24} /> },
+          { label: 'Amount Paid', value: fmt(totalPaid), unit: '', bg: '#f5f3ff', accent: '#7c3aed', icon: <CheckCircle size={24} /> },
+          { label: 'Pending Amount', value: fmt(totalPending), unit: '', bg: '#fff7ed', accent: '#c2410c', icon: <Clock size={24} /> },
         ].map(c => (
           <div key={c.label} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '20px 22px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-            <div style={{ fontSize: 26, marginBottom: 8 }}>{c.icon}</div>
+            <div style={{ color: c.accent, marginBottom: 8 }}>{c.icon}</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: c.accent }}>{c.value}</div>
             <div style={{ fontSize: 13, color: '#64748b', fontWeight: 500, marginTop: 2 }}>{c.label}</div>
           </div>
@@ -316,7 +330,7 @@ function BillingOverview() {
         <div style={{ flex: 1, minWidth: 300, position: 'relative' }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 5 }}>Search Bills</label>
           <div style={{ position: 'relative' }}>
-            <svg style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <Search style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={16} />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -354,8 +368,11 @@ function BillingOverview() {
 
         <button
           onClick={() => { setStartDate(''); setEndDate(''); setSearch(''); setStatusFilter('All'); }}
-          style={{ padding: '10px 16px', background: '#0d2554', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
-        >Reset</button>
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#0d2554', border: 'none', borderRadius: 10, color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+        >
+          <RotateCcw size={14} />
+          Reset
+        </button>
 
         <button
           onClick={handleExportCSV}
@@ -373,7 +390,7 @@ function BillingOverview() {
             gap: '8px'
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+          <Download size={16} />
           Export CSV
         </button>
       </div>
@@ -440,7 +457,9 @@ function BillingOverview() {
                 <h2 style={{ fontWeight: 800, fontSize: 18, color: '#0f172a', margin: 0 }}>{selectedBill.bill_number}</h2>
                 <p style={{ margin: 0, fontSize: 13, color: '#64748b', marginTop: 2 }}>{selectedBill.patient_name}</p>
               </div>
-              <button onClick={closeDetail} style={{ background: '#f1f5f9', border: 'none', borderRadius: 8, width: 36, height: 36, fontSize: 20, cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+              <button onClick={closeDetail} style={{ background: '#f1f5f9', border: 'none', borderRadius: 8, width: 36, height: 36, cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} />
+              </button>
             </div>
 
             {detailLoading ? (
@@ -505,19 +524,22 @@ function BillingOverview() {
                     onClick={() => printReceipt(billDetail)}
                     style={{ padding: '11px', background: '#0d2554', border: '1.5px solid #0d2554', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
-                    🖨️ A5 Receipt
+                    <Printer size={16} />
+                    A5 Receipt
                   </button>
                   <button
                     onClick={() => printThermal(billDetail)}
                     style={{ padding: '11px', background: '#0d2554', border: '1.5px solid #0d2554', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
-                    📑 Thermal Slip
+                    <FileText size={16} />
+                    Thermal Slip
                   </button>
                   <button
                     onClick={() => sendWhatsApp(billDetail)}
                     style={{ gridColumn: 'span 2', padding: '11px', background: '#0d2554', border: '1.5px solid #0d2554', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
-                    💬 Send WhatsApp Message
+                    <MessageSquare size={16} />
+                    Send WhatsApp Message
                   </button>
                 </div>
 
@@ -525,9 +547,10 @@ function BillingOverview() {
                 {billDetail.payment_status !== 'Paid' && (
                   <button
                     onClick={() => setPayModal(true)}
-                    style={{ width: '100%', padding: '13px', background: '#0d2554', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(13,37,84,0.35)' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '13px', background: '#0d2554', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(13,37,84,0.35)' }}
                   >
-                    💳 Process Payment
+                    <CreditCard size={18} />
+                    Process Payment
                   </button>
                 )}
               </div>

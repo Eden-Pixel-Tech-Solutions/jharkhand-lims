@@ -1,4 +1,10 @@
 import { useState, useEffect } from 'react';
+import { 
+  Activity, 
+  Download, 
+  Plus, 
+  X 
+} from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
 import Select from 'react-select';
@@ -183,12 +189,12 @@ function InventoryTransactions() {
           <button
             className="btn-primary"
             onClick={handleExportCSV}
-            style={{ background: '#10b981', borderColor: '#10b981' }}
+            style={{ background: '#10b981', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            📥 Export CSV
+            <Download size={16} /> Export CSV
           </button>
-          <button className="btn-primary" onClick={handleAddNew}>
-            + Log Manual Adjustment
+          <button className="btn-primary" onClick={handleAddNew} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={18} /> Log Manual Adjustment
           </button>
         </div>
       </div>
@@ -303,7 +309,9 @@ function InventoryTransactions() {
           <div className="inv-drawer" onClick={e => e.stopPropagation()}>
             <div className="inv-drawer-header">
               <h2>Log Manual Transaction</h2>
-              <button className="inv-drawer-close" onClick={() => setIsDrawerOpen(false)}>&times;</button>
+              <button className="inv-drawer-close" onClick={() => setIsDrawerOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} />
+              </button>
             </div>
             <div className="inv-drawer-body">
               <form id="txn-form" onSubmit={handleSubmit}>

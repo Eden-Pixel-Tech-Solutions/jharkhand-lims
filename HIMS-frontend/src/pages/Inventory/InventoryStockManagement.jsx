@@ -1,4 +1,13 @@
 import { useState, useEffect } from 'react';
+import { 
+  Box, 
+  Download, 
+  Plus, 
+  Search, 
+  Edit2, 
+  Trash2, 
+  X 
+} from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
 import Select from 'react-select';
@@ -210,22 +219,20 @@ function InventoryStockManagement() {
           <button
             className="btn-primary"
             onClick={handleExportCSV}
-            style={{ background: '#10b981', borderColor: '#10b981' }}
+            style={{ background: '#10b981', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            📥 Export CSV
+            <Download size={16} /> Export CSV
           </button>
-          <button className="btn-primary" onClick={handleAddNew}>
-            + Receive New Batch
+          <button className="btn-primary" onClick={handleAddNew} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={18} /> Receive New Batch
           </button>
         </div>
       </div>
 
       <div className="inv-card">
         <div className="inv-toolbar" style={{ flexWrap: 'wrap' }}>
-          <form className="inv-search" onSubmit={handleSearch}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-soft)" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+          <form className="inv-search" onSubmit={handleSearch} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Search size={16} color="var(--text-soft)" />
             <input
               type="text"
               placeholder="Search batches..."
@@ -312,10 +319,10 @@ function InventoryStockManagement() {
                   </td>
                   <td>
                     <button className="action-btn" onClick={() => handleEdit(batch)} title="Edit">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      <Edit2 size={16} />
                     </button>
-                    <button className="action-btn" onClick={() => handleDelete(batch.id)} title="Delete" style={{ marginLeft: '8px' }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <button className="action-btn" onClick={() => handleDelete(batch.id)} title="Delete" style={{ marginLeft: '8px', color: '#ef4444' }}>
+                      <Trash2 size={16} />
                     </button>
                   </td>
                 </tr>
@@ -331,7 +338,9 @@ function InventoryStockManagement() {
           <div className="inv-drawer" onClick={e => e.stopPropagation()}>
             <div className="inv-drawer-header">
               <h2>{editingBatch ? 'Edit Batch Details' : 'Receive New Batch'}</h2>
-              <button className="inv-drawer-close" onClick={() => setIsDrawerOpen(false)}>&times;</button>
+              <button className="inv-drawer-close" onClick={() => setIsDrawerOpen(false)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} />
+              </button>
             </div>
             <div className="inv-drawer-body">
               <form id="batch-form" onSubmit={handleSubmit}>

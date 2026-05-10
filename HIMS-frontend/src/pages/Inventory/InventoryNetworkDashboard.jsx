@@ -1,4 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
+import { 
+  Package, 
+  LayoutList, 
+  Wallet, 
+  AlertTriangle, 
+  Clock, 
+  Ban, 
+  CheckCircle 
+} from 'lucide-react';
 import '../../assets/CSS/InventoryNetworkDashboard.css';
 
 const API = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
@@ -122,7 +131,9 @@ export default function InventoryNetworkDashboard() {
       {/* Header */}
       <div className="inv-net-header">
         <div className="inv-net-header-left">
-          <div className="inv-net-header-icon">📦</div>
+          <div className="inv-net-header-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Package size={24} color="white" />
+          </div>
           <div>
             <div className="inv-net-header-title">{meta.title}</div>
             <div className="inv-net-header-sub">{meta.sub} · {new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}</div>
@@ -133,11 +144,11 @@ export default function InventoryNetworkDashboard() {
 
       {/* KPI Row */}
       <div className="inv-net-kpi-row">
-        <KpiCard icon="📋" label="Total Items" value={fmt(kpis.total_items)} color="#1a56db" />
-        <KpiCard icon="💰" label="Stock Value" value={fmtRs(kpis.total_value)} color="#0d9488" />
-        <KpiCard icon="⚠️" label="Low Stock" value={fmt(kpis.low_stock)} sub="Need reorder" color="#d97706" danger={kpis.low_stock > 0} />
-        <KpiCard icon="⏰" label="Expiring Soon" value={fmt(kpis.expiring_30)} sub="Within 30 days" color="#7c3aed" danger={kpis.expiring_30 > 0} />
-        <KpiCard icon="🚫" label="Expired" value={fmt(kpis.expired)} sub="Action required" color="#dc2626" danger={kpis.expired > 0} />
+        <KpiCard icon={<LayoutList size={20} color="#1a56db" />} label="Total Items" value={fmt(kpis.total_items)} color="#1a56db" />
+        <KpiCard icon={<Wallet size={20} color="#0d9488" />} label="Stock Value" value={fmtRs(kpis.total_value)} color="#0d9488" />
+        <KpiCard icon={<AlertTriangle size={20} color="#d97706" />} label="Low Stock" value={fmt(kpis.low_stock)} sub="Need reorder" color="#d97706" danger={kpis.low_stock > 0} />
+        <KpiCard icon={<Clock size={20} color="#7c3aed" />} label="Expiring Soon" value={fmt(kpis.expiring_30)} sub="Within 30 days" color="#7c3aed" danger={kpis.expiring_30 > 0} />
+        <KpiCard icon={<Ban size={20} color="#dc2626" />} label="Expired" value={fmt(kpis.expired)} sub="Action required" color="#dc2626" danger={kpis.expired > 0} />
       </div>
 
       {/* Charts Row */}
@@ -218,7 +229,7 @@ export default function InventoryNetworkDashboard() {
                       <td><span className="inv-tbl-level">{b.branch_level || 'Center'}</span></td>
                       <td className="inv-tbl-num">{b.item_count}</td>
                       <td className="inv-tbl-num">{fmt(b.total_units)}</td>
-                      <td>{b.low_stock_items > 0 ? <span className="inv-tbl-alert">⚠ {b.low_stock_items}</span> : <span className="inv-tbl-ok">✓ OK</span>}</td>
+                      <td>{b.low_stock_items > 0 ? <span className="inv-tbl-alert" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={12} /> {b.low_stock_items}</span> : <span className="inv-tbl-ok" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle size={12} /> OK</span>}</td>
                       <td className="inv-tbl-rev">{roleLevel === 'Central' ? fmtRs(b.stock_value) : '—'}</td>
                     </tr>
                   ))}
@@ -270,11 +281,13 @@ export default function InventoryNetworkDashboard() {
           {/* Low Stock Alerts */}
           <div className="inv-net-card">
             <div className="inv-net-card-head">
-              <span className="inv-net-card-title">⚠ Low Stock Alerts</span>
+              <span className="inv-net-card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={18} color="#d97706" /> Low Stock Alerts
+              </span>
               <span className="inv-net-card-sub" style={{ color: '#d97706' }}>{lowStockList?.length || 0} items</span>
             </div>
             <div className="inv-net-alert-list">
-              {(!lowStockList || lowStockList.length === 0) && <div className="inv-net-empty">All items well-stocked ✓</div>}
+              {(!lowStockList || lowStockList.length === 0) && <div className="inv-net-empty" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>All items well-stocked <CheckCircle size={16} color="#16a34a" /></div>}
               {(lowStockList || []).map((item, i) => (
                 <div key={i} className="inv-net-alert-row">
                   <div>

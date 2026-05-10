@@ -1,16 +1,32 @@
 import { useState, useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
-import { RefreshCw, Search, Monitor } from 'lucide-react';
+import { 
+  RefreshCw, 
+  Search, 
+  Monitor,
+  LayoutGrid,
+  Droplets,
+  FlaskConical,
+  Microscope,
+  Bug,
+  ClipboardList,
+  Check,
+  PieChart,
+  Printer,
+  X,
+  MapPin,
+  Clock
+} from 'lucide-react';
 import '../../assets/CSS/LabWorklist.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
 
 const DEPARTMENTS = [
-  { id: 'all', name: 'All Departments', icon: '🏥' },
-  { id: 'hematology', name: 'Hematology', icon: '🩸' },
-  { id: 'biochemistry', name: 'Biochemistry', icon: '🧪' },
-  { id: 'serology', name: 'Serology', icon: '🔬' },
-  { id: 'microbiology', name: 'Microbiology', icon: '🦠' }
+  { id: 'all', name: 'All Departments', icon: <LayoutGrid size={18} /> },
+  { id: 'hematology', name: 'Hematology', icon: <Droplets size={18} /> },
+  { id: 'biochemistry', name: 'Biochemistry', icon: <FlaskConical size={18} /> },
+  { id: 'serology', name: 'Serology', icon: <Microscope size={18} /> },
+  { id: 'microbiology', name: 'Microbiology', icon: <Bug size={18} /> }
 ];
 
 const STATUS_COLORS = {
@@ -291,11 +307,17 @@ export default function SampleList() {
 
   return (
     <div className="lab-worklist-page">
-      {/* Header */}
       <div className="worklist-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1>📋 Laboratory Sample Master List</h1>
+        <div className="header-title-section">
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <ClipboardList size={28} color="#1d4ed8" />
+            Laboratory Sample Master List
+          </h1>
           <p>Complete history of all samples and tests</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#e0f2fe', color: '#0369a1', padding: '8px 16px', borderRadius: '12px', fontSize: '14px', fontWeight: '700', border: '1px solid #bae6fd' }}>
+          <MapPin size={16} />
+          {branches.find(b => b.branch_id == selectedBranch)?.name || 'Default Branch'}
         </div>
       </div>
 
@@ -328,7 +350,7 @@ export default function SampleList() {
           <div className="loading">Loading worklist...</div>
         ) : worklist.length === 0 ? (
           <div className="empty-state">
-            <span className="empty-icon">📋</span>
+            <span className="empty-icon"><ClipboardList size={48} /></span>
             <p>No pending tests for {getDepartmentName(selectedDepartment)}</p>
           </div>
         ) : (
@@ -371,8 +393,9 @@ export default function SampleList() {
                           {item.status}
                         </span>
                         {item.pending_params && item.pending_params.length > 0 && (
-                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '600', maxWidth: '120px' }}>
-                            ⏳ Waiting for: {item.pending_params.join(', ')}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#64748b', fontWeight: '600', maxWidth: '120px' }}>
+                            <Clock size={10} />
+                            Waiting for: {item.pending_params.join(', ')}
                           </div>
                         )}
                       </div>
@@ -382,15 +405,19 @@ export default function SampleList() {
                         <button
                           className="acknowledge-btn"
                           onClick={() => handleAcknowledge(item)}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                         >
-                          ✓ Acknowledge
+                          <Check size={14} />
+                          Acknowledge
                         </button>
                       ) : item.status === 'Test Done' ? (
                         <button
                           className="view-results-btn"
                           onClick={() => handleViewResults(item)}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                         >
-                          📊 View Results
+                          <PieChart size={14} />
+                          View Results
                         </button>
                       ) : (
                         <span className="sample-id-text">{item.sample_id}</span>
@@ -417,11 +444,11 @@ export default function SampleList() {
               <div className="dept-info">{printLabel.department} | {printLabel.sampleType}</div>
             </div>
             <div className="preview-actions">
-              <button className="print-again-btn" onClick={handlePrint}>
-                🖨️ Print Again
+              <button className="print-again-btn" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Printer size={14} /> Print Again
               </button>
-              <button className="close" onClick={() => setPrintLabel(null)}>
-                ✕ Close
+              <button className="close" onClick={() => setPrintLabel(null)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <X size={14} /> Close
               </button>
             </div>
           </div>
@@ -432,7 +459,10 @@ export default function SampleList() {
       {viewResults && (
         <div className="print-preview-overlay" onClick={() => setViewResults(null)}>
           <div className="results-modal" onClick={e => e.stopPropagation()}>
-            <h3>🧪 Test Results</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <FlaskConical size={20} color="#1d4ed8" />
+              Test Results
+            </h3>
             <div className="results-header">
               <p><strong>Patient:</strong> {viewResults.patient_name}</p>
               <p><strong>Test:</strong> {viewResults.test_name}</p>
@@ -466,11 +496,11 @@ export default function SampleList() {
               </tbody>
             </table>
             <div className="preview-actions">
-              <button className="complete-btn" onClick={() => handleCompleteTest(viewResults)}>
-                ✓ Mark Complete
+              <button className="complete-btn" onClick={() => handleCompleteTest(viewResults)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Check size={16} /> Mark Complete
               </button>
-              <button className="close-preview-btn" onClick={() => setViewResults(null)}>
-                ✕ Cancel
+              <button className="close-preview-btn" onClick={() => setViewResults(null)} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <X size={16} /> Cancel
               </button>
             </div>
           </div>

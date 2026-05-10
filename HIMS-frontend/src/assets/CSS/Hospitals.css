@@ -110,6 +110,20 @@
   text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px;
 }
 
+.h-spin {
+  animation: h-spin 1s linear infinite;
+}
+
+@keyframes h-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.h-stat-icon svg,
+.h-topbar-icon svg {
+  display: block;
+}
+
 /* ── Main Layout ─────────────────────────────────────────────────── */
 .h-body {
   display: flex;
