@@ -247,11 +247,11 @@ const LabVerification = () => {
             </div>
 
             <div className="modal-actions">
+              <button className="btn-modal-cancel" onClick={() => setSelectedTest(null)}>
+                Cancel
+              </button>
               <button className="verify-submit-btn" onClick={() => handleVerify(selectedTest.id, selectedTest.sample_id)}>
                 ✓ Mark as Verified
-              </button>
-              <button className="close-btn" onClick={() => setSelectedTest(null)}>
-                Cancel
               </button>
             </div>
           </div>
