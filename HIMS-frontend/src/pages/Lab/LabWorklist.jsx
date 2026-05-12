@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
-import { 
-  Monitor, 
-  RefreshCw, 
-  FlaskConical, 
-  Beaker, 
-  Microchip, 
-  Microscope, 
+import {
+  Monitor,
+  RefreshCw,
+  FlaskConical,
+  Beaker,
+  Microchip,
+  Microscope,
   Activity,
   LayoutGrid,
   Droplets,
@@ -400,61 +400,61 @@ export default function LabWorklist() {
                 {worklist
                   .filter(item => ['Pending', 'Collected', 'In Progress', 'Test Done'].includes(item.status))
                   .map((item, index) => (
-                  <tr key={index} className={`status-${item.status?.toLowerCase().replace(' ', '-')}`}>
-                    <td className="queue-number">
-                      <strong>#{item.lab_queue_number || index + 1}</strong>
-                    </td>
-                    <td>
-                      <div className="patient-info">
-                        <span className="patient-name">{item.patient_name}</span>
-                        <span className="patient-reg">{item.reg_no}</span>
-                      </div>
-                    </td>
-                    <td>{item.patient_id}</td>
-                    <td className="test-name-cell">{item.test_name}</td>
-                    <td>{item.sample_type}</td>
-                    <td>{item.tube_color || 'N/A'}</td>
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span
-                          className="status-badge"
-                          style={{ backgroundColor: STATUS_COLORS[item.status] || '#999' }}
-                        >
-                          {item.status}
-                        </span>
-                        {item.pending_params && item.pending_params.length > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#64748b', fontWeight: '600', maxWidth: '120px' }}>
-                            <Clock size={10} />
-                            Waiting for: {item.pending_params.join(', ')}
-                          </div>
+                    <tr key={index} className={`status-${item.status?.toLowerCase().replace(' ', '-')}`}>
+                      <td className="queue-number">
+                        <strong>#{item.lab_queue_number || index + 1}</strong>
+                      </td>
+                      <td>
+                        <div className="patient-info">
+                          <span className="patient-name">{item.patient_name}</span>
+                          <span className="patient-reg">{item.reg_no}</span>
+                        </div>
+                      </td>
+                      <td>{item.patient_id}</td>
+                      <td className="test-name-cell">{item.test_name}</td>
+                      <td>{item.sample_type}</td>
+                      <td>{item.tube_color || 'N/A'}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span
+                            className="status-badge"
+                            style={{ backgroundColor: STATUS_COLORS[item.status] || '#999' }}
+                          >
+                            {item.status}
+                          </span>
+                          {item.pending_params && item.pending_params.length > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#64748b', fontWeight: '600', maxWidth: '120px' }}>
+                              <Clock size={10} />
+                              Waiting for: {item.pending_params.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        {item.status === 'Pending' ? (
+                          <button
+                            className="acknowledge-btn"
+                            onClick={() => handleAcknowledge(item)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                          >
+                            <Check size={14} />
+                            Acknowledge
+                          </button>
+                        ) : (item.status === 'Test Done' || item.status === 'In Progress') ? (
+                          <button
+                            className="view-results-btn"
+                            onClick={() => handleViewResults(item)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                          >
+                            <PieChart size={14} />
+                            View Results
+                          </button>
+                        ) : (
+                          <span className="sample-id-text">{item.sample_id}</span>
                         )}
-                      </div>
-                    </td>
-                    <td>
-                      {item.status === 'Pending' ? (
-                        <button
-                          className="acknowledge-btn"
-                          onClick={() => handleAcknowledge(item)}
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                        >
-                          <Check size={14} />
-                          Acknowledge
-                        </button>
-                      ) : (item.status === 'Test Done' || item.status === 'In Progress') ? (
-                        <button
-                          className="view-results-btn"
-                          onClick={() => handleViewResults(item)}
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                        >
-                          <PieChart size={14} />
-                          View Results
-                        </button>
-                      ) : (
-                        <span className="sample-id-text">{item.sample_id}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>

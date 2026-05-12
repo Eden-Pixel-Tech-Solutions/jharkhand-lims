@@ -92,9 +92,9 @@ function LabActivityLogs() {
         <div className="inv-toolbar" style={{ justifyContent: 'flex-end', gap: '10px' }}>
           <div style={{ display: 'flex', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '4px 12px', alignItems: 'center', width: '300px' }}>
             <span style={{ fontSize: '14px', color: '#64748b', marginRight: '8px' }}>🔍</span>
-            <input 
-              type="text" 
-              placeholder="Search sample, patient or test..." 
+            <input
+              type="text"
+              placeholder="Search sample, patient or test..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{ border: 'none', outline: 'none', fontSize: '14px', padding: '8px 0', width: '100%' }}

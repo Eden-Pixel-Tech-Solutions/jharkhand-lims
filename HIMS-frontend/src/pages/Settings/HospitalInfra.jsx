@@ -1,12 +1,12 @@
 //hospital-infra.jsx
 import { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Building2, 
-  Layers, 
-  Cpu, 
-  Pencil, 
-  Trash2, 
+import {
+  Plus,
+  Building2,
+  Layers,
+  Cpu,
+  Pencil,
+  Trash2,
   X,
   Activity,
   Settings2
@@ -268,24 +268,24 @@ function HospitalInfra() {
                     title={item.status}
                   ></span>
                 </div>
-                  <div className="infra-details">
-                    <div className="infra-detail-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Building2 size={14} color="#64748b" /> {item.block || 'Main Block'}
-                    </div>
-                    <div className="infra-detail-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Layers size={14} color="#64748b" /> Floor {item.floor || 0}
-                    </div>
-                    {item.capacity && activeTab !== 'Lab' && (
-                      <div className="infra-detail-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Activity size={14} color="#64748b" /> Cap: {item.capacity}
-                      </div>
-                    )}
-                    {item.machines_count && activeTab === 'Lab' && (
-                      <div className="infra-detail-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Cpu size={14} color="#64748b" /> Machines: {item.machines_count}
-                      </div>
-                    )}
+                <div className="infra-details">
+                  <div className="infra-detail-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Building2 size={14} color="#64748b" /> {item.block || 'Main Block'}
                   </div>
+                  <div className="infra-detail-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Layers size={14} color="#64748b" /> Floor {item.floor || 0}
+                  </div>
+                  {item.capacity && activeTab !== 'Lab' && (
+                    <div className="infra-detail-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Activity size={14} color="#64748b" /> Cap: {item.capacity}
+                    </div>
+                  )}
+                  {item.machines_count && activeTab === 'Lab' && (
+                    <div className="infra-detail-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Cpu size={14} color="#64748b" /> Machines: {item.machines_count}
+                    </div>
+                  )}
+                </div>
                 <div className="infra-actions">
                   {activeTab === 'Lab' && (
                     <button

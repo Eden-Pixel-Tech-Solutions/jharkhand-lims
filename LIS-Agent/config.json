@@ -1,0 +1,8 @@
+[
+  {
+    "name": "12",
+    "port": "COM1",
+    "baud": 9600,
+    "server": "http://localhost:7005/api/lab/save-test-results"
+  }
+]

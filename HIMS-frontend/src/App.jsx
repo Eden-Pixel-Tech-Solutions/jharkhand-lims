@@ -38,6 +38,8 @@ import DisasterDashboard from './pages/DisasterDashboard';
 import MachineNetwork from './pages/Settings/MachineNetwork';
 import Layout from './components/Layout';
 import PatientLayout from './components/PatientLayout';
+import BarcodeGenerator from './pages/Prescriptions/BarcodeGenerator';
+import PrescriptionScan from './pages/Prescriptions/PrescriptionScan';
 
 function App() {
   return (
@@ -82,6 +84,8 @@ function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/hospitals" element={<Hospitals />} />
           <Route path="/machine-network" element={<MachineNetwork />} />
+          <Route path="/barcode-generator" element={<BarcodeGenerator />} />
+          <Route path="/prescription-scan" element={<PrescriptionScan />} />
         </Route>
 
         {/* Patient Portal Routes */}

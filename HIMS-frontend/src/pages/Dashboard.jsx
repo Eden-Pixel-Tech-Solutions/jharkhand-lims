@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { 
-  Users, 
-  FlaskConical, 
-  Clock, 
-  IndianRupee, 
-  Hospital, 
-  ShieldCheck, 
-  Map, 
+import {
+  Users,
+  FlaskConical,
+  Clock,
+  IndianRupee,
+  Hospital,
+  ShieldCheck,
+  Map,
   Microscope,
   Activity,
   ArrowUpRight,

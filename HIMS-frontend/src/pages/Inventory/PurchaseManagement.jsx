@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { 
-  FilePlus, 
-  FileStack, 
-  Sparkles, 
-  Plus, 
-  Download, 
+import {
+  FilePlus,
+  FileStack,
+  Sparkles,
+  Plus,
+  Download,
   X,
   FileCheck,
   FileX,
@@ -585,18 +585,18 @@ function PurchaseManagement() {
             <div className="inv-modal-header">
               <h2>Purchase Order Document</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <button
-                    onClick={() => downloadPO(viewPO)}
-                    disabled={pdfLoading}
-                    className="btn-primary"
-                    style={{ background: '#2563eb', display: 'flex', alignItems: 'center', gap: '8px' }}
-                  >
-                    {pdfLoading ? <Clock size={16} /> : <Download size={16} />}
-                    {pdfLoading ? 'Generating PDF...' : 'Download A4 PDF'}
-                  </button>
-                  <button className="inv-modal-close" onClick={() => setViewPO(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <X size={20} />
-                  </button>
+                <button
+                  onClick={() => downloadPO(viewPO)}
+                  disabled={pdfLoading}
+                  className="btn-primary"
+                  style={{ background: '#2563eb', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  {pdfLoading ? <Clock size={16} /> : <Download size={16} />}
+                  {pdfLoading ? 'Generating PDF...' : 'Download A4 PDF'}
+                </button>
+                <button className="inv-modal-close" onClick={() => setViewPO(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <X size={20} />
+                </button>
               </div>
             </div>
             <div className="inv-modal-body" id="printable-po" style={{ padding: '40px', background: 'white' }}>

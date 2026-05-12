@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { 
-  Activity, 
-  Download, 
-  Plus, 
-  X 
+import {
+  Activity,
+  Download,
+  Plus,
+  X
 } from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';

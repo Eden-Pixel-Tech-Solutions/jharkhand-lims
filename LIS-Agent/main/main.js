@@ -47,7 +47,7 @@ async function syncMachines() {
           uniqueId: m.machine_id,
           name: m.name,
           model: m.model,
-          port: m.port_ip || 'COM1', 
+          port: m.port_ip || 'COM1',
           baud: m.baud_rate || 9600,
           labId: m.lab_id,
           labName: m.lab_name || 'Lab',

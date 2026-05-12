@@ -5,7 +5,17 @@ import path from "path";
 export default defineConfig({
   root: path.resolve(__dirname), // 🔥 important
   plugins: [react()],
+  resolve: {
+    alias: {
+      "lucide-react": path.resolve(__dirname, "../node_modules/lucide-react"),
+    },
+  },
   server: {
     port: 5173,
+    fs: {
+      allow: [
+        path.resolve(__dirname, ".."),
+      ],
+    },
   },
 });

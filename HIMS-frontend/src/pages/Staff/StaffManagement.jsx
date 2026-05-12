@@ -5,7 +5,7 @@ import '../../assets/CSS/StaffManagement.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://172.16.11.160:7005';
 
-const ROLES = ['Doctor', 'Receptionist', 'HR', 'Admin', 'Lab Technician'];
+const ROLES = ['Doctor', 'Receptionist', 'HR', 'Admin', 'Lab Head', 'Lab Technician', 'Lab Admin'];
 
 function StaffManagement() {
   const { alert, showAlert, hideAlert } = useAlert();
@@ -15,6 +15,11 @@ function StaffManagement() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [search, setSearch] = useState('');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userRole = user.role || '';
+  const canAddStaff = ['Admin', 'Lab Head', 'Doctor', 'Lab Admin'].includes(userRole);
+  const isSuperAdmin = user.role_level === 'State' || user.role_level === 'District';
+  const [branches, setBranches] = useState([]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -25,7 +30,8 @@ function StaffManagement() {
     role: 'Doctor',
     department: '',
     staffId: 'STF-' + Math.floor(1000 + Math.random() * 9000),
-    password: 'password123' // Default password for now
+    password: 'password123',
+    branch_id: user.branch_id || ''
   });
 
   // Fetch departments from backend
@@ -48,7 +54,16 @@ function StaffManagement() {
     fetchDepartments();
     fetchStats();
     fetchStaff();
+    if (isSuperAdmin) fetchBranches();
   }, []);
+
+  const fetchBranches = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/branches`);
+      const data = await res.json();
+      if (data.success) setBranches(data.branches);
+    } catch (err) { console.error('Error fetching branches:', err); }
+  };
 
   const fetchStats = async () => {
     try {
@@ -77,7 +92,10 @@ function StaffManagement() {
     try {
       const res = await fetch(`${API_BASE}/api/staff/add`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        },
         body: JSON.stringify(formData)
       });
       const data = await res.json();
@@ -123,12 +141,14 @@ function StaffManagement() {
             <h1>Employee Management</h1>
             <p>Manage hospital personnel and monitor role distribution</p>
           </div>
-          <button className="btn-primary" onClick={() => setShowAddModal(true)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Add New Staff
-          </button>
+          {canAddStaff && (
+            <button className="btn-primary" onClick={() => setShowAddModal(true)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add New Staff
+            </button>
+          )}
         </div>
 
         {/* Stats Section */}
@@ -265,23 +285,50 @@ function StaffManagement() {
                         {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </div>
-                    <div className="preg-field">
-                      <label className="preg-label">Department</label>
-                      <select className="preg-select" name="department" value={formData.department} onChange={handleInputChange}>
-                        {departments.map(d => <option key={d} value={d}>{d}</option>)}
-                      </select>
-                    </div>
+                    {isSuperAdmin ? (
+                      <div className="preg-field">
+                        <label className="preg-label">Assign to Facility/Branch</label>
+                        <select className="preg-select" name="branch_id" value={formData.branch_id} onChange={handleInputChange} required>
+                          <option value="">Select Branch</option>
+                          {branches.map(b => <option key={b.id} value={b.id}>{b.branch_name}</option>)}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="preg-field">
+                        <label className="preg-label">Department</label>
+                        <select className="preg-select" name="department" value={formData.department} onChange={handleInputChange}>
+                          {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="preg-field">
-                    <label className="preg-label">Initial Password</label>
-                    <div className="input-with-icon">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
-                      <input type="text" className="preg-input" name="password" value={formData.password} onChange={handleInputChange} required />
+                  {!isSuperAdmin && (
+                    <div className="preg-field">
+                      <label className="preg-label">Initial Password</label>
+                      <div className="input-with-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <input type="text" className="preg-input" name="password" value={formData.password} onChange={handleInputChange} required />
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {isSuperAdmin && (
+                    <div className="form-row">
+                      <div className="preg-field">
+                        <label className="preg-label">Department</label>
+                        <select className="preg-select" name="department" value={formData.department} onChange={handleInputChange}>
+                          {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </div>
+                      <div className="preg-field">
+                        <label className="preg-label">Initial Password</label>
+                        <input type="text" className="preg-input" name="password" value={formData.password} onChange={handleInputChange} required />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="modal-footer">

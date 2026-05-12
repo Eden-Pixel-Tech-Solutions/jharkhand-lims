@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { 
-  Search, 
-  User, 
-  Camera, 
-  ArrowRight, 
-  Check 
+import {
+  Search,
+  User,
+  Camera,
+  ArrowRight,
+  Check
 } from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { 
-  Building2, 
-  Mail, 
-  CreditCard, 
-  Bell, 
-  Globe, 
-  Hospital, 
-  Plus, 
-  Trash2, 
+import {
+  Building2,
+  Mail,
+  CreditCard,
+  Bell,
+  Globe,
+  Hospital,
+  Plus,
+  Trash2,
   Pencil,
   Save,
   CheckCircle,
@@ -109,7 +109,7 @@ function Settings() {
           canvas.height = img.height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
-          
+
           // Export as PNG (guaranteed compatibility with PDF generator)
           const pngData = canvas.toDataURL('image/png');
           setForm({ ...form, logo_url: pngData });

@@ -48,10 +48,10 @@ const SampleList = () => {
   const fetchWorklist = async () => {
     try {
       const res = await axios.get(`${API_BASE}/api/lab/worklist`, {
-        params: { 
-          department: departmentFilter, 
-          branch_id: selectedBranch, 
-          role_level: 'Branch', 
+        params: {
+          department: departmentFilter,
+          branch_id: selectedBranch,
+          role_level: 'Branch',
           search: search,
           status: statusFilter !== 'all' ? statusFilter : undefined
         }
@@ -74,8 +74,8 @@ const SampleList = () => {
       if (resId.data.success) {
         const { sampleId, shortId } = resId.data;
         const resAck = await axios.post(`${API_BASE}/api/lab/acknowledge-test`, {
-          bill_item_id: item.bill_item_id, 
-          sample_id: sampleId, 
+          bill_item_id: item.bill_item_id,
+          sample_id: sampleId,
           short_id: shortId,
           status: 'Collected'
         });
@@ -218,16 +218,16 @@ const SampleList = () => {
         <div style={{ display: 'flex', gap: '12px' }}>
           <div style={{ display: 'flex', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '4px 12px', alignItems: 'center' }}>
             <span style={{ fontSize: '14px', color: '#64748b', marginRight: '8px' }}>🔍</span>
-            <input 
-              type="text" 
-              placeholder="Search patient or ID..." 
+            <input
+              type="text"
+              placeholder="Search patient or ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{ border: 'none', outline: 'none', fontSize: '14px', padding: '8px 0', width: '200px' }}
             />
           </div>
 
-          <select 
+          <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             style={{ padding: '8px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', fontWeight: '600' }}
@@ -240,7 +240,7 @@ const SampleList = () => {
             <option value="Completed">Completed</option>
           </select>
 
-          <select 
+          <select
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
             style={{ padding: '8px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', fontWeight: '600' }}
@@ -286,8 +286,8 @@ const SampleList = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <span style={{
                       padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', width: 'fit-content',
-                      background: getStatusStyle((item.status === 'Test Done' && item.pending_params?.length > 0) ? 'Partially Done' : item.status).bg, 
-                      color: getStatusStyle((item.status === 'Test Done' && item.pending_params?.length > 0) ? 'Partially Done' : item.status).color, 
+                      background: getStatusStyle((item.status === 'Test Done' && item.pending_params?.length > 0) ? 'Partially Done' : item.status).bg,
+                      color: getStatusStyle((item.status === 'Test Done' && item.pending_params?.length > 0) ? 'Partially Done' : item.status).color,
                       border: `1px solid ${getStatusStyle((item.status === 'Test Done' && item.pending_params?.length > 0) ? 'Partially Done' : item.status).border}`
                     }}>
                       {(item.status === 'Test Done' && item.pending_params?.length > 0) ? 'Partially Done' : item.status}
@@ -300,8 +300,8 @@ const SampleList = () => {
                   </div>
                 </td>
                 <td style={{ padding: '20px 24px' }}>
-                  <button 
-                    onClick={() => handleViewProcess(item)} 
+                  <button
+                    onClick={() => handleViewProcess(item)}
                     style={{ padding: '8px 16px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
                   >
                     👁️ View
@@ -373,19 +373,19 @@ const SampleList = () => {
                     </div>
                   ) : (
                     incomingResults.map((res, i) => (
-                      <div key={i} style={{ 
-                        padding: '8px 0', 
-                        borderBottom: '1px solid #1e293b', 
-                        display: 'flex', 
+                      <div key={i} style={{
+                        padding: '8px 0',
+                        borderBottom: '1px solid #1e293b',
+                        display: 'flex',
                         justifyContent: 'space-between',
                         background: res.flag === 'H' ? 'rgba(239, 68, 68, 0.05)' : res.flag === 'L' ? 'rgba(59, 130, 246, 0.05)' : 'transparent'
                       }}>
                         <span style={{ color: res.flag === 'H' ? '#ef4444' : res.flag === 'L' ? '#3b82f6' : '#38bdf8' }}>
                           {res.test_name} {res.flag && res.flag !== 'N' ? `(${res.flag})` : ''}
                         </span>
-                        <span style={{ 
-                          color: res.flag === 'H' ? '#ef4444' : res.flag === 'L' ? '#3b82f6' : '#fff', 
-                          fontWeight: '800' 
+                        <span style={{
+                          color: res.flag === 'H' ? '#ef4444' : res.flag === 'L' ? '#3b82f6' : '#fff',
+                          fontWeight: '800'
                         }}>
                           {res.result_value} {res.unit}
                         </span>

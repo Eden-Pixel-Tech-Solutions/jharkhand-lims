@@ -140,11 +140,11 @@ export default function Setup() {
         }
 
         // 🚨 Prevent USB Port Conflict
-        const conflict = savedMachines.find(m => 
-            m.port === formData.port && 
+        const conflict = savedMachines.find(m =>
+            m.port === formData.port &&
             m.unique_id !== formData.uniqueId
         );
-        
+
         if (conflict) {
             alert(`⚠️ Port Conflict: Port ${formData.port} is already assigned to ${conflict.model} (${conflict.unique_id}).\n\nPlease select a different port or disconnect the other device.`);
             return;
@@ -206,11 +206,11 @@ export default function Setup() {
                 </div>
                 {!showAddForm && (
                     <button
-                        onClick={() => { 
+                        onClick={() => {
                             setIsEdit(false);
-                            setShowAddForm(true); 
-                            setSearchSerial(''); 
-                            setFormData({ serialNumber: '', uniqueId: '', labId: '', labName: '', manufacturer: '', model: '', portType: 'USB', port: '', baudRate: '9600' }); 
+                            setShowAddForm(true);
+                            setSearchSerial('');
+                            setFormData({ serialNumber: '', uniqueId: '', labId: '', labName: '', manufacturer: '', model: '', portType: 'USB', port: '', baudRate: '9600' });
                         }}
                         style={{ padding: '12px 24px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}
                     >
@@ -233,7 +233,7 @@ export default function Setup() {
                                     )}
                                 </div>
                                 <div style={{ display: 'flex', gap: '10px' }}>
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             setFormData({
                                                 serialNumber: m.serial_number,
@@ -249,7 +249,7 @@ export default function Setup() {
                                             setIsEdit(true);
                                             setSearchSerial(m.serial_number);
                                             setShowAddForm(true);
-                                        }} 
+                                        }}
                                         style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '18px' }}
                                     >
                                         ✏️
@@ -348,11 +348,11 @@ export default function Setup() {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                                 <label style={{ fontWeight: '700', color: '#1e293b' }}>Port / IP</label>
                                 {formData.portType === 'USB' && (
-                                    <button 
-                                        onClick={async (e) => { 
-                                            e.preventDefault(); 
-                                            const availablePorts = await window.electronAPI.listPorts(); 
-                                            setPorts(availablePorts); 
+                                    <button
+                                        onClick={async (e) => {
+                                            e.preventDefault();
+                                            const availablePorts = await window.electronAPI.listPorts();
+                                            setPorts(availablePorts);
                                         }}
                                         style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}
                                     >

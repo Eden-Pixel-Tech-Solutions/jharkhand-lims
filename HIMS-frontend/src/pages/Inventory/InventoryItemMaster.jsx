@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { 
-  Package, 
-  Download, 
-  Plus, 
-  Search, 
-  Edit2, 
-  Trash2, 
-  X 
+import {
+  Package,
+  Download,
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  X
 } from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';

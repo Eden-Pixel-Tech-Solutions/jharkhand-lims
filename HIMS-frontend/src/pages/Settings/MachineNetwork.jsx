@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  Download, 
-  RefreshCw, 
-  Cpu, 
-  Activity, 
-  Network, 
-  LifeBuoy, 
+import {
+  Download,
+  RefreshCw,
+  Cpu,
+  Activity,
+  Network,
+  LifeBuoy,
   X,
   FileText
 } from 'lucide-react';

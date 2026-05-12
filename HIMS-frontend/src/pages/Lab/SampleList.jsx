@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
-import { 
-  RefreshCw, 
-  Search, 
+import {
+  RefreshCw,
+  Search,
   Monitor,
   LayoutGrid,
   Droplets,

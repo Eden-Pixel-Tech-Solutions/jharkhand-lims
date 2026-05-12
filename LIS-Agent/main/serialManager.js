@@ -34,56 +34,56 @@ const CBC_PARAMS = [
 
 // LOINC code → parameter name
 const CODE_MAP = {
-  '6690-2':   'WBC',
-  '731-0':    'Lymph#',
-  '10027':    'Mid#',
-  '10028':    'Gran#',
-  '736-9':    'Lymph%',
-  '10029':    'Mid%',
-  '10030':    'Gran%',
-  '789-8':    'RBC',
-  '718-7':    'HGB',
-  '4544-3':   'HCT',
-  '787-2':    'MCV',   // may also be HCT — resolved below by label
-  '785-6':    'MCH',
-  '786-4':    'MCHC',
-  '788-0':    'RDW-CV',
-  '70-5':     'RDW-SD',
-  '21000-5':  'RDW-SD',
-  '777-3':    'PLT',
-  '32623-1':  'MPV',
-  '32207-3':  'PDW',
-  '10002':    'PCT',
-  '10013':    'P-LCC',
-  '10014':    'P-LCR',
+  '6690-2': 'WBC',
+  '731-0': 'Lymph#',
+  '10027': 'Mid#',
+  '10028': 'Gran#',
+  '736-9': 'Lymph%',
+  '10029': 'Mid%',
+  '10030': 'Gran%',
+  '789-8': 'RBC',
+  '718-7': 'HGB',
+  '4544-3': 'HCT',
+  '787-2': 'MCV',   // may also be HCT — resolved below by label
+  '785-6': 'MCH',
+  '786-4': 'MCHC',
+  '788-0': 'RDW-CV',
+  '70-5': 'RDW-SD',
+  '21000-5': 'RDW-SD',
+  '777-3': 'PLT',
+  '32623-1': 'MPV',
+  '32207-3': 'PDW',
+  '10002': 'PCT',
+  '10013': 'P-LCC',
+  '10014': 'P-LCR',
 };
 
 // Text label → parameter name  (lowercased, spaces stripped)
 const LABEL_MAP = {
-  'wbc':     'WBC',
-  'lymph#':  'Lymph#',
-  'lym#':    'Lymph#',
-  'mid#':    'Mid#',
-  'gran#':   'Gran#',
-  'lymph%':  'Lymph%',
-  'lym%':    'Lymph%',
-  'mid%':    'Mid%',
-  'gran%':   'Gran%',
-  'rbc':     'RBC',
-  'hgb':     'HGB',
-  'hb':      'HGB',
-  'hct':     'HCT',
-  'mcv':     'MCV',
-  'mch':     'MCH',
-  'mchc':    'MCHC',
-  'rdw-cv':  'RDW-CV',
-  'rdw-sd':  'RDW-SD',
-  'plt':     'PLT',
-  'mpv':     'MPV',
-  'pdw':     'PDW',
-  'pct':     'PCT',
-  'p-lcc':   'P-LCC',
-  'p-lcr':   'P-LCR',
+  'wbc': 'WBC',
+  'lymph#': 'Lymph#',
+  'lym#': 'Lymph#',
+  'mid#': 'Mid#',
+  'gran#': 'Gran#',
+  'lymph%': 'Lymph%',
+  'lym%': 'Lymph%',
+  'mid%': 'Mid%',
+  'gran%': 'Gran%',
+  'rbc': 'RBC',
+  'hgb': 'HGB',
+  'hb': 'HGB',
+  'hct': 'HCT',
+  'mcv': 'MCV',
+  'mch': 'MCH',
+  'mchc': 'MCHC',
+  'rdw-cv': 'RDW-CV',
+  'rdw-sd': 'RDW-SD',
+  'plt': 'PLT',
+  'mpv': 'MPV',
+  'pdw': 'PDW',
+  'pct': 'PCT',
+  'p-lcc': 'P-LCC',
+  'p-lcr': 'P-LCR',
 };
 
 /**
@@ -98,14 +98,14 @@ const LABEL_MAP = {
  */
 function parseHL7(raw) {
   const result = {
-    case_id:   '',
-    code:      '',
-    bed_no:    '',
-    name:      '',
-    sex:       '',
-    age:       '',
-    age_unit:  '',
-    mode:      '',
+    case_id: '',
+    code: '',
+    bed_no: '',
+    name: '',
+    sex: '',
+    age: '',
+    age_unit: '',
+    mode: '',
     test_mode: '',
     timestamp: null,
   };
@@ -126,8 +126,8 @@ function parseHL7(raw) {
         try {
           const ts = f[6].slice(0, 14);   // YYYYMMDDHHmmss
           result.timestamp = new Date(
-            `${ts.slice(0,4)}-${ts.slice(4,6)}-${ts.slice(6,8)}T` +
-            `${ts.slice(8,10)}:${ts.slice(10,12)}:${ts.slice(12,14)}`
+            `${ts.slice(0, 4)}-${ts.slice(4, 6)}-${ts.slice(6, 8)}T` +
+            `${ts.slice(8, 10)}:${ts.slice(10, 12)}:${ts.slice(12, 14)}`
           );
         } catch (_) { /* ignore bad timestamp */ }
       }
@@ -153,14 +153,14 @@ function parseHL7(raw) {
       if (f.length > 7 && f[7].trim().length >= 8) {
         try {
           const dob = f[7].trim().slice(0, 8);
-          const birth = new Date(`${dob.slice(0,4)}-${dob.slice(4,6)}-${dob.slice(6,8)}`);
-          const now   = new Date();
+          const birth = new Date(`${dob.slice(0, 4)}-${dob.slice(4, 6)}-${dob.slice(6, 8)}`);
+          const now = new Date();
           let age = now.getFullYear() - birth.getFullYear();
           const notHadBirthday =
-            now.getMonth()  < birth.getMonth() ||
+            now.getMonth() < birth.getMonth() ||
             (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate());
           if (notHadBirthday) age -= 1;
-          result.age      = String(age);
+          result.age = String(age);
           result.age_unit = 'yr';
         } catch (_) { /* ignore */ }
       }
@@ -192,15 +192,15 @@ function parseHL7(raw) {
     const obxType = f[2].trim();
     if (obxType === 'ED') continue;   // skip histogram binary blobs
 
-    const idField  = f[3].trim();
-    const value    = f[5].trim();
-    const unit     = f.length > 6 ? f[6].trim() : '';
+    const idField = f[3].trim();
+    const value = f[5].trim();
+    const unit = f.length > 6 ? f[6].trim() : '';
     const refRange = f.length > 7 ? f[7].trim() : '';
-    const flag     = f.length > 8 ? f[8].trim() : '';
+    const flag = f.length > 8 ? f[8].trim() : '';
 
-    const idParts  = idField.split('^');
-    const code     = idParts[0].trim();
-    const label    = idParts.length > 1 ? idParts[1].trim().toLowerCase() : '';
+    const idParts = idField.split('^');
+    const code = idParts[0].trim();
+    const label = idParts.length > 1 ? idParts[1].trim().toLowerCase() : '';
 
     // ── Mode  (08001) ──────────────────────────────────────────────────
     if (code.includes('08001')) {
@@ -218,7 +218,7 @@ function parseHL7(raw) {
 
     // ── Age from OBX ─────────────────────────────────────────────────
     if (label.includes('age')) {
-      result.age      = value;
+      result.age = value;
       result.age_unit = unit;
       continue;
     }
@@ -317,7 +317,7 @@ async function startBackgroundListener(machine, win) {
   let SOF, EOF;
   if (!isHL7) {
     SOF = safeHex(protocol?.frame_structure?.['1']?.data, 0xaa);
-    const keys    = Object.keys(protocol.frame_structure).map(Number).sort((a, b) => a - b);
+    const keys = Object.keys(protocol.frame_structure).map(Number).sort((a, b) => a - b);
     const lastKey = String(keys[keys.length - 1]);
     EOF = safeHex(protocol?.frame_structure?.[lastKey]?.data, 0xf5);
     console.log(`   SOF=0x${SOF.toString(16).toUpperCase()}  EOF=0x${EOF.toString(16).toUpperCase()}`);
@@ -325,7 +325,7 @@ async function startBackgroundListener(machine, win) {
 
   // ── 3. Open SerialPort ───────────────────────────────────────────────────
   const port = new SerialPort({
-    path:     machine.port,
+    path: machine.port,
     baudRate: parseInt(machine.baud, 10),
     autoOpen: false,
   });
@@ -358,7 +358,7 @@ async function startBackgroundListener(machine, win) {
       let startIdx, endIdx;
       while (
         (startIdx = buffer.indexOf(SOF)) !== -1 &&
-        (endIdx   = buffer.indexOf(EOF, startIdx)) !== -1
+        (endIdx = buffer.indexOf(EOF, startIdx)) !== -1
       ) {
         const frame = buffer.slice(startIdx, endIdx + 1);
         buffer = buffer.slice(endIdx + 1);
@@ -379,7 +379,7 @@ async function startBackgroundListener(machine, win) {
       let raw = buffer.toString('utf8');
 
       let start = raw.indexOf('\x0B');
-      let end   = raw.indexOf('\x1C\x0D');
+      let end = raw.indexOf('\x1C\x0D');
 
       while (start !== -1 && end !== -1 && end > start) {
         const msg = raw.slice(start + 1, end);
@@ -392,7 +392,7 @@ async function startBackgroundListener(machine, win) {
         }
 
         start = raw.indexOf('\x0B');
-        end   = raw.indexOf('\x1C\x0D');
+        end = raw.indexOf('\x1C\x0D');
       }
 
       buffer = Buffer.from(raw, 'utf8');
@@ -458,13 +458,13 @@ async function processIncomingFrame(frame, protocol, machine, win) {
     }
 
     session = {
-      testId:        test.bill_item_id,
-      sampleId:      test.sample_id,
-      patientName:   test.patient_name,
-      testName:      test.test_name,
-      results:       [],
+      testId: test.bill_item_id,
+      sampleId: test.sample_id,
+      patientName: test.patient_name,
+      testName: test.test_name,
+      results: [],
       requiredParams: allParams.map((p) => ({
-        id:   (p.machine_parameter_code || p.parameter_name).toLowerCase(),
+        id: (p.machine_parameter_code || p.parameter_name).toLowerCase(),
         name: p.parameter_name.toLowerCase(),
         unit: p.parameter_unit,
       })),
@@ -478,15 +478,15 @@ async function processIncomingFrame(frame, protocol, machine, win) {
     return;
   }
 
-  const testCode    = frame[1];
-  const unitCode    = frame[2];
+  const testCode = frame[1];
+  const unitCode = frame[2];
   const resultValue = frame.readFloatBE(9).toFixed(2);
 
-  const tests     = protocol?.frame_structure?.['2']?.tests ?? [];
-  const units     = protocol?.frame_structure?.['3']?.units ?? [];
+  const tests = protocol?.frame_structure?.['2']?.tests ?? [];
+  const units = protocol?.frame_structure?.['3']?.units ?? [];
   const machineTest = tests.find((t) => t.id === testCode);
-  const paramName   = machineTest ? machineTest.name : `Param-${testCode}`;
-  const unit        = units.find((u) => u.id === unitCode)?.unit ?? '';
+  const paramName = machineTest ? machineTest.name : `Param-${testCode}`;
+  const unit = units.find((u) => u.id === unitCode)?.unit ?? '';
 
   // De-duplicate
   if (session.results.some((r) => r.parameter_name.toLowerCase() === paramName.toLowerCase())) return;
@@ -495,8 +495,8 @@ async function processIncomingFrame(frame, protocol, machine, win) {
   console.log(`📍 Recorded: ${paramName} = ${resultValue} ${unit}`);
 
   win?.webContents?.send('test-completed', {
-    sampleId:     session.sampleId,
-    test_name:    paramName,
+    sampleId: session.sampleId,
+    test_name: paramName,
     result_value: resultValue,
   });
 
@@ -555,26 +555,26 @@ async function processHL7Message(msg, machine, win) {
     }
 
     session = {
-      testId:        test.bill_item_id,
-      sampleId:      test.sample_id,
-      patientName:   test.patient_name || parsed.name,
-      testName:      test.test_name,
-      results:       [],
+      testId: test.bill_item_id,
+      sampleId: test.sample_id,
+      patientName: test.patient_name || parsed.name,
+      testName: test.test_name,
+      results: [],
       requiredParams: allParams.map((p) => ({
-        id:   (p.machine_parameter_code || p.parameter_name).toLowerCase(),
+        id: (p.machine_parameter_code || p.parameter_name).toLowerCase(),
         name: p.parameter_name.toLowerCase(),
         unit: p.parameter_unit,
       })),
       protocol: 'HL7',
       // Store parsed patient info from the HL7 message itself for reference
       hl7Meta: {
-        name:      parsed.name,
-        sex:       parsed.sex,
-        age:       parsed.age,
-        age_unit:  parsed.age_unit,
-        case_id:   parsed.case_id,
-        bed_no:    parsed.bed_no,
-        mode:      parsed.mode,
+        name: parsed.name,
+        sex: parsed.sex,
+        age: parsed.age,
+        age_unit: parsed.age_unit,
+        case_id: parsed.case_id,
+        bed_no: parsed.bed_no,
+        mode: parsed.mode,
         test_mode: parsed.test_mode,
         timestamp: parsed.timestamp,
       },
@@ -594,10 +594,10 @@ async function processHL7Message(msg, machine, win) {
 
     const resultEntry = {
       parameter_name: param,
-      result_value:   obs.value,
-      unit:           obs.unit   ?? '',
-      ref_range:      obs.range  ?? '',
-      flag:           obs.flag   ?? '',
+      result_value: obs.value,
+      unit: obs.unit ?? '',
+      ref_range: obs.range ?? '',
+      flag: obs.flag ?? '',
     };
 
     session.results.push(resultEntry);
@@ -610,11 +610,11 @@ async function processHL7Message(msg, machine, win) {
 
     // Live update to renderer
     win?.webContents?.send('test-completed', {
-      sampleId:     session.sampleId,
-      test_name:    param,
+      sampleId: session.sampleId,
+      test_name: param,
       result_value: obs.value,
-      unit:         obs.unit,
-      flag:         obs.flag,
+      unit: obs.unit,
+      flag: obs.flag,
     });
   }
 
@@ -655,10 +655,10 @@ async function syncSession(session, machine, sessionKey) {
       `${API_BASE}/api/lab/save-test-results`,
       {
         bill_item_id: session.testId,
-        sample_id:    session.sampleId,
-        machine_no:   machine.unique_id,
-        test_name:    session.testName,
-        results:      session.results,
+        sample_id: session.sampleId,
+        machine_no: machine.unique_id,
+        test_name: session.testName,
+        results: session.results,
         status,
       },
       { timeout: 8000 }
@@ -670,7 +670,7 @@ async function syncSession(session, machine, sessionKey) {
 
   if (isComplete) {
     console.log(`✅ Panel COMPLETE for ${session.patientName}. Closing session.`);
-    
+
 
 
     // 2. Automate the manual "Mark as Completed" step

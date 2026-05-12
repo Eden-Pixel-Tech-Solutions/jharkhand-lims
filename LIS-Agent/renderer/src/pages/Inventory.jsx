@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { 
-  Box, 
-  ShoppingCart, 
-  Truck, 
-  FileText 
+import {
+  Box,
+  ShoppingCart,
+  Truck,
+  FileText
 } from 'lucide-react';
 
 const Inventory = () => {
