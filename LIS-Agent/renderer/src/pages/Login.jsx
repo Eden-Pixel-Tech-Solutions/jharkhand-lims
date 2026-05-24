@@ -23,11 +23,17 @@ export default function Login() {
     ];
 
     useEffect(() => {
+        // Auto-login check
+        const token = localStorage.getItem('hims_token');
+        if (token) {
+            navigate('/setup');
+        }
+
         const timer = setInterval(() => {
             setCurrentSlide(prev => (prev + 1) % slides.length);
         }, 5000);
         return () => clearInterval(timer);
-    }, []);
+    }, [navigate, slides.length]);
 
     const handleChange = (e) => {
         setError('');
