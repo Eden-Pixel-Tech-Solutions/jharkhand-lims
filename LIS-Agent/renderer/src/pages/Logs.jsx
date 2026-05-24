@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:7005';
+const API_BASE = 'https://lims.poxiatechnologies.com';
 
 function Logs() {
   const [logs, setLogs] = useState([]);

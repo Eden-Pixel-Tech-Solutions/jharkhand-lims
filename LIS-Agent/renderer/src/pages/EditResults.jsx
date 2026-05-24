@@ -8,7 +8,7 @@ const EditResults = () => {
   const [selectedTest, setSelectedTest] = useState(null);
   const [editedResults, setEditedResults] = useState([]);
 
-  const API_BASE = 'http://localhost:7005';
+  const API_BASE = 'https://lims.poxiatechnologies.com';
 
   useEffect(() => {
     fetchTests();

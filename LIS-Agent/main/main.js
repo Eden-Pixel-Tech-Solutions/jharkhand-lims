@@ -30,7 +30,7 @@ function createWindow() {
 }
 
 async function syncMachines() {
-  const API_BASE = 'http://localhost:7005';
+  const API_BASE = 'https://lims.poxiatechnologies.com';
   try {
     const labId = await db.getSetting('labId');
     if (!labId) {

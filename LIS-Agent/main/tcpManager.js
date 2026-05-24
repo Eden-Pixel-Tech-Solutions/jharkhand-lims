@@ -2,7 +2,7 @@ const net = require('net');
 const axios = require('axios');
 const db = require('../db/sqlite');
 
-const API_BASE = 'http://localhost:7005';
+const API_BASE = 'https://lims.poxiatechnologies.com';
 
 // port -> true  (set IMMEDIATELY when we decide to open)
 const pendingPorts = new Set();

@@ -20,7 +20,7 @@ const Worklist = () => {
   const [selectedParams, setSelectedParams] = useState([]);
   const barcodeRef = useRef(null);
 
-  const API_BASE = 'http://localhost:7005';
+  const API_BASE = 'https://lims.poxiatechnologies.com';
 
   useEffect(() => {
     fetchWorklist();

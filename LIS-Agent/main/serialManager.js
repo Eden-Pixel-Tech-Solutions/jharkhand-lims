@@ -2,7 +2,7 @@ const { SerialPort } = require('serialport');
 const axios = require('axios');
 const db = require('../db/sqlite');
 
-const API_BASE = 'http://localhost:7005';
+const API_BASE = 'https://lims.poxiatechnologies.com';
 
 // path -> SerialPort instance
 const activePorts = new Map();
