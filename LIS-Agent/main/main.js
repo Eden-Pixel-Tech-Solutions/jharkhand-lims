@@ -17,6 +17,7 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1000,
     height: 700,
+    icon: path.join(__dirname, "../renderer/src/assets/img/meril.png"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
     },
@@ -24,9 +25,12 @@ function createWindow() {
 
   console.log("Loading React app...");
 
-  win.loadURL("http://localhost:5173");
-
-  win.webContents.openDevTools(); // 🔥 important for debugging
+  if (app.isPackaged) {
+    win.loadFile(path.join(__dirname, "../dist/index.html"));
+  } else {
+    win.loadURL("http://localhost:5173");
+    win.webContents.openDevTools(); // 🔥 important for debugging
+  }
 }
 
 async function syncMachines() {

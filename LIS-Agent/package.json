@@ -1,7 +1,7 @@
 {
-  "name": "lis-agent",
+  "name": "meril-lims",
   "version": "1.0.0",
-  "description": "LIS Agent",
+  "description": "Meril LIMS",
   "main": "main/main.js",
   "type": "commonjs",
   "scripts": {
@@ -12,21 +12,24 @@
     "dist:mac": "npm run build:ui && electron-builder --mac"
   },
   "build": {
-    "appId": "com.poxiatechnologies.lisagent",
-    "productName": "LIS Agent",
+    "appId": "com.poxiatechnologies.merillims",
+    "productName": "Meril LIMS",
     "directories": {
       "output": "release"
     },
     "win": {
-      "target": ["nsis"]
+      "target": ["nsis"],
+      "icon": "renderer/src/assets/img/meril.png"
     },
     "mac": {
-      "target": ["dmg"]
+      "target": ["dmg"],
+      "icon": "renderer/src/assets/img/meril.png"
     },
     "files": [
       "main/**/*",
       "dist/**/*",
-      "package.json"
+      "package.json",
+      "renderer/src/assets/img/meril.png"
     ]
   },
   "dependencies": {
