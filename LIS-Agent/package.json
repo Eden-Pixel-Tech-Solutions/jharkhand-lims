@@ -28,8 +28,12 @@
     "files": [
       "main/**/*",
       "dist/**/*",
+      "db/**/*",
       "package.json",
       "renderer/src/assets/img/meril.png"
+    ],
+    "asarUnpack": [
+      "**/*.node"
     ]
   },
   "dependencies": {

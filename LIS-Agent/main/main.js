@@ -3,7 +3,7 @@ const path = require("path");
 const os = require("os");
 const { SerialPort } = require('serialport');
 const axios = require('axios');
-const db = require("../db/sqlite");
+const db = require(path.join(__dirname, "../db/sqlite.js"));
 const serialManager = require("./serialManager");
 const tcpManager = require("./tcpManager");
 
