@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
+import AbhaRegistrationModal from '../../components/AbhaRegistrationModal';
 import '../../assets/CSS/PatientRegistration.css';
 
 const TITLES = ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.'];
@@ -65,6 +66,7 @@ function PatientDetails({ onSaveSuccess }) {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isAbhaModalOpen, setIsAbhaModalOpen] = useState(false);
   const searchRef = useRef(null);
 
   // Close dropdown if clicked outside
@@ -222,6 +224,29 @@ function PatientDetails({ onSaveSuccess }) {
     if (onSaveSuccess) onSaveSuccess(patient.reg_no);
   };
 
+  const handleAbhaComplete = (profile) => {
+    let formattedDob = profile.dob;
+    if (formattedDob && /^\d{2}[-/]\d{2}[-/]\d{4}$/.test(formattedDob)) {
+      const parts = formattedDob.split(/[-/]/);
+      formattedDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+
+    setData(prev => ({
+      ...prev,
+      firstName: profile.firstName || prev.firstName,
+      middleName: profile.middleName || prev.middleName,
+      lastName: profile.lastName || prev.lastName,
+      dob: formattedDob || prev.dob,
+      gender: profile.gender === 'M' ? 'Male' : profile.gender === 'F' ? 'Female' : 'Other',
+      abhaId: profile.ABHANumber || prev.abhaId,
+      telephone: profile.mobile || prev.telephone,
+      address: profile.address || prev.address,
+      city: profile.city || prev.city,
+      postalCode: profile.postalCode || prev.postalCode
+    }));
+    showAlert('Patient details auto-filled from ABHA Profile successfully!', 'success');
+  };
+
   return (
     <>
       {alert && (
@@ -294,6 +319,15 @@ function PatientDetails({ onSaveSuccess }) {
                 )}
               </div>
 
+              {/* ABHA Button */}
+              <button 
+                className="btn-primary" 
+                onClick={() => setIsAbhaModalOpen(true)}
+                style={{ marginLeft: 16, height: 42, padding: '0 16px', borderRadius: 8 }}
+              >
+                Register with ABHA
+              </button>
+              
               {/* Avatar */}
               <div className="preg-avatar" onClick={openCam} title="Add Photo (Alt + C)">
                 {photo
@@ -519,6 +553,13 @@ function PatientDetails({ onSaveSuccess }) {
           </div>
         </div>
       )}
+
+      {/* ABHA Modal */}
+      <AbhaRegistrationModal 
+        isOpen={isAbhaModalOpen} 
+        onClose={() => setIsAbhaModalOpen(false)} 
+        onComplete={handleAbhaComplete} 
+      />
 
     </>
   );

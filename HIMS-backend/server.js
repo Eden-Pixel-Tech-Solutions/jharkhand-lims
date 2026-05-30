@@ -31,6 +31,7 @@ import disasterRoutes from './routes/disasterRoutes.js';
 import db from './config/db.js';
 import barcodeRoutes from './routes/barcodeRoutes.js';
 import prescriptionRoutes from './routes/prescriptionRoutes.js';
+import abdmRoutes from './routes/abdmRoutes.js';
 
 dotenv.config();
 
@@ -77,6 +78,7 @@ app.use('/api/hl7', hl7Routes);
 app.use('/api/disaster', disasterRoutes);
 app.use('/api/barcodes', barcodeRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
+app.use('/api/abdm', abdmRoutes);
 // Health check route
 app.get('/', (req, res) => {
   res.send('HIMS Backend is running!');
