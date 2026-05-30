@@ -1,0 +1,21 @@
+directories:
+  output: release
+  buildResources: build
+appId: com.poxiatechnologies.merillims
+productName: Meril LIMS
+win:
+  target:
+    - nsis
+mac:
+  target:
+    - dmg
+files:
+  - filter:
+      - main/**/*
+      - dist/**/*
+      - db/**/*
+      - package.json
+      - renderer/src/assets/img/meril.png
+asarUnpack:
+  - '**/*.node'
+electronVersion: 41.5.0

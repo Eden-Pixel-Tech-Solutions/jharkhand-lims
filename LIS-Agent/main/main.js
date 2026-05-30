@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require("electron");
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } = require("electron");
 const path = require("path");
 const os = require("os");
 const { SerialPort } = require('serialport');
@@ -125,8 +125,29 @@ async function syncMachines() {
   }
 }
 
-app.whenReady().then(() => {
-  console.log("Electron ready");
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.whenReady().then(() => {
+    dialog.showMessageBoxSync({
+      type: 'warning',
+      title: 'Already Running',
+      message: 'The LIS Agent is already running. This instance will be closed.',
+      buttons: ['OK']
+    });
+    app.quit();
+  });
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      if (!win.isVisible()) win.show();
+      win.focus();
+    }
+  });
+
+  app.whenReady().then(() => {
+    console.log("Electron ready");
 
   // IPC Handlers for SQLite (Analyzer Config)
   ipcMain.handle('get-config', async () => {
@@ -230,12 +251,13 @@ app.whenReady().then(() => {
   createTray();
 });
 
-// Prevent app from quitting when all windows are closed — keep alive in tray
-app.on("window-all-closed", () => {
-  // Do NOT quit — stay alive in system tray for 24x7 listening
-  console.log("Window hidden. Listeners still running in background.");
-});
+  // Prevent app from quitting when all windows are closed — keep alive in tray
+  app.on("window-all-closed", () => {
+    // Do NOT quit — stay alive in system tray for 24x7 listening
+    console.log("Window hidden. Listeners still running in background.");
+  });
 
-app.on('before-quit', () => {
-  app.isQuitting = true;
-});
+  app.on('before-quit', () => {
+    app.isQuitting = true;
+  });
+}

@@ -1,0 +1,38 @@
+name: Build LIS-Agent for Windows
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'LIS-Agent/**'
+      - '.github/workflows/build-windows.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./LIS-Agent
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Windows App
+        run: npm run dist:win
+
+      - name: Upload Windows Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: LIS-Agent-Windows-Installer
+          path: LIS-Agent/release/*.exe

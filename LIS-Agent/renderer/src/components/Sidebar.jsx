@@ -37,7 +37,7 @@ const Sidebar = () => {
       borderRight: '1px solid #1e293b'
     }}>
       <div style={{ padding: '24px', borderBottom: '1px solid #1e293b' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#38bdf8' }}>MERIL LIS</h2>
+        <h2 style={{ fontSize: '18px', fontWeight: '800', margin: 0, color: '#38bdf8' }}>MERIL LIMS</h2>
         <p style={{ fontSize: '10px', margin: '4px 0 0', opacity: 0.6, letterSpacing: '1px' }}>SERIAL AGENT v1.0</p>
       </div>
 

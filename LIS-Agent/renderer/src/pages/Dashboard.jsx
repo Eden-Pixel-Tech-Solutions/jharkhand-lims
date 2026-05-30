@@ -1,9 +1,35 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const API_BASE = 'https://lims.poxiatechnologies.com';
 
+const ShortcutCard = ({ title, icon, desc, onClick, color, borderColor }) => (
+    <div 
+        onClick={onClick}
+        style={{
+            background: color,
+            border: `1px solid ${borderColor}`,
+            borderRadius: '16px',
+            padding: '16px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+        }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)'; }}
+    >
+        <div style={{ fontSize: '24px', marginBottom: '4px' }}>{icon}</div>
+        <div style={{ fontWeight: '800', color: '#1e293b', fontSize: '15px' }}>{title}</div>
+        <div style={{ fontSize: '12px', color: '#64748b' }}>{desc}</div>
+    </div>
+);
+
 export default function Dashboard() {
+    const navigate = useNavigate();
     const [machines, setMachines] = useState([]);
     const [selectedMachine, setSelectedMachine] = useState(null);
     const [isListening, setIsListening] = useState(false);
@@ -101,48 +127,15 @@ export default function Dashboard() {
                 </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-
-                {/* Results Live Feed */}
-                <div style={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                    <div style={{ padding: '16px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontWeight: '700' }}>Live Test Results</div>
-                    <div style={{ height: '500px', overflowY: 'auto', padding: '20px' }}>
-                        {testResults.length === 0 ? (
-                            <div style={{ textAlign: 'center', color: '#94a3b8', padding: '100px 0' }}>
-                                <div style={{ fontSize: '40px', marginBottom: '10px' }}>📉</div>
-                                Waiting for machine data...
-                            </div>
-                        ) : (
-                            testResults.map((res, i) => (
-                                <div key={i} style={{ padding: '16px', borderRadius: '12px', background: '#f8fafc', marginBottom: '12px', border: '1px solid #e2e8f0' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                        <span style={{ fontWeight: '800', color: '#1e293b' }}>{res.test_name}</span>
-                                        <span style={{ fontSize: '12px', color: '#64748b' }}>{new Date().toLocaleTimeString()}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                                        <span style={{ fontSize: '24px', fontWeight: '900', color: '#2563eb' }}>{res.result_value}</span>
-                                        <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '600' }}>{res.unit}</span>
-                                        <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#94a3b8' }}>Ref: {res.reference_range}</span>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-
-                {/* System Logs */}
-                <div style={{ background: '#0f172a', borderRadius: '16px', color: '#38bdf8', padding: '20px', fontFamily: 'monospace', fontSize: '12px' }}>
-                    <div style={{ color: 'white', fontWeight: '700', marginBottom: '16px', fontSize: '14px' }}>System Logs</div>
-                    <div style={{ height: '440px', overflowY: 'auto' }}>
-                        {logs.map((log, i) => (
-                            <div key={i} style={{ marginBottom: '6px', borderLeft: '2px solid #1e293b', paddingLeft: '10px' }}>
-                                <span style={{ opacity: 0.5 }}>[{new Date().toLocaleTimeString()}]</span> {log}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
+            {/* Quick Actions Shortcuts */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                <ShortcutCard title="Worklist" icon="📋" desc="Manage pending tests" onClick={() => navigate('/worklist')} color="#eff6ff" borderColor="#bfdbfe" />
+                <ShortcutCard title="Sample List" icon="🧪" desc="View patient samples" onClick={() => navigate('/sample-list')} color="#f0fdf4" borderColor="#bbf7d0" />
+                <ShortcutCard title="Analyzer Setup" icon="⚙️" desc="Configure machines" onClick={() => navigate('/setup')} color="#fff7ed" borderColor="#fed7aa" />
+                <ShortcutCard title="Reports" icon="📊" desc="Generate lab reports" onClick={() => navigate('/reports')} color="#faf5ff" borderColor="#e9d5ff" />
             </div>
+
+
 
             {/* Machine Picker Modal */}
             {showPicker && (

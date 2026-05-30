@@ -18,10 +18,14 @@
       "output": "release"
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "mac": {
-      "target": ["dmg"]
+      "target": [
+        "dmg"
+      ]
     },
     "files": [
       "main/**/*",
@@ -50,6 +54,6 @@
     "electron": "^41.5.0",
     "electron-builder": "^26.8.1",
     "vite": "^8.0.10",
-    "wait-on": "^9.0.5"
+    "wait-on": "^9.0.10"
   }
 }
