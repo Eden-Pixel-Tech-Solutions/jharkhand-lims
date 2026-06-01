@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { FileText, X, CheckCircle, Delete, ChevronLeft } from 'lucide-react';
 import '../../assets/CSS/LabTVMode.css';
+import merilLogo from '../../assets/meril.png';
+
+// Jharkhand logo — place jharkhand-logo.png in /public
+const JHARKHAND_LOGO = '/jharkhand-logo.png';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -213,19 +217,25 @@ function LabTVMode() {
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <header className="tv-header">
+        {/* Left — Jharkhand govt logo */}
         <div className="tv-logo-area">
-          <div className="tv-logo-icon">
-            <FlaskIcon />
-          </div>
+          <img
+            src={JHARKHAND_LOGO}
+            alt="Jharkhand State"
+            className="tv-jharkhand-logo"
+            onError={e => { e.target.style.display = 'none'; }}
+          />
           <div className="tv-logo-text">
-            <h1>Best Clinical Laboratory</h1>
+            <h1>Jharkhand State Diagnostic Services</h1>
             <p>Patient Queue Display</p>
           </div>
         </div>
 
+        {/* Right — clock + Meril logo */}
         <div className="tv-header-right">
           <div className="tv-clock">{timeString}</div>
           <div className="tv-date">{dateString}</div>
+          <img src={merilLogo} alt="Meril" className="tv-meril-logo" />
         </div>
       </header>
 
@@ -303,6 +313,17 @@ function LabTVMode() {
             <button className="kiosk-modal-close" onClick={closeAndResetModal}>
               <X size={24} />
             </button>
+
+            {/* Logos row — shown on both steps */}
+            <div className="kiosk-logo-row">
+              <img
+                src={JHARKHAND_LOGO}
+                alt="Jharkhand"
+                className="kiosk-jharkhand-logo"
+                onError={e => { e.target.style.display = 'none'; }}
+              />
+              <img src={merilLogo} alt="Meril" className="kiosk-meril-logo" />
+            </div>
 
             {/* ── Step 1: Input ────────────────────────────────────────── */}
             {kioskStep === 'input' && (

@@ -61,6 +61,23 @@
 }
 .tv-logo-icon svg { width: 26px; height: 26px; fill: #ffffff; }
 
+/* Jharkhand logo — left side of header */
+.tv-jharkhand-logo {
+  height: 54px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1); /* make it white on dark header */
+}
+
+/* Meril logo — right side of header */
+.tv-meril-logo {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  margin-top: 6px;
+}
+
 .tv-logo-text h1 {
   font-family: var(--font-display);
   font-size: clamp(1.1rem, 2vw, 1.65rem);
@@ -269,6 +286,26 @@
   transition: all 0.2s;
 }
 .kiosk-lang-toggle:hover { background: var(--blue-pale); }
+
+/* ─── Kiosk logo row ─── */
+.kiosk-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--blue-pale);
+}
+.kiosk-jharkhand-logo {
+  height: 56px;
+  width: auto;
+  object-fit: contain;
+}
+.kiosk-meril-logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
 
 .kiosk-service-header {
   text-align: center; margin-bottom: 2rem; margin-top: 1rem;
