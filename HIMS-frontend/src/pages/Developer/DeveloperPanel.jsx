@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import TestsTab from './TestsTab';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -573,6 +574,7 @@ export default function DeveloperPanel() {
     { id: 'hospitals',  label: '🏥 Hospitals' },
     { id: 'labs',       label: '🧪 Labs' },
     { id: 'users',      label: '👥 Users' },
+    { id: 'tests',      label: '🧫 Tests Master' },
     { id: 'brands',     label: '🔬 Machine Brands' },
   ];
 
@@ -613,6 +615,7 @@ export default function DeveloperPanel() {
           {tab === 'hospitals' && <HospitalsTab />}
           {tab === 'labs'      && <LabsTab hospitals={hospitals} />}
           {tab === 'users'     && <UsersTab hospitals={hospitals} />}
+          {tab === 'tests'     && <TestsTab />}
           {tab === 'brands'    && <BrandsTab />}
         </div>
       </div>
