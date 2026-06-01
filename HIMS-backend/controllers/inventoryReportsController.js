@@ -8,8 +8,8 @@ import PDFDocument from 'pdfkit';
 // Stock Ledger Report
 export const getStockLedger = async (req, res) => {
   try {
-    const { item_id, start_date, end_date, format = 'json' } = req.query;
-    
+    const { item_id, start_date, end_date, format = 'json', branch_id } = req.query;
+
     let sql = `
       SELECT t.*, i.item_name, i.item_code, i.category, i.unit,
         b.batch_number, b.lot_number,
@@ -22,6 +22,7 @@ export const getStockLedger = async (req, res) => {
     `;
     const params = [];
 
+    if (branch_id) { sql += ' AND t.branch_id = ?'; params.push(branch_id); }
     if (item_id) {
       sql += ' AND t.item_id = ?';
       params.push(item_id);
@@ -49,8 +50,8 @@ export const getStockLedger = async (req, res) => {
 // Consumption Report
 export const getConsumptionReport = async (req, res) => {
   try {
-    const { item_id, test_id, start_date, end_date, format = 'json' } = req.query;
-    
+    const { item_id, test_id, start_date, end_date, format = 'json', branch_id } = req.query;
+
     let sql = `
       SELECT c.*, i.item_name, i.item_code, i.unit, i.category,
         b.batch_number, b.lot_number,
@@ -68,6 +69,7 @@ export const getConsumptionReport = async (req, res) => {
     `;
     const params = [];
 
+    if (branch_id) { sql += ' AND c.branch_id = ?'; params.push(branch_id); }
     if (item_id) {
       sql += ' AND c.item_id = ?';
       params.push(item_id);
@@ -108,13 +110,13 @@ export const getConsumptionReport = async (req, res) => {
 // Expiry Report
 export const getExpiryReport = async (req, res) => {
   try {
-    const { days = 30, category, format = 'json' } = req.query;
-    
+    const { days = 30, category, format = 'json', branch_id } = req.query;
+
     let sql = `
       SELECT b.*, i.item_name, i.item_code, i.category, i.unit,
         v.vendor_name,
         DATEDIFF(b.expiry_date, CURDATE()) as days_until_expiry,
-        CASE 
+        CASE
           WHEN b.expiry_date < CURDATE() THEN 'Expired'
           WHEN b.expiry_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY) THEN 'Expiring Soon'
           ELSE 'Valid'
@@ -128,6 +130,7 @@ export const getExpiryReport = async (req, res) => {
     `;
     const params = [days, days];
 
+    if (branch_id) { sql += ' AND b.branch_id = ?'; params.push(branch_id); }
     if (category) {
       sql += ' AND i.category = ?';
       params.push(category);
@@ -162,8 +165,8 @@ export const getExpiryReport = async (req, res) => {
 // Purchase Report
 export const getPurchaseReport = async (req, res) => {
   try {
-    const { vendor_id, start_date, end_date, format = 'json' } = req.query;
-    
+    const { vendor_id, start_date, end_date, format = 'json', branch_id } = req.query;
+
     let sql = `
       SELECT gr.*, v.vendor_name, v.vendor_code,
         u.first_name as received_by_name,
@@ -175,6 +178,7 @@ export const getPurchaseReport = async (req, res) => {
     `;
     const params = [];
 
+    if (branch_id) { sql += ' AND gr.branch_id = ?'; params.push(branch_id); }
     if (vendor_id) {
       sql += ' AND gr.vendor_id = ?';
       params.push(vendor_id);
