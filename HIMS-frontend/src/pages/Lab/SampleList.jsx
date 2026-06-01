@@ -138,12 +138,12 @@ export default function SampleList() {
       const res = await fetch(`${API_BASE}/api/lab/generate-sample-id`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: dateStr })
+        body: JSON.stringify({ branch_id: localStorage.getItem('branch_id') })
       });
       const data = await res.json();
 
       if (data.success) {
-        const sampleId = `LAB-${dateStr}-${data.sequence.toString().padStart(4, '0')}`;
+        const sampleId = data.sampleId;
 
         // Update status to Collected
         const updateRes = await fetch(`${API_BASE}/api/lab/acknowledge-test`, {
@@ -152,6 +152,7 @@ export default function SampleList() {
           body: JSON.stringify({
             bill_item_id: item.bill_item_id,
             sample_id: sampleId,
+            short_id: data.shortId,
             status: 'Collected'
           })
         });

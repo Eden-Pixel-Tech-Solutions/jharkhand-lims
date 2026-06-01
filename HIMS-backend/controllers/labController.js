@@ -1104,26 +1104,39 @@ export const getWorklistById = async (req, res) => {
   }
 };
 
-// Generate sample ID sequence
+// Generate sample ID sequence — atomic per branch per day, race-condition-proof
 export const generateSampleId = async (req, res) => {
   try {
-    const { date } = req.body;
+    const { branch_id } = req.body;
 
-    const [rows] = await db.query(
-      `SELECT COUNT(*) as total
-       FROM bill_items 
-       WHERE DATE(created_at) = CURDATE()
-       AND service_type = 'Laboratory'
-       AND short_id IS NOT NULL`
+    if (!branch_id) {
+      return res.status(400).json({ success: false, message: 'branch_id is required' });
+    }
+
+    // Single atomic upsert — concurrent requests on the same branch each get a unique sequence
+    await db.query(
+      `INSERT INTO lab_sample_sequences (branch_id, seq_date, last_seq)
+       VALUES (?, CURDATE(), 1)
+       ON DUPLICATE KEY UPDATE last_seq = last_seq + 1`,
+      [branch_id]
     );
 
-    const sequence = (rows[0]?.total || 0) + 1;
-    const shortId = sequence.toString().padStart(4, '0');
+    const [[row]] = await db.query(
+      `SELECT s.last_seq, b.hospital_code
+       FROM lab_sample_sequences s
+       JOIN branches b ON b.id = s.branch_id
+       WHERE s.branch_id = ? AND s.seq_date = CURDATE()`,
+      [branch_id]
+    );
+
+    const dateStr  = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const shortId  = row.last_seq.toString().padStart(4, '0');
+    const sampleId = `LAB-${row.hospital_code}-${dateStr}-${shortId}`;
 
     res.json({
       success: true,
-      sequence,
-      sampleId: `LAB-${date}-${shortId}`,
+      sequence: row.last_seq,
+      sampleId,
       shortId
     });
   } catch (error) {

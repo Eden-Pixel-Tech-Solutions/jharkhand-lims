@@ -1,18 +1,28 @@
 import db from '../config/db.js';
 
-// Get all duty schedules with doctor and room info
+// Get all duty schedules with doctor and room info — scoped to branch
 export const getDutySchedules = async (req, res) => {
   try {
-    const query = `
-      SELECT ds.*, 
-             u.first_name as doctor_first_name, u.last_name as doctor_last_name, 
+    const { branch_id } = req.query;
+    let query = `
+      SELECT ds.*,
+             u.first_name as doctor_first_name, u.last_name as doctor_last_name,
              i.name as room_name, i.block, i.floor
       FROM duty_schedules ds
       JOIN users u ON ds.doctor_id = u.id
       JOIN infrastructure i ON ds.room_id = i.id
-      ORDER BY ds.duty_date DESC, ds.start_time ASC
+      WHERE 1=1
     `;
-    const [rows] = await db.query(query);
+    const params = [];
+
+    if (branch_id) {
+      query += ' AND ds.branch_id = ?';
+      params.push(branch_id);
+    }
+
+    query += ' ORDER BY ds.duty_date DESC, ds.start_time ASC';
+
+    const [rows] = await db.query(query, params);
     res.json({ success: true, schedules: rows });
   } catch (error) {
     console.error('Error fetching duty schedules:', error);
@@ -23,22 +33,20 @@ export const getDutySchedules = async (req, res) => {
 // Add a new duty schedule
 export const addDutySchedule = async (req, res) => {
   try {
-    const { doctorId, roomId, dutyDate, startTime, endTime, price, notes } = req.body;
+    const { doctorId, roomId, dutyDate, startTime, endTime, price, notes, branch_id } = req.body;
 
     if (!doctorId || !roomId || !dutyDate || !startTime || !endTime) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Missing required fields' 
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
       });
     }
 
-    const query = `
-      INSERT INTO duty_schedules (doctor_id, room_id, duty_date, start_time, end_time, price, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `;
-    const values = [doctorId, roomId, dutyDate, startTime, endTime, price || 0.00, notes];
-
-    const [result] = await db.query(query, values);
+    const [result] = await db.query(
+      `INSERT INTO duty_schedules (doctor_id, room_id, duty_date, start_time, end_time, price, notes, branch_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [doctorId, roomId, dutyDate, startTime, endTime, price || 0.00, notes, branch_id || null]
+    );
 
     res.status(201).json({
       success: true,
@@ -68,10 +76,10 @@ export const deleteDutySchedule = async (req, res) => {
   }
 };
 
-// Get doctors on duty for a specific date and time
+// Get doctors on duty for a specific date and time — scoped to branch
 export const getAvailableDoctors = async (req, res) => {
   try {
-    const { date, time, department } = req.query;
+    const { date, time, department, branch_id } = req.query;
 
     if (!date || !time) {
       return res.status(400).json({ success: false, message: 'Date and Time are required' });
@@ -83,12 +91,16 @@ export const getAvailableDoctors = async (req, res) => {
       FROM duty_schedules ds
       JOIN users u ON ds.doctor_id = u.id
       JOIN infrastructure i ON ds.room_id = i.id
-      WHERE ds.duty_date = ? 
-        AND ? >= ds.start_time 
+      WHERE ds.duty_date = ?
+        AND ? >= ds.start_time
         AND ? <= ds.end_time
     `;
-    
-    let params = [date, time, time];
+    const params = [date, time, time];
+
+    if (branch_id) {
+      query += ' AND ds.branch_id = ?';
+      params.push(branch_id);
+    }
 
     if (department) {
       query += ' AND u.department = ?';
@@ -96,9 +108,8 @@ export const getAvailableDoctors = async (req, res) => {
     }
 
     query += ' ORDER BY u.department ASC, u.first_name ASC';
-    
+
     const [rows] = await db.query(query, params);
-    
     res.json({ success: true, doctors: rows });
   } catch (error) {
     console.error('Error fetching available doctors:', error);
