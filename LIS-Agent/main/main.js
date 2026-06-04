@@ -105,7 +105,9 @@ async function syncMachines() {
           baud: m.baud_rate || 9600,
           labId: m.lab_id,
           labName: m.lab_name || 'Lab',
-          manufacturer: m.manufacturer
+          manufacturer: m.manufacturer,
+          portType: m.interface_type || 'USB',
+          serialNumber: m.serial_number || '',
         };
 
         // Get existing local config to preserve the COM port if it was set manually

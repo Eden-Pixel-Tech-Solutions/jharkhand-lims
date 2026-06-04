@@ -16,9 +16,14 @@ db.serialize(() => {
       baud INTEGER,
       lab_id INTEGER,
       lab_name TEXT,
-      manufacturer TEXT
+      manufacturer TEXT,
+      port_type TEXT,
+      serial_number TEXT
     )
   `);
+  // Migrate existing databases that predate port_type / serial_number columns
+  db.run(`ALTER TABLE analyzer_config ADD COLUMN port_type TEXT`, () => {});
+  db.run(`ALTER TABLE analyzer_config ADD COLUMN serial_number TEXT`, () => {});
   db.run(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
@@ -48,8 +53,8 @@ function getSetting(key) {
 function saveConfig(config) {
   return new Promise((resolve, reject) => {
     const stmt = db.prepare(`
-      INSERT OR REPLACE INTO analyzer_config (unique_id, analyzer_name, model, port, baud, lab_id, lab_name, manufacturer)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO analyzer_config (unique_id, analyzer_name, model, port, baud, lab_id, lab_name, manufacturer, port_type, serial_number)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -61,6 +66,8 @@ function saveConfig(config) {
       config.labId,
       config.labName,
       config.manufacturer,
+      config.portType || null,
+      config.serialNumber || null,
       function (err) {
         if (err) reject(err);
         else resolve(this.lastID);

@@ -31,6 +31,7 @@
       "main/**/*",
       "dist/**/*",
       "db/**/*",
+      "build/**/*",
       "package.json",
       "renderer/src/assets/img/meril.png"
     ],

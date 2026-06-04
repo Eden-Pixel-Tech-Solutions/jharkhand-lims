@@ -4,6 +4,18 @@ const db = require('../db/sqlite');
 
 const API_BASE = 'https://lims.poxiatechnologies.com';
 
+function postAnalyzerEvent(machine, event, ip_address) {
+  axios.post(`${API_BASE}/api/lab/analyzer-event`, {
+    machine_id:   machine.unique_id || machine.uniqueId || machine.id || '',
+    machine_name: machine.analyzer_name || machine.name || '',
+    model:        machine.model || '',
+    lab_id:       machine.lab_id || null,
+    port:         machine.port || '',
+    event,
+    ip_address:   ip_address || null,
+  }).catch(err => console.warn(`⚠️  Could not log analyzer event (${event}):`, err.message));
+}
+
 // port -> true  (set IMMEDIATELY when we decide to open)
 const pendingPorts = new Set();
 const activeServers = new Map();
@@ -103,7 +115,7 @@ async function syncSession(session, machine, sessionKey) {
         const payload = {
             bill_item_id: session.testId,
             sample_id: session.sampleId,
-            machine_id: machine.unique_id || machine.uniqueId || machine.id,
+            machine_no: machine.unique_id || machine.uniqueId || machine.id,
             results: session.results.map(r => ({
                 parameter_name: r.parameter_name,
                 result_value: r.result_value,
@@ -270,7 +282,8 @@ async function startTCPServer(machine, win) {
     const server = net.createServer((conn) => {
         console.log(`\n🔌 Analyzer Connected: ${conn.remoteAddress}:${conn.remotePort}`);
         activeClients.set(machine.port, conn);
-        
+        postAnalyzerEvent(machine, 'ONLINE', conn.remoteAddress);
+
         // Notify UI that machine actually connected
         mainWindow?.webContents?.send('device-status', {
             model: machine.model,
@@ -316,6 +329,7 @@ async function startTCPServer(machine, win) {
         conn.on('close', () => {
             console.log('🔌 Analyzer Disconnected');
             activeClients.delete(machine.port);
+            postAnalyzerEvent(machine, 'OFFLINE');
             // Revert back to listening status
             mainWindow?.webContents?.send('device-status', {
                 model: machine.model,
@@ -367,7 +381,7 @@ async function initializeAllServers(win) {
     mainWindow = win;
     try {
         const configs = await db.getConfig();
-        const tcpConfigs = configs.filter(c => c.portType === 'TCP' || (c.model && (c.model.includes('ALTA') || c.model.includes('CelQuant 5plus'))));
+        const tcpConfigs = configs.filter(c => c.port_type === 'TCP' || (c.model && (c.model.includes('ALTA') || c.model.includes('CelQuant 5plus'))));
 
         for (const config of tcpConfigs) {
             if (activeServers.has(config.port) || pendingPorts.has(config.port)) {

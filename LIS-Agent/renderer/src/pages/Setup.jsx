@@ -189,7 +189,8 @@ export default function Setup() {
                 labId: lab.id,
                 labName: lab.name,
                 manufacturer: formData.manufacturer,
-                serialNumber: formData.serialNumber
+                serialNumber: formData.serialNumber,
+                portType: formData.portType,
             };
 
             await window.electronAPI.saveConfig(config);

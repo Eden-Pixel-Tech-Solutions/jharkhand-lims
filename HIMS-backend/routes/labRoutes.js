@@ -48,7 +48,10 @@ import {
   addLabMachine,
   syncLabMachine,
   updateLabMachine,
-  deleteLabMachine
+  deleteLabMachine,
+  logAnalyzerEvent,
+  getAnalyzerLogs,
+  getMachineStats,
 } from '../controllers/labMachineController.js';
 import { generateTestParameters } from '../controllers/aiController.js';
 import { sendWhatsAppMessage } from '../services/whatsappService.js';
@@ -174,6 +177,11 @@ router.post('/machines', addLabMachine);
 router.post('/machines/sync', syncLabMachine);
 router.put('/machines/:id', updateLabMachine);
 router.delete('/machines/:id', deleteLabMachine);
+
+// Analyzer Connection Event Logging (called by LIS-Agent)
+router.post('/analyzer-event', logAnalyzerEvent);
+router.get('/analyzer-logs', getAnalyzerLogs);
+router.get('/machine-stats', getMachineStats);
 
 // Machine Protocol Route
 router.get('/machine-protocol/:model', getMachineProtocol);

@@ -169,3 +169,191 @@ export const deleteLabMachine = async (req, res) => {
     res.json({ success: true });
   } catch (err) { res.status(500).json({ success: false }); }
 };
+
+// Log an analyzer ONLINE / OFFLINE event (called by LIS-Agent)
+export const logAnalyzerEvent = async (req, res) => {
+  try {
+    const { machine_id, machine_name, model, lab_id, port, event, ip_address } = req.body;
+    if (!machine_id || !event) {
+      return res.status(400).json({ success: false, message: 'machine_id and event are required' });
+    }
+    if (!['ONLINE', 'OFFLINE'].includes(event)) {
+      return res.status(400).json({ success: false, message: 'event must be ONLINE or OFFLINE' });
+    }
+
+    await db.query(
+      `INSERT INTO analyzer_connection_logs
+         (machine_id, machine_name, model, lab_id, port, event, ip_address)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [machine_id, machine_name || null, model || null, lab_id || null, port || null, event, ip_address || null]
+    );
+
+    // Keep lab_machines.status in sync
+    if (machine_id) {
+      await db.query(
+        `UPDATE lab_machines SET status = ? WHERE machine_id = ?`,
+        [event === 'ONLINE' ? 'Online' : 'Offline', machine_id]
+      );
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error logging analyzer event:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Get analyzer connection/disconnection history
+export const getAnalyzerLogs = async (req, res) => {
+  try {
+    const { lab_id, machine_id, event, limit = 200 } = req.query;
+
+    let where = [];
+    let params = [];
+
+    if (lab_id) { where.push('acl.lab_id = ?'); params.push(lab_id); }
+    if (machine_id) { where.push('acl.machine_id = ?'); params.push(machine_id); }
+    if (event) { where.push('acl.event = ?'); params.push(event.toUpperCase()); }
+
+    const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    params.push(parseInt(limit, 10) || 200);
+
+    const [logs] = await db.query(
+      `SELECT
+         acl.id,
+         acl.machine_id,
+         acl.machine_name,
+         acl.model,
+         acl.lab_id,
+         i.name AS lab_name,
+         acl.port,
+         acl.event,
+         acl.ip_address,
+         acl.created_at
+       FROM analyzer_connection_logs acl
+       LEFT JOIN infrastructure i ON acl.lab_id = i.id
+       ${whereClause}
+       ORDER BY acl.created_at DESC
+       LIMIT ?`,
+      params
+    );
+
+    res.json({ success: true, logs });
+  } catch (err) {
+    console.error('Error fetching analyzer logs:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Comprehensive stats for admin dashboard
+export const getMachineStats = async (req, res) => {
+  try {
+    const { lab_id } = req.query;
+    // Optional WHERE clause when scoping to a single lab
+    const labWhere  = lab_id ? `WHERE lm.lab_id = ${db.escape(lab_id)}`      : '';
+    const labFilter = lab_id ? `WHERE lab_id   = ${db.escape(lab_id)}`        : '';
+    const labJoinWhere = lab_id ? `AND lm.lab_id = ${db.escape(lab_id)}`      : '';
+
+    // Overall totals
+    const [[totals]] = await db.query(`
+      SELECT
+        COUNT(*)                                                          AS total,
+        SUM(CASE WHEN status = 'Online'  THEN 1 ELSE 0 END)             AS online,
+        SUM(CASE WHEN status = 'Offline' THEN 1 ELSE 0 END)             AS offline,
+        SUM(CASE WHEN status NOT IN ('Online','Offline') OR status IS NULL THEN 1 ELSE 0 END) AS unknown
+      FROM lab_machines
+      ${labFilter}
+    `);
+
+    // Tests done today (scoped to lab if provided)
+    const testWhere = lab_id
+      ? `WHERE ltr.tested_at >= CURDATE() AND ltr.machine_no IN (SELECT machine_id FROM lab_machines WHERE lab_id = ${db.escape(lab_id)})`
+      : `WHERE tested_at >= CURDATE()`;
+    const [[testStats]] = await db.query(
+      `SELECT COUNT(*) AS tests_today FROM lab_test_result ltr ${testWhere}`
+    );
+
+    // Brand-wise
+    const [brands] = await db.query(`
+      SELECT
+        COALESCE(manufacturer, 'Unknown')                                AS brand,
+        COUNT(*)                                                          AS total,
+        SUM(CASE WHEN status = 'Online'  THEN 1 ELSE 0 END)             AS online,
+        SUM(CASE WHEN status = 'Offline' THEN 1 ELSE 0 END)             AS offline
+      FROM lab_machines
+      ${labFilter}
+      GROUP BY manufacturer
+      ORDER BY total DESC
+    `);
+
+    // Model-wise
+    const [models] = await db.query(`
+      SELECT
+        COALESCE(model, 'Unknown')                                        AS model,
+        COALESCE(manufacturer, 'Unknown')                                 AS brand,
+        COUNT(*)                                                          AS total,
+        SUM(CASE WHEN status = 'Online'  THEN 1 ELSE 0 END)             AS online,
+        SUM(CASE WHEN status = 'Offline' THEN 1 ELSE 0 END)             AS offline
+      FROM lab_machines
+      ${labFilter}
+      GROUP BY model, manufacturer
+      ORDER BY total DESC
+    `);
+
+    // Lab / Hospital-wise (omit for single-lab view)
+    let labs = [];
+    if (!lab_id) {
+      [labs] = await db.query(`
+        SELECT
+          COALESCE(i.name, 'Unassigned')                                 AS lab_name,
+          lm.lab_id,
+          COUNT(lm.id)                                                    AS total,
+          SUM(CASE WHEN lm.status = 'Online'  THEN 1 ELSE 0 END)       AS online,
+          SUM(CASE WHEN lm.status = 'Offline' THEN 1 ELSE 0 END)       AS offline
+        FROM lab_machines lm
+        LEFT JOIN infrastructure i ON lm.lab_id = i.id
+        GROUP BY lm.lab_id, i.name
+        ORDER BY total DESC
+      `);
+    }
+
+    // Per-machine detail
+    const [machines] = await db.query(`
+      SELECT
+        lm.id,
+        lm.machine_id,
+        lm.name         AS machine_name,
+        lm.model,
+        COALESCE(lm.manufacturer, 'Unknown')   AS brand,
+        lm.serial_number,
+        lm.interface_type,
+        lm.port_ip,
+        COALESCE(lm.status, 'Unknown')         AS status,
+        lm.lab_id,
+        COALESCE(i.name, 'Unassigned')         AS lab_name,
+        (SELECT MAX(acl.created_at) FROM analyzer_connection_logs acl
+           WHERE acl.machine_id = lm.machine_id AND acl.event = 'ONLINE')  AS last_online,
+        (SELECT MAX(acl.created_at) FROM analyzer_connection_logs acl
+           WHERE acl.machine_id = lm.machine_id AND acl.event = 'OFFLINE') AS last_offline,
+        (SELECT COUNT(*) FROM lab_test_result ltr
+           WHERE ltr.machine_no = lm.machine_id
+             AND ltr.tested_at >= NOW() - INTERVAL 24 HOUR)               AS tests_today
+      FROM lab_machines lm
+      LEFT JOIN infrastructure i ON lm.lab_id = i.id
+      ${labWhere}
+      ORDER BY lm.lab_id, lm.machine_id
+    `);
+
+    res.json({
+      success: true,
+      totals: { ...totals, tests_today: testStats.tests_today },
+      brands,
+      models,
+      labs,
+      machines,
+    });
+  } catch (err) {
+    console.error('Error fetching machine stats:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

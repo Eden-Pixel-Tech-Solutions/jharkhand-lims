@@ -14,6 +14,7 @@ import SampleList from './pages/Lab/SampleList';
 import LabVerification from './pages/Lab/LabVerification';
 import LabReportDownload from './pages/Lab/LabReportDownload';
 import LabActivityLogs from './pages/Lab/LabActivityLogs';
+import LabAnalyzerLogs from './pages/Lab/LabAnalyzerLogs';
 import InventoryDashboard from './pages/Inventory/InventoryDashboard';
 import Billings from './pages/Billing/Billings';
 import PatientLogin from './pages/Patients/PatientLogin';
@@ -76,6 +77,7 @@ function App() {
           <Route path="/lab-verification" element={<LabVerification />} />
           <Route path="/lab-reports" element={<LabReportDownload />} />
           <Route path="/lab-logs" element={<LabActivityLogs />} />
+          <Route path="/lab-analyzer-logs" element={<LabAnalyzerLogs />} />
           <Route path="/inventory/dashboard" element={<InventoryDashboard />} />
           <Route path="/inventory" element={<InventoryNetworkDashboard />} />
           <Route path="/inventory/overview" element={<InventoryOverview />} />

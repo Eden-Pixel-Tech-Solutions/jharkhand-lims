@@ -39,9 +39,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware - CORS configured to allow all origins for IP access
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://lims.poxiatechnologies.com')
+  .split(',')
+  .map(o => o.trim());
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow server-to-server requests (no origin) and listed origins
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -90,7 +100,7 @@ app.get('/', (req, res) => {
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);
   console.log(`Accessible via your IP address on port ${PORT}`);
-  
+
   // Test DB connection on startup
   try {
     const connection = await db.getConnection();
@@ -98,5 +108,28 @@ app.listen(PORT, '0.0.0.0', async () => {
     connection.release();
   } catch (err) {
     console.error('Database connection failed:', err.message);
+  }
+
+  // Auto-migrate: create analyzer_connection_logs if it doesn't exist
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS analyzer_connection_logs (
+        id           INT AUTO_INCREMENT PRIMARY KEY,
+        machine_id   VARCHAR(100)             NOT NULL,
+        machine_name VARCHAR(200)             DEFAULT NULL,
+        model        VARCHAR(200)             DEFAULT NULL,
+        lab_id       INT                      DEFAULT NULL,
+        port         VARCHAR(100)             DEFAULT NULL,
+        event        ENUM('ONLINE','OFFLINE') NOT NULL,
+        ip_address   VARCHAR(45)              DEFAULT NULL,
+        created_at   TIMESTAMP                DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_machine_id (machine_id),
+        INDEX idx_lab_id     (lab_id),
+        INDEX idx_created_at (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+    console.log('✅ analyzer_connection_logs table ready.');
+  } catch (err) {
+    console.error('Migration error (analyzer_connection_logs):', err.message);
   }
 });

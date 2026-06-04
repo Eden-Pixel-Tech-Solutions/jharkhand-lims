@@ -4,6 +4,17 @@ const db = require('../db/sqlite');
 
 const API_BASE = 'https://lims.poxiatechnologies.com';
 
+function postAnalyzerEvent(machine, event) {
+  axios.post(`${API_BASE}/api/lab/analyzer-event`, {
+    machine_id:   machine.unique_id || machine.id || '',
+    machine_name: machine.analyzer_name || machine.name || '',
+    model:        machine.model || '',
+    lab_id:       machine.lab_id || null,
+    port:         machine.port || '',
+    event,
+  }).catch(err => console.warn(`⚠️  Could not log analyzer event (${event}):`, err.message));
+}
+
 // path -> SerialPort instance
 const activePorts = new Map();
 
@@ -391,7 +402,7 @@ async function initializeAllPorts(win) {
   mainWindow = win;
   try {
     const configs = await db.getConfig();
-    const serialConfigs = configs.filter(c => c.portType !== 'TCP' && !(c.model && (c.model.includes('ALTA') || c.model.includes('CelQuant 5plus'))));
+    const serialConfigs = configs.filter(c => c.port_type !== 'TCP' && !(c.model && (c.model.includes('ALTA') || c.model.includes('CelQuant 5plus'))));
     console.log(`🚀 Initializing background listeners for ${serialConfigs.length} machine(s)...`);
 
     for (const config of serialConfigs) {
@@ -486,6 +497,7 @@ async function startBackgroundListener(machine, win) {
     }
     console.log(`✅ Port ${machine.port} ACTIVE (${machine.model}).`);
     activePorts.set(machine.port, port);
+    postAnalyzerEvent(machine, 'ONLINE');
 
     // Notify UI
     win?.webContents?.send('device-status', {
@@ -576,6 +588,7 @@ async function startBackgroundListener(machine, win) {
   port.on('close', () => {
     console.log(`🔌 Port ${machine.port} closed.`);
     activePorts.delete(machine.port);
+    postAnalyzerEvent(machine, 'OFFLINE');
     if (silenceTimers.has(machine.port)) {
       clearTimeout(silenceTimers.get(machine.port));
       silenceTimers.delete(machine.port);
@@ -823,7 +836,6 @@ async function processTextMessage(msg, protocol, machine, win) {
 
   // OVERRIDE: Check manual contexts
   const machineId = machine.unique_id || machine.id;
-  console.log(`DEBUG: machineId inside processTextMessage is ${machineId}, manualContexts has:`, Array.from(manualContexts.keys()));
   const manualInfo = manualContexts.get(machineId);
 
   if (manualInfo && manualInfo.sampleId) {
@@ -1000,7 +1012,6 @@ async function syncSession(session, machine, sessionKey) {
       
       // Clear manual context if this was a manually forced run
       const machineId = machine.unique_id || machine.id;
-  console.log(`DEBUG: machineId inside processTextMessage is ${machineId}, manualContexts has:`, Array.from(manualContexts.keys()));
       if (manualContexts.has(machineId)) {
         manualContexts.delete(machineId);
         console.log(`📌 Manual context cleared for machine ${machineId}`);
