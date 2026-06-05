@@ -4,19 +4,13 @@
     "slug": "sample-collector",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./src/Asset/logo.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.poxiatechnologies.samplecollector",
-      "icon": "./src/Asset/logo.png"
+      "bundleIdentifier": "com.poxiatechnologies.samplecollector"
     },
     "android": {
-      "package": "com.poxiatechnologies.samplecollector",
-      "adaptiveIcon": {
-        "foregroundImage": "./src/Asset/logo.png",
-        "backgroundColor": "#EFF6FF"
-      }
+      "package": "com.poxiatechnologies.samplecollector"
     },
     "platforms": ["ios", "android"]
   }
