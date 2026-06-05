@@ -90,7 +90,12 @@ function PatientRegistration() {
     setIsSearching(true);
     try {
       const API_BASE = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API_BASE}/api/patients/search?q=${encodeURIComponent(searchQuery)}`);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/patients/search?q=${encodeURIComponent(searchQuery)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const result = await res.json();
 
       if (result.success) {
