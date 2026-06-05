@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "SampleCollector",
+    "slug": "sample-collector",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0d2554"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.poxiatechnologies.samplecollector"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0d2554"
+      },
+      "package": "com.poxiatechnologies.samplecollector"
+    },
+    "platforms": ["ios", "android"],
+    "sdkVersion": "51.0.0"
+  }
+}

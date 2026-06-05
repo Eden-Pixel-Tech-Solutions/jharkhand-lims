@@ -56,4 +56,23 @@ router.post("/generate", async (req, res) => {
   }
 });
 
+router.get('/sample/:sampleId', async (req, res) => {
+  try {
+    const barcodeBuffer = await bwipjs.toBuffer({
+      bcid: 'code128',
+      text: req.params.sampleId,
+      scale: 3,
+      height: 10,
+      includetext: true,
+    });
+    res.json({
+      success: true,
+      barcodeBase64: `data:image/png;base64,${barcodeBuffer.toString('base64')}`,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Barcode generation failed' });
+  }
+});
+
 export default router;
