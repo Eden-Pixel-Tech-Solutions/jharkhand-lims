@@ -1,5 +1,18 @@
 import jwt from 'jsonwebtoken';
 
+// Maps legacy DB role slugs → canonical display names used in route guards
+const ROLE_ALIASES = {
+  'admin':        'Admin',
+  'lab_tech':     'Lab Technician',
+  'lab_doctor':   'Lab Head',
+  'lab doctor':   'Lab Head',
+  'receptionist': 'Receptionist',
+  'phlebotomist': 'Phlebotomist',
+};
+
+const normalizeRole = (role = '') =>
+  ROLE_ALIASES[role.toLowerCase()] ?? role;
+
 export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -19,7 +32,8 @@ export const authenticateToken = (req, res, next) => {
 
 export const authorizeRole = (roles) => {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    const role = normalizeRole(req.user?.role);
+    if (!req.user || !roles.includes(role)) {
       return res.status(403).json({ message: 'Access denied. Insufficient permissions.' });
     }
     next();

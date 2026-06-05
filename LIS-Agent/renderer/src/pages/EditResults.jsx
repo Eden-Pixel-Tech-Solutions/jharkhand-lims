@@ -46,6 +46,7 @@ const EditResults = () => {
       // Fetch the bill_item_id using sample_id if needed, but our save API might need bill_item_id or just sample_id.
       // The save API works with just sample_id if it can look up bill_item_id.
       const payload = {
+        bill_item_id: selectedTest.bill_item_id,
         sample_id: selectedTest.sample_id,
         machine_no: selectedTest.machine_no,
         test_name: selectedTest.test_name,

@@ -177,7 +177,7 @@ function PatientDetails({ onSaveSuccess }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('hims_token')}`
         },
         body: JSON.stringify(payload)
       });
@@ -209,7 +209,7 @@ function PatientDetails({ onSaveSuccess }) {
     try {
       const API_BASE = import.meta.env.VITE_API_URL || '';
       const res = await fetch(`${API_BASE}/api/patients/search?q=${encodeURIComponent(val)}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('hims_token')}` }
       });
       const result = await res.json();
       if (result.success) {

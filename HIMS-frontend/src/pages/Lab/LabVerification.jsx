@@ -3,15 +3,27 @@ import '../../assets/CSS/LabVerification.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+const toLocalDate = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+};
+
 const LabVerification = () => {
-  const [tests, setTests] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedTest, setSelectedTest]   = useState(null);
-  const [approveTest, setApproveTest]     = useState(null); // separate state for approve modal
+  const [tests, setTests]               = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState(null);
+  const [selectedTest, setSelectedTest] = useState(null);
+  const [approveTest, setApproveTest]   = useState(null);
   const [verificationNote, setVerificationNote] = useState('');
-  const [approveNote, setApproveNote]     = useState('');
-  const [filterStatus, setFilterStatus]   = useState('all');
+  const [approveNote, setApproveNote]   = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchQuery, setSearchQuery]   = useState('');
+  const [dateFilter, setDateFilter]     = useState('');
+  const [bulkConfirm, setBulkConfirm]   = useState(null); // 'verify' | 'approve'
+  const [bulkProgress, setBulkProgress] = useState(null); // { done, total, type }
 
   useEffect(() => {
     fetchPendingVerifications();
@@ -38,22 +50,44 @@ const LabVerification = () => {
     }
   };
 
+  // Client-side filtering by search + date
+  const filteredTests = tests.filter(t => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchName   = t.patient_name?.toLowerCase().includes(q);
+      const matchSample = t.sample_id?.toLowerCase().includes(q);
+      const matchTest   = t.test_name?.toLowerCase().includes(q);
+      if (!matchName && !matchSample && !matchTest) return false;
+    }
+    if (dateFilter) {
+      if (toLocalDate(t.tested_at) !== dateFilter) return false;
+    }
+    return true;
+  });
+
+  const verifiableTests = filteredTests.filter(
+    t => t.status === 'Test Done' || t.status === 'Completed'
+  );
+  const approvableTests = filteredTests.filter(t => t.status === 'Verified');
+
+  const getDoctorId = () =>
+    localStorage.getItem('user_id') ||
+    JSON.parse(localStorage.getItem('user') || '{}')?.id ||
+    1;
+
   const handleVerify = async (testId, sampleId) => {
     try {
-      const doctorId = JSON.parse(localStorage.getItem('user'))?.id || 1;
-
       const res = await fetch(`${API_BASE}/api/lab/verify-test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           test_result_id: testId,
           sample_id: sampleId,
-          verified_by: doctorId,
+          verified_by: getDoctorId(),
           notes: verificationNote,
           status: 'Verified'
         })
       });
-
       const data = await res.json();
       if (data.success) {
         alert('Test verified successfully!');
@@ -71,7 +105,6 @@ const LabVerification = () => {
 
   const handleApprove = async () => {
     if (!approveTest) return;
-    const doctorId = localStorage.getItem('user_id') || JSON.parse(localStorage.getItem('user') || '{}')?.id || 1;
     try {
       const res = await fetch(`${API_BASE}/api/lab/verify-test`, {
         method: 'POST',
@@ -79,7 +112,7 @@ const LabVerification = () => {
         body: JSON.stringify({
           test_result_id: approveTest.id,
           sample_id: approveTest.sample_id,
-          verified_by: doctorId,
+          verified_by: getDoctorId(),
           status: 'Approved',
           notes: approveNote
         })
@@ -99,23 +132,72 @@ const LabVerification = () => {
     }
   };
 
+  const handleVerifyAll = async () => {
+    setBulkConfirm(null);
+    const total = verifiableTests.length;
+    setBulkProgress({ done: 0, total, type: 'verify' });
+    const doctorId = getDoctorId();
+    for (let i = 0; i < verifiableTests.length; i++) {
+      const t = verifiableTests[i];
+      try {
+        await fetch(`${API_BASE}/api/lab/verify-test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            test_result_id: t.id,
+            sample_id: t.sample_id,
+            verified_by: doctorId,
+            status: 'Verified',
+            notes: ''
+          })
+        });
+      } catch { /* continue on error */ }
+      setBulkProgress({ done: i + 1, total, type: 'verify' });
+    }
+    setBulkProgress(null);
+    fetchPendingVerifications();
+  };
+
+  const handleApproveAll = async () => {
+    setBulkConfirm(null);
+    const total = approvableTests.length;
+    setBulkProgress({ done: 0, total, type: 'approve' });
+    const doctorId = getDoctorId();
+    for (let i = 0; i < approvableTests.length; i++) {
+      const t = approvableTests[i];
+      try {
+        await fetch(`${API_BASE}/api/lab/verify-test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            test_result_id: t.id,
+            sample_id: t.sample_id,
+            verified_by: doctorId,
+            status: 'Approved',
+            notes: ''
+          })
+        });
+      } catch { /* continue on error */ }
+      setBulkProgress({ done: i + 1, total, type: 'approve' });
+    }
+    setBulkProgress(null);
+    fetchPendingVerifications();
+  };
+
   const formatDateTime = (dateStr) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
     });
   };
 
   const getStatusBadge = (status) => {
     const colors = {
-      'Test Done': '#06b6d4',
-      'Completed': '#22c55e',
-      'Verified': '#8b5cf6',
-      'Approved': '#22c55e'
+      'Test Done':  '#06b6d4',
+      'Completed':  '#22c55e',
+      'Verified':   '#8b5cf6',
+      'Approved':   '#22c55e'
     };
     return (
       <span className="status-badge" style={{ background: colors[status] || '#6b7280' }}>
@@ -126,22 +208,111 @@ const LabVerification = () => {
 
   return (
     <div className="lab-verification-page">
+
+      {/* ── Header ── */}
       <div className="verification-header">
-        <h1>Lab Head Doctor - Test Verification</h1>
-        <div className="filter-section">
-          <label>Filter by Status:</label>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+        <h1>
+          Lab Head Doctor – Test Verification
+          {!loading && (
+            <span className="total-count-badge">{filteredTests.length}</span>
+          )}
+        </h1>
+        <button className="refresh-btn" onClick={fetchPendingVerifications}>↻ Refresh</button>
+      </div>
+
+      {/* ── Filter Bar ── */}
+      <div className="filter-bar">
+        <input
+          type="text"
+          className="filter-search"
+          placeholder="Search patient, sample ID, or test…"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+        />
+        <div className="filter-group">
+          <label>Date</label>
+          <input
+            type="date"
+            className="filter-date"
+            value={dateFilter}
+            onChange={e => setDateFilter(e.target.value)}
+          />
+          {dateFilter && (
+            <button className="clear-date-btn" onClick={() => setDateFilter('')}>✕</button>
+          )}
+        </div>
+        <div className="filter-group">
+          <label>Status</label>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
             <option value="all">All Pending</option>
-            <option value="Test Done">Test Done (Pending Verification)</option>
-            <option value="Verified">Verified (Pending Approval)</option>
+            <option value="Test Done">Test Done</option>
+            <option value="Verified">Verified</option>
             <option value="Approved">Approved</option>
           </select>
-          <button className="refresh-btn" onClick={fetchPendingVerifications}>Refresh</button>
         </div>
       </div>
 
+      {/* ── Bulk Actions Bar ── */}
+      {!loading && !error && filteredTests.length > 0 && (
+        <div className="bulk-actions-bar">
+          <span className="bulk-info">
+            Showing <strong>{filteredTests.length}</strong> test{filteredTests.length !== 1 ? 's' : ''}
+            {verifiableTests.length > 0 && (
+              <> · <span className="bulk-count pending">{verifiableTests.length} pending verify</span></>
+            )}
+            {approvableTests.length > 0 && (
+              <> · <span className="bulk-count verified">{approvableTests.length} pending approval</span></>
+            )}
+          </span>
+
+          <div className="bulk-btns">
+            {verifiableTests.length > 0 && !bulkProgress && (
+              bulkConfirm === 'verify' ? (
+                <span className="bulk-confirm">
+                  Verify {verifiableTests.length} tests?
+                  <button className="btn-confirm-yes" onClick={handleVerifyAll}>Yes, Verify All</button>
+                  <button className="btn-confirm-no" onClick={() => setBulkConfirm(null)}>Cancel</button>
+                </span>
+              ) : (
+                <button className="bulk-verify-btn" onClick={() => setBulkConfirm('verify')}>
+                  ✓ Verify All ({verifiableTests.length})
+                </button>
+              )
+            )}
+
+            {approvableTests.length > 0 && !bulkProgress && (
+              bulkConfirm === 'approve' ? (
+                <span className="bulk-confirm">
+                  Approve {approvableTests.length} tests?
+                  <button className="btn-confirm-yes approve" onClick={handleApproveAll}>Yes, Approve All</button>
+                  <button className="btn-confirm-no" onClick={() => setBulkConfirm(null)}>Cancel</button>
+                </span>
+              ) : (
+                <button className="bulk-approve-btn" onClick={() => setBulkConfirm('approve')}>
+                  ✓ Approve All ({approvableTests.length})
+                </button>
+              )
+            )}
+
+            {bulkProgress && (
+              <span className="bulk-progress">
+                <span className="progress-spinner" />
+                {bulkProgress.type === 'verify' ? 'Verifying' : 'Approving'}&nbsp;
+                {bulkProgress.done} of {bulkProgress.total}…
+                <span className="progress-bar-wrap">
+                  <span
+                    className="progress-bar-fill"
+                    style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%` }}
+                  />
+                </span>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {loading ? (
-        <div className="loading">Loading tests...</div>
+        <div className="loading">Loading tests…</div>
       ) : error ? (
         <div className="error-message" style={{ color: 'red', textAlign: 'center', padding: '20px' }}>{error}</div>
       ) : (
@@ -159,12 +330,14 @@ const LabVerification = () => {
               </tr>
             </thead>
             <tbody>
-              {tests.length === 0 ? (
+              {filteredTests.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="no-data">No tests pending verification</td>
+                  <td colSpan="7" className="no-data">
+                    {searchQuery || dateFilter ? 'No tests match the current filters' : 'No tests pending verification'}
+                  </td>
                 </tr>
               ) : (
-                tests.map((test) => (
+                filteredTests.map((test) => (
                   <tr key={test.id} className={`status-${test.status?.toLowerCase().replace(' ', '-')}`}>
                     <td className="sample-id">{test.sample_id}</td>
                     <td>{test.patient_name}</td>
@@ -174,10 +347,7 @@ const LabVerification = () => {
                     <td>{getStatusBadge(test.status)}</td>
                     <td>
                       {(test.status === 'Test Done' || test.status === 'Completed') && (
-                        <button
-                          className="verify-btn"
-                          onClick={() => setSelectedTest(test)}
-                        >
+                        <button className="verify-btn" onClick={() => setSelectedTest(test)}>
                           ✓ Verify
                         </button>
                       )}
@@ -201,12 +371,11 @@ const LabVerification = () => {
         </div>
       )}
 
-      {/* Approve Modal */}
+      {/* ── Approve Modal ── */}
       {approveTest && (
         <div className="modal-overlay" onClick={() => setApproveTest(null)}>
           <div className="verification-modal" onClick={e => e.stopPropagation()}>
             <h2>Approve Test Results</h2>
-
             <div className="test-details">
               <p><strong>Sample ID:</strong> {approveTest.sample_id}</p>
               <p><strong>Patient:</strong> {approveTest.patient_name}</p>
@@ -214,17 +383,13 @@ const LabVerification = () => {
               <p><strong>Machine:</strong> {approveTest.machine_no || 'N/A'}</p>
               <p><strong>Verified At:</strong> {formatDateTime(approveTest.verified_at)}</p>
             </div>
-
             <div className="results-section">
               <h3>Test Results</h3>
               <table className="results-table">
                 <thead>
                   <tr>
-                    <th>Parameter</th>
-                    <th>Result</th>
-                    <th>Unit</th>
-                    <th>Reference Range</th>
-                    <th>Flag</th>
+                    <th>Parameter</th><th>Result</th><th>Unit</th>
+                    <th>Reference Range</th><th>Flag</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -234,31 +399,23 @@ const LabVerification = () => {
                       <td className="result-value">{result.result_value}</td>
                       <td>{result.unit}</td>
                       <td>{result.reference_range}</td>
-                      <td>
-                        <span className={`flag-badge ${result.result_flag}`}>
-                          {result.result_flag}
-                        </span>
-                      </td>
+                      <td><span className={`flag-badge ${result.result_flag}`}>{result.result_flag}</span></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-
             <div className="verification-notes">
               <label>Approval Notes (Optional):</label>
               <textarea
                 value={approveNote}
-                onChange={(e) => setApproveNote(e.target.value)}
-                placeholder="Add any notes about this approval..."
+                onChange={e => setApproveNote(e.target.value)}
+                placeholder="Add any notes about this approval…"
                 rows="3"
               />
             </div>
-
             <div className="modal-actions">
-              <button className="btn-modal-cancel" onClick={() => setApproveTest(null)}>
-                Cancel
-              </button>
+              <button className="btn-modal-cancel" onClick={() => setApproveTest(null)}>Cancel</button>
               <button
                 className="approve-btn"
                 style={{ padding: '10px 24px', fontSize: '15px' }}
@@ -271,12 +428,11 @@ const LabVerification = () => {
         </div>
       )}
 
-      {/* Verification Modal */}
+      {/* ── Verify Modal ── */}
       {selectedTest && (
         <div className="modal-overlay" onClick={() => setSelectedTest(null)}>
           <div className="verification-modal" onClick={e => e.stopPropagation()}>
             <h2>Verify Test Results</h2>
-
             <div className="test-details">
               <p><strong>Sample ID:</strong> {selectedTest.sample_id}</p>
               <p><strong>Patient:</strong> {selectedTest.patient_name}</p>
@@ -284,17 +440,13 @@ const LabVerification = () => {
               <p><strong>Machine:</strong> {selectedTest.machine_no || 'N/A'}</p>
               <p><strong>Tested At:</strong> {formatDateTime(selectedTest.tested_at)}</p>
             </div>
-
             <div className="results-section">
               <h3>Test Results</h3>
               <table className="results-table">
                 <thead>
                   <tr>
-                    <th>Parameter</th>
-                    <th>Result</th>
-                    <th>Unit</th>
-                    <th>Reference Range</th>
-                    <th>Flag</th>
+                    <th>Parameter</th><th>Result</th><th>Unit</th>
+                    <th>Reference Range</th><th>Flag</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -304,32 +456,27 @@ const LabVerification = () => {
                       <td className="result-value">{result.result_value}</td>
                       <td>{result.unit}</td>
                       <td>{result.reference_range}</td>
-                      <td>
-                        <span className={`flag-badge ${result.result_flag}`}>
-                          {result.result_flag}
-                        </span>
-                      </td>
+                      <td><span className={`flag-badge ${result.result_flag}`}>{result.result_flag}</span></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-
             <div className="verification-notes">
               <label>Verification Notes (Optional):</label>
               <textarea
                 value={verificationNote}
-                onChange={(e) => setVerificationNote(e.target.value)}
-                placeholder="Add any notes about this verification..."
+                onChange={e => setVerificationNote(e.target.value)}
+                placeholder="Add any notes about this verification…"
                 rows="3"
               />
             </div>
-
             <div className="modal-actions">
-              <button className="btn-modal-cancel" onClick={() => setSelectedTest(null)}>
-                Cancel
-              </button>
-              <button className="verify-submit-btn" onClick={() => handleVerify(selectedTest.id, selectedTest.sample_id)}>
+              <button className="btn-modal-cancel" onClick={() => setSelectedTest(null)}>Cancel</button>
+              <button
+                className="verify-submit-btn"
+                onClick={() => handleVerify(selectedTest.id, selectedTest.sample_id)}
+              >
                 ✓ Mark as Verified
               </button>
             </div>

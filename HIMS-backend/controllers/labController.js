@@ -1090,6 +1090,7 @@ export const getWorklistById = async (req, res) => {
       JOIN lab_tests lt ON bi.service_id = lt.id
       WHERE (bi.sample_id = ? OR bi.short_id = ? OR bi.short_id LIKE ?)
       AND bi.status IN ('Pending', 'Collected', 'In Progress')
+      ORDER BY bi.id DESC
       LIMIT 1
     `, [id, id, `%${id.slice(-4)}`]);
 
@@ -1357,18 +1358,18 @@ export const acknowledgeTest = async (req, res) => {
       const [nextPatientsResult] = await db.query(
         `SELECT 
         b.patient_name,
-        p.phone as patient_phone,
+        p.telephone as patient_phone,
         b.id as bill_id,
         MIN(i.name) as lab_name
         FROM bill_items bi
         JOIN bills b ON bi.bill_id = b.id
         JOIN patients p ON b.patient_id = p.id
          LEFT JOIN infrastructure i ON bi.lab_id = i.id
-         WHERE bi.service_type = 'Laboratory' 
-           AND bi.status = 'Pending' 
+         WHERE bi.service_type = 'Laboratory'
+           AND bi.status = 'Pending'
            AND DATE(b.created_at) = CURDATE()
            AND b.id != (SELECT bill_id FROM bill_items WHERE id = ?)
-         GROUP BY b.id, b.patient_name, b.patient_phone
+         GROUP BY b.id, b.patient_name, p.telephone
          ORDER BY MIN(b.created_at) ASC
          LIMIT 2`,
          [bill_item_id]
@@ -1596,10 +1597,12 @@ export const saveTestResults = async (req, res) => {
       labId = billItem[0].lab_id;
     }
 
-    // CHECK IF RESULTS ALREADY EXIST FOR THIS BILL ITEM (TO APPEND/UPSERT)
+    // CHECK IF RESULTS ALREADY EXIST — prefer bill_item_id lookup, fall back to sample_id
     const [existing] = await connection.query(
-      `SELECT id, results_json FROM lab_test_result WHERE bill_item_id = ? LIMIT 1`,
-      [bill_item_id]
+      bill_item_id
+        ? `SELECT id, results_json FROM lab_test_result WHERE bill_item_id = ? ORDER BY id DESC LIMIT 1`
+        : `SELECT id, results_json FROM lab_test_result WHERE sample_id   = ? ORDER BY id DESC LIMIT 1`,
+      [bill_item_id || sample_id]
     );
 
     if (existing && existing.length > 0) {
@@ -1653,15 +1656,18 @@ export const saveTestResults = async (req, res) => {
 
     // Update bill item to 'Test Done' so it appears in the verification queue.
     // Do NOT mark as Completed here — that requires explicit doctor verification/approval.
+    // Always update by sample_id first (authoritative — comes from the machine/worklist).
+    await connection.query(
+      `UPDATE bill_items SET status = 'Test Done', updated_at = NOW()
+       WHERE sample_id = ? AND status IN ('Pending', 'Collected', 'In Progress')`,
+      [sample_id]
+    );
+    // Also update by bill_item_id if provided, in case sample_id lookup misses due to short ID.
     if (bill_item_id) {
       await connection.query(
-        `UPDATE bill_items SET status = 'Test Done', updated_at = NOW() WHERE id = ?`,
+        `UPDATE bill_items SET status = 'Test Done', updated_at = NOW()
+         WHERE id = ? AND status IN ('Pending', 'Collected', 'In Progress')`,
         [bill_item_id]
-      );
-    } else {
-      await connection.query(
-        `UPDATE bill_items SET status = 'Test Done', updated_at = NOW() WHERE sample_id = ?`,
-        [sample_id]
       );
     }
 
@@ -1821,8 +1827,9 @@ export const getPendingVerifications = async (req, res) => {
     }
 
     const [tests] = await db.query(
-      `SELECT 
+      `SELECT
         tr.id,
+        tr.bill_item_id,
         tr.sample_id,
         tr.machine_no,
         lt.test_name as test_name,
@@ -1966,7 +1973,7 @@ export const verifyTest = async (req, res) => {
           LEFT JOIN bill_items bi ON tr.sample_id = bi.sample_id
           LEFT JOIN bills b ON bi.bill_id = b.id
           LEFT JOIN patients p ON b.patient_id = p.id
-          LEFT JOIN doctor_lab_orders dlo ON dlo.test_id = bi.test_id AND dlo.patient_reg_no = p.reg_no
+          LEFT JOIN doctor_lab_orders dlo ON dlo.test_id = bi.service_id AND dlo.patient_reg_no = p.reg_no
           LEFT JOIN doctors doc_ref ON dlo.doctor_id = doc_ref.id
           LEFT JOIN users doc_user ON doc_ref.user_id = doc_user.id
           LEFT JOIN users ut ON tr.tested_by = ut.id
