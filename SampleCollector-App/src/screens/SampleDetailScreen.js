@@ -22,16 +22,22 @@ export default function SampleDetailScreen({ route }) {
   const [loadingBarcode, setLoadingBarcode] = useState(false);
 
   const fetchBarcode = async (id) => {
-    const barcodeId = id || shortId || sample.short_id;
-    if (!barcodeId) return;
+    // Prefer short_id for compact barcode; fall back to full sample_id
+    const barcodeId = id || shortId || sample.short_id || sampleId || sample.sample_id || sample.lab_barcode;
+    if (!barcodeId) {
+      Alert.alert('No ID', 'No sample ID available to generate barcode. Please acknowledge first.');
+      return;
+    }
     setLoadingBarcode(true);
     try {
       const data = await apiFetch(`/api/barcodes/sample/${encodeURIComponent(String(barcodeId))}`);
       if (data.success && data.barcodeBase64) {
         setBarcodeUri(data.barcodeBase64);
+      } else {
+        Alert.alert('Error', data.message || 'Barcode generation failed.');
       }
-    } catch {
-      Alert.alert('Error', 'Failed to fetch barcode.');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to reach server.');
     } finally {
       setLoadingBarcode(false);
     }
