@@ -101,20 +101,36 @@ export default function SampleDetailScreen({ route }) {
       Alert.alert('No Barcode', 'Load the barcode first.');
       return;
     }
+    const resolvedSampleId = sampleId || sample.sample_id || '—';
+    const resolvedShortId  = shortId  || sample.short_id  || '—';
     const html = `
       <html>
-        <body style="margin:0;padding:24px;font-family:sans-serif;text-align:center;background:#fff;">
-          <div style="border:1.5px dashed #cbd5e1;border-radius:12px;padding:24px 20px;background:#f8fafc;display:inline-block;">
-            <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:2px;">${sample.patient_name}</div>
-            <div style="font-size:26px;font-weight:900;color:#2563eb;font-family:monospace;margin-bottom:2px;">ID: ${shortId || '—'}</div>
-            ${sample.sample_type ? `<div style="font-size:12px;color:#64748b;margin-bottom:14px;">${sample.sample_type}</div>` : ''}
-            <img src="${barcodeUri}" style="max-width:280px;height:auto;" />
+        <body style="margin:0;padding:20px;font-family:sans-serif;background:#fff;">
+          <div style="border:1.5px dashed #cbd5e1;border-radius:12px;padding:20px;background:#f8fafc;max-width:340px;margin:0 auto;">
+            <div style="font-size:17px;font-weight:800;color:#0f172a;margin-bottom:12px;text-align:center;">${sample.patient_name}</div>
+            <table style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:14px;">
+              <tr>
+                <td style="color:#64748b;font-weight:600;padding:4px 0;width:40%;">Sample ID</td>
+                <td style="font-family:monospace;font-weight:700;color:#0f172a;word-break:break-all;">${resolvedSampleId}</td>
+              </tr>
+              <tr>
+                <td style="color:#64748b;font-weight:600;padding:4px 0;">Short Code</td>
+                <td style="font-family:monospace;font-weight:900;color:#2563eb;font-size:18px;">${resolvedShortId}</td>
+              </tr>
+              ${sample.test_code ? `<tr>
+                <td style="color:#64748b;font-weight:600;padding:4px 0;">Test Code</td>
+                <td style="font-family:monospace;font-weight:700;color:#0f172a;">${sample.test_code}</td>
+              </tr>` : ''}
+              ${sample.test_name ? `<tr>
+                <td style="color:#64748b;font-weight:600;padding:4px 0;">Test</td>
+                <td style="font-weight:700;color:#1e40af;">${sample.test_name}</td>
+              </tr>` : ''}
+            </table>
+            <div style="font-size:10px;color:#94a3b8;font-weight:700;text-align:center;margin-bottom:6px;letter-spacing:1px;">SHORT CODE BARCODE</div>
+            <div style="text-align:center;">
+              <img src="${barcodeUri}" style="max-width:280px;height:auto;" />
+            </div>
           </div>
-          ${sample.test_name ? `
-          <div style="margin-top:16px;padding:10px 14px;background:#eff6ff;border-radius:8px;display:inline-block;">
-            <div style="font-size:11px;color:#60a5fa;font-weight:700;">TEST</div>
-            <div style="font-size:14px;font-weight:700;color:#1e40af;">${sample.test_name}</div>
-          </div>` : ''}
         </body>
       </html>
     `;
@@ -177,25 +193,51 @@ export default function SampleDetailScreen({ route }) {
         </View>
       )}
 
-      {/* Barcode Label (BarcodeModal style) */}
+      {/* Barcode Label */}
       {barcodeUri && (
         <View style={styles.barcodeCard}>
-          {/* Label header */}
+          {/* Header */}
           <View style={styles.barcodeHeader}>
-            <View>
-              <Text style={styles.barcodeHeaderSub}>SAMPLE LABEL</Text>
-              <Text style={styles.barcodeHeaderName}>{sample.patient_name}</Text>
-            </View>
+            <Text style={styles.barcodeHeaderSub}>SAMPLE LABEL</Text>
+            <Text style={styles.barcodeHeaderName}>{sample.patient_name}</Text>
           </View>
 
           {/* Label body */}
           <View style={styles.labelBody}>
+            {/* Patient Name */}
             <Text style={styles.labelPatient}>{sample.patient_name}</Text>
-            <Text style={styles.labelShortId}>ID: {shortId || '—'}</Text>
-            {sample.sample_type
-              ? <Text style={styles.labelSampleType}>{sample.sample_type}</Text>
-              : null}
+
+            {/* Full Sample ID */}
+            <View style={styles.labelRow}>
+              <Text style={styles.labelRowKey}>Sample ID</Text>
+              <Text style={[styles.labelRowVal, styles.mono]} numberOfLines={1} adjustsFontSizeToFit>
+                {sampleId || sample.sample_id || '—'}
+              </Text>
+            </View>
+
+            {/* Short Code */}
+            <View style={styles.labelRow}>
+              <Text style={styles.labelRowKey}>Short Code</Text>
+              <Text style={[styles.labelRowVal, styles.mono, styles.shortCodeText]}>
+                {shortId || sample.short_id || '—'}
+              </Text>
+            </View>
+
+            {/* Test Code */}
+            {(sample.test_code) ? (
+              <View style={styles.labelRow}>
+                <Text style={styles.labelRowKey}>Test Code</Text>
+                <Text style={[styles.labelRowVal, styles.mono]}>{sample.test_code}</Text>
+              </View>
+            ) : null}
+
+            {/* Divider */}
+            <View style={styles.divider} />
+
+            {/* Barcode (encodes short_id) */}
+            <Text style={styles.barcodeSubtitle}>SHORT CODE BARCODE</Text>
             <Image source={{ uri: barcodeUri }} style={styles.barcodeImage} resizeMode="contain" />
+            <Text style={styles.barcodeRawText}>{shortId || sample.short_id || sampleId || sample.sample_id}</Text>
           </View>
 
           {/* Test name chip */}
@@ -271,10 +313,21 @@ const styles = StyleSheet.create({
     borderRadius: 12, padding: 20, alignItems: 'center',
     backgroundColor: '#f8fafc',
   },
-  labelPatient: { fontSize: 15, fontWeight: '800', color: '#0f172a', marginBottom: 2 },
-  labelShortId: { fontSize: 24, fontWeight: '900', color: '#2563eb', fontFamily: 'monospace', marginBottom: 2 },
-  labelSampleType: { fontSize: 11, color: '#64748b', fontWeight: '600', marginBottom: 14 },
+  labelPatient: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 14, textAlign: 'center' },
+
+  /* Key–value rows inside the label */
+  labelRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    width: '100%', paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#f1f5f9',
+  },
+  labelRowKey: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase' },
+  labelRowVal: { fontSize: 13, fontWeight: '700', color: '#0f172a', flex: 1, textAlign: 'right' },
+  shortCodeText: { fontSize: 20, color: '#2563eb' },
+
+  divider: { width: '100%', height: 1, backgroundColor: '#e2e8f0', marginVertical: 14 },
+  barcodeSubtitle: { fontSize: 10, fontWeight: '700', color: '#94a3b8', letterSpacing: 1.5, marginBottom: 8, textTransform: 'uppercase' },
   barcodeImage: { width: 280, height: 80 },
+  barcodeRawText: { fontFamily: 'monospace', fontSize: 11, color: '#475569', marginTop: 6 },
 
   testChip: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
