@@ -42,7 +42,7 @@ const PrescriptionScan = () => {
             formData.append('image', image);
 
             const response = await axios.post(`${API_BASE}/api/prescriptions/process-ai`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
+                headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${localStorage.getItem('hims_token')}` },
             });
 
             if (response.data.success) {
@@ -62,7 +62,7 @@ const PrescriptionScan = () => {
         try {
             setIsFinalizing(true);
             const response = await axios.post(`${API_BASE}/api/prescriptions/finalize-billing`, proposedData, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('hims_token')}` }
             });
 
             if (response.data.success) {
@@ -200,11 +200,6 @@ const PrescriptionScan = () => {
                                         <div className="bg-white p-4 rounded-xl border shadow-sm">
                                             <p className="text-xs text-gray-500 uppercase font-bold mb-1">Patient Name</p>
                                             <p className="text-gray-900 font-semibold">{proposedData.patientName || 'Not Found'}</p>
-                                        </div>
-
-                                        <div className="bg-white p-4 rounded-xl border shadow-sm">
-                                            <p className="text-xs text-gray-500 uppercase font-bold mb-1">ABHA ID</p>
-                                            <p className="text-gray-900 font-semibold">{proposedData.abhaId || 'Not Found'}</p>
                                         </div>
 
                                         <div className="bg-white p-4 rounded-xl border shadow-sm">

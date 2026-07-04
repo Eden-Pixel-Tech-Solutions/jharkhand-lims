@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
 import developerRoutes from './routes/developerRoutes.js';
@@ -26,13 +27,15 @@ import inventoryAccountsPayableRoutes from './routes/inventoryAccountsPayableRou
 import inventoryProcurementRoutes from './routes/inventoryProcurementRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import branchRoutes from './routes/branchRoutes.js';
+import orgRoutes from './routes/orgRoutes.js';
 import inventoryNetworkRoutes from './routes/inventoryNetworkRoutes.js';
 import hl7Routes from './routes/hl7Routes.js';
 import disasterRoutes from './routes/disasterRoutes.js';
+import careRoutes from './routes/careRoutes.js';
 import db from './config/db.js';
 import barcodeRoutes from './routes/barcodeRoutes.js';
 import prescriptionRoutes from './routes/prescriptionRoutes.js';
-import abdmRoutes from './routes/abdmRoutes.js';
+import consultationRoutes from './routes/consultationRoutes.js';
 import { initCronJobs } from './jobs/cronJobs.js';
 
 dotenv.config();
@@ -47,13 +50,28 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://lims.poxiatechn
   .split(',')
   .map(o => o.trim());
 
+// This is a JSON/file API, not an HTML-serving app, so the CSP/COEP defaults
+// (meant for pages rendering markup) are irrelevant here and just add noise;
+// crossOriginResourcePolicy is relaxed so the frontend (a different origin)
+// can still load PDFs/QR images/barcodes served from these endpoints.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+
 app.use(cors({
   origin: (origin, callback) => {
-    callback(null, true);
+    // No Origin header = server-to-server/curl/mobile clients — not subject to
+    // browser CORS enforcement in the first place, so let them through.
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -84,15 +102,41 @@ app.use('/api/v2/inventory/ap', inventoryAccountsPayableRoutes);
 app.use('/api/v2/inventory/procurement', inventoryProcurementRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/branches', branchRoutes);
+app.use('/api/org', orgRoutes);
 app.use('/api/inventory-network', inventoryNetworkRoutes);
 app.use('/api/hl7', hl7Routes);
 app.use('/api/disaster', disasterRoutes);
 app.use('/api/barcodes', barcodeRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
-app.use('/api/abdm', abdmRoutes);
+app.use('/api/consultations', consultationRoutes);
+app.use('/', careRoutes);
 // Health check route
 app.get('/', (req, res) => {
   res.send('HIMS Backend is running!');
+});
+
+// Global error handler — must be last. Catches anything not already handled by
+// a controller's own try/catch (malformed JSON bodies, the CORS rejection above,
+// etc.) and never leaks a stack trace to the client outside of development.
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({ success: false, message: 'Not allowed by CORS' });
+  }
+
+  // Multer validation errors (file too large, wrong type) are user-actionable
+  // input errors, not internal failures — safe to surface in production.
+  if (err.name === 'MulterError' || /Only image uploads/.test(err.message || '')) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+
+  const isProd = process.env.NODE_ENV === 'production';
+  res.status(err.status || 500).json({
+    success: false,
+    message: isProd ? 'Internal server error' : err.message,
+    ...(isProd ? {} : { stack: err.stack }),
+  });
 });
 
 // Start server - bind to 0.0.0.0 to accept external connections

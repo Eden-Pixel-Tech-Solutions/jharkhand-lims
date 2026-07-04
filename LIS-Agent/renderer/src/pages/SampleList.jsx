@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import JsBarcode from 'jsbarcode';
+import { API_BASE } from '../apiBase';
 
 const SampleList = () => {
   const [worklist, setWorklist] = useState([]);
@@ -18,8 +19,6 @@ const SampleList = () => {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [isFetchingParams, setIsFetchingParams] = useState(false);
   const barcodeRef = useRef(null);
-
-  const API_BASE = 'https://lims.poxiatechnologies.com';
 
   useEffect(() => {
     fetchWorklist();

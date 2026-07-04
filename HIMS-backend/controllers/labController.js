@@ -36,7 +36,7 @@ export const addLabCategory = async (req, res) => {
     });
   } catch (error) {
     console.error('Error adding lab category:', error);
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505') {
       res.status(400).json({ success: false, message: 'Category name already exists' });
     } else {
       res.status(500).json({ success: false, message: 'Server error adding category' });
@@ -206,7 +206,7 @@ export const addSampleType = async (req, res) => {
     });
   } catch (error) {
     console.error('Error adding sample type:', error);
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505') {
       res.status(400).json({ success: false, message: 'Sample type name already exists' });
     } else {
       res.status(500).json({ success: false, message: 'Server error adding sample type' });
@@ -422,9 +422,9 @@ export const addLabTest = async (req, res) => {
     }
   } catch (error) {
     console.error('Error adding lab test:', error);
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505') {
       res.status(400).json({ success: false, message: 'Test code already exists' });
-    } else if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+    } else if (error.code === '23503') {
       res.status(400).json({ success: false, message: 'Invalid category selected' });
     } else {
       res.status(500).json({ success: false, message: 'Server error adding lab test' });
@@ -849,6 +849,35 @@ export const mapAnalyzerTests = async (req, res) => {
   }
 };
 
+// GET /api/lab/tests-general — common/general tests not tied to any specific analyzer
+export const getGeneralTests = async (req, res) => {
+  try {
+    const [tests] = await db.query(`
+      SELECT t.*, lc.name AS category_name,
+             COUNT(p.id)  AS parameter_count
+      FROM lab_tests t
+      LEFT JOIN lab_categories     lc ON lc.id = t.category_id
+      LEFT JOIN lab_test_parameters p  ON p.test_id = t.id AND p.status = 'Active'
+      WHERE (t.analyzer_name IS NULL OR t.analyzer_name = '') AND t.status = 'Active' AND t.lab_id IS NULL
+      GROUP BY t.id
+      ORDER BY t.test_name
+    `);
+
+    const testsWithParams = await Promise.all(tests.map(async (test) => {
+      const [params] = await db.query(
+        'SELECT * FROM lab_test_parameters WHERE test_id = ? AND status = ? ORDER BY display_order',
+        [test.id, 'Active']
+      );
+      return { ...test, parameters: params };
+    }));
+
+    res.json({ success: true, tests: testsWithParams });
+  } catch (error) {
+    console.error('Error fetching general tests:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching general tests' });
+  }
+};
+
 // Get labs from infrastructure (type = 'Lab') with workload
 export const getLabs = async (req, res) => {
   try {
@@ -1033,7 +1062,7 @@ export const getWorklist = async (req, res) => {
       }
 
       let pending_params = [];
-      if (item.status === 'In Progress' || item.status === 'Test Done') {
+      if (item.status === 'In Progress') {
         // Fetch all required parameters for this specific test
         const [allParams] = await db.query(
           `SELECT parameter_name FROM lab_test_parameters WHERE test_id = ?`,
@@ -2624,7 +2653,7 @@ export const mapUnmappedTest = async (req, res) => {
   }
 };
 
-// ── Kiosk: fetch patient reports by phone or ABHA ────────────────────────────
+// ── Kiosk: fetch patient reports by phone ────────────────────────────────────
 export const getKioskReports = async (req, res) => {
   try {
     const { query } = req.query;
@@ -2634,13 +2663,13 @@ export const getKioskReports = async (req, res) => {
 
     const q = query.trim();
 
-    // Find patient by telephone or abha_id
+    // Find patient by telephone
     const [patients] = await db.query(
-      `SELECT id, first_name, last_name, telephone, abha_id
+      `SELECT id, first_name, last_name, telephone
        FROM patients
-       WHERE telephone LIKE ? OR abha_id = ?
+       WHERE telephone LIKE ?
        LIMIT 5`,
-      [`%${q}%`, q]
+      [`%${q}%`]
     );
 
     if (patients.length === 0) {
@@ -2672,8 +2701,7 @@ export const getKioskReports = async (req, res) => {
       success: true,
       patient: {
         name: `${patient.first_name} ${patient.last_name}`.trim(),
-        phone: patient.telephone,
-        abha_id: patient.abha_id
+        phone: patient.telephone
       },
       reports
     });

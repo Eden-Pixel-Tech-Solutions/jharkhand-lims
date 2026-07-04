@@ -2,17 +2,17 @@ import db from '../config/db.js';
 
 /**
  * HL7 Patient Search API
- * Supports searching by: Phone, Name, ABHA ID, Aadhar, UHID (reg_no)
+ * Supports searching by: Phone, Name, Aadhar, UHID (reg_no)
  * Returns a format easily mappable to HL7 PID segment
  */
 export const getPatientHL7 = async (req, res) => {
   try {
-    const { phone, name, abha, aadhar, uhid } = req.query;
+    const { phone, name, aadhar, uhid } = req.query;
 
-    if (!phone && !name && !abha && !aadhar && !uhid) {
+    if (!phone && !name && !aadhar && !uhid) {
       return res.status(400).json({
         success: false,
-        message: 'At least one search parameter (phone, name, abha, aadhar, uhid) is required'
+        message: 'At least one search parameter (phone, name, aadhar, uhid) is required'
       });
     }
 
@@ -20,7 +20,6 @@ export const getPatientHL7 = async (req, res) => {
     let params = [];
 
     if (phone) { query += ` OR telephone = ?`; params.push(phone); }
-    if (abha) { query += ` OR abha_id = ?`; params.push(abha); }
     if (aadhar) { query += ` OR aadhar_number = ?`; params.push(aadhar); }
     if (uhid) { query += ` OR reg_no = ?`; params.push(uhid); }
     if (name) { 
@@ -48,7 +47,6 @@ export const getPatientHL7 = async (req, res) => {
       pid_7_dob: p.dob,
       pid_8_gender: p.gender === 'Male' ? 'M' : p.gender === 'Female' ? 'F' : 'O',
       pid_13_phone: p.telephone,
-      pid_18_account_no: p.abha_id,
       pid_19_ssn: p.aadhar_number,
       address: {
         street: p.address,
@@ -84,10 +82,10 @@ export const registerPatientHL7 = async (req, res) => {
     
     const query = `
       INSERT INTO patients (
-        reg_no, reg_date, title, first_name, middle_name, last_name, 
-        dob, gender, telephone, email_id, address, city, postal_code, 
-        aadhar_number, abha_id, branch_id
-      ) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        reg_no, reg_date, title, first_name, middle_name, last_name,
+        dob, gender, telephone, email_id, address, city, postal_code,
+        aadhar_number, branch_id
+      ) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
@@ -104,7 +102,6 @@ export const registerPatientHL7 = async (req, res) => {
       data.city || '',
       data.zip || '',
       data.aadhar || null,
-      data.abha || null,
       data.branch_id || null
     ];
 

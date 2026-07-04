@@ -1,17 +1,25 @@
 import express from "express";
 import bwipjs from "bwip-js";
 import QRCode from "qrcode";
+import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
+router.use(authenticateToken);
+
+const MAX_BARCODE_COUNT = 200;
 
 router.post("/generate", async (req, res) => {
   try {
     const {
       prefix,
       year,
-      count,
       startNumber,
     } = req.body;
+    const count = Number(req.body.count);
+
+    if (!Number.isInteger(count) || count < 1 || count > MAX_BARCODE_COUNT) {
+      return res.status(400).json({ success: false, message: `count must be an integer between 1 and ${MAX_BARCODE_COUNT}` });
+    }
 
     const barcodes = [];
 
@@ -65,11 +73,11 @@ router.get('/sample/:sampleId', async (req, res) => {
       bwipjs.toBuffer({
         bcid: 'code128',
         text: sampleId,
-        scale: 3,
-        height: 10,
+        scale: 4,
+        height: 25,
         includetext: true,
       }),
-      QRCode.toDataURL(fullId, { errorCorrectionLevel: 'M', margin: 1, width: 200 }),
+      QRCode.toDataURL(fullId, { errorCorrectionLevel: 'M', margin: 1, width: 300 }),
     ]);
 
     res.json({

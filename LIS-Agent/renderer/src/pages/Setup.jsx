@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
-
-const API_BASE = 'https://lims.poxiatechnologies.com';
+import { API_BASE } from "../apiBase";
 
 export default function Setup() {
     const [labs, setLabs] = useState([]);
@@ -37,7 +36,7 @@ export default function Setup() {
         'Agape': ['Mispa Viva', 'Mispa i2', 'Mispa i3', 'Mispa CC'],
         'HDC India': ['HDC-Lyte Plus', 'HDC-LYTE PRO'],
         'Erba Mannheim': ['LAURA Smart'],
-        'Athenese Dx': ['ALTA Hematology']
+        'Athenese Dx': ['ALTA Hematology', 'ADX-AUTOCHEM-200']
     };
 
     const baudRates = ["1200", "2400", "4800", "9600", "19200", "38400", "57600", "115200"];

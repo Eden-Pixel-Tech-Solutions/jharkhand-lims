@@ -39,7 +39,8 @@ import {
   mapAnalyzerTests,
   createUnsolicitedWorklist,
   mapUnmappedTest,
-  getKioskReports
+  getKioskReports,
+  getGeneralTests
 } from '../controllers/labController.js';
 import {
   getLabMachines,
@@ -55,8 +56,11 @@ import {
 } from '../controllers/labMachineController.js';
 import { generateTestParameters } from '../controllers/aiController.js';
 import { sendWhatsAppMessage } from '../services/whatsappService.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { publicLookupLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
+router.use(authenticateToken);
 
 // Lab Categories Routes
 router.get('/categories', getLabCategories);
@@ -104,7 +108,7 @@ router.post('/update-test-status', updateTestStatus);
 router.post('/book-tests', bookLabTests);
 
 // Track Test Status Route
-router.get('/track/:referenceNumber', trackTestStatus);
+router.get('/track/:referenceNumber', publicLookupLimiter, trackTestStatus);
 
 // Test Results Routes
 router.post('/save-test-results', saveTestResults);
@@ -163,7 +167,7 @@ router.post('/whatsapp-send-report', async (req, res) => {
   }
 });
 
-// Kiosk: lookup reports by phone or ABHA number
+// Kiosk: lookup reports by phone number
 router.get('/kiosk-reports', getKioskReports);
 
 // Hospital Code for Machine ID
@@ -185,5 +189,7 @@ router.get('/machine-stats', getMachineStats);
 
 // Machine Protocol Route
 router.get('/machine-protocol/:model', getMachineProtocol);
+
+router.get('/tests-general', getGeneralTests);
 
 export default router;

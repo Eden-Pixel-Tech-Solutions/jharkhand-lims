@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../apiBase';
 
 const Verification = () => {
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTest, setSelectedTest] = useState(null);
-  const API_BASE = 'https://lims.poxiatechnologies.com';
 
   useEffect(() => {
     fetchPending();

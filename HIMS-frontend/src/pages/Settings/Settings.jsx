@@ -17,6 +17,8 @@ import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
+const authHdr = () => ({ Authorization: `Bearer ${tok()}` });
 
 function Settings() {
   const { alert, showAlert, hideAlert } = useAlert();
@@ -45,13 +47,13 @@ function Settings() {
     smtp_user: '',
     smtp_pass: '',
     smtp_from_name: 'HIMS Procurement',
-    registration_fee: 15.00
+    registration_fee: 15.00,
   });
 
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/settings`);
+      const res = await fetch(`${API_URL}/api/settings`, { headers: authHdr() });
       const data = await res.json();
       if (data.success && data.data) {
         setForm({
@@ -66,7 +68,7 @@ function Settings() {
           smtp_user: data.data.smtp_user || '',
           smtp_pass: data.data.smtp_pass || '',
           smtp_from_name: data.data.smtp_from_name || 'HIMS Procurement',
-          registration_fee: data.data.registration_fee || 15.00
+          registration_fee: data.data.registration_fee || 15.00,
         });
       }
     } catch {
@@ -77,7 +79,7 @@ function Settings() {
 
   const fetchFacilities = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/branches`);
+      const res = await fetch(`${API_URL}/api/branches`, { headers: authHdr() });
       const data = await res.json();
       if (data.success) {
         setCategories(data.categories || []);
@@ -126,7 +128,7 @@ function Settings() {
     try {
       const res = await fetch(`${API_URL}/api/settings`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
         body: JSON.stringify(form)
       });
       const data = await res.json();
@@ -151,7 +153,7 @@ function Settings() {
     try {
       const res = await fetch(`${API_URL}/api/branches/categories`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
         body: JSON.stringify({ name: newCategoryName })
       });
       const data = await res.json();
@@ -166,7 +168,7 @@ function Settings() {
   const handleDeleteCategory = async (id) => {
     if (!window.confirm('Delete this category?')) return;
     try {
-      const res = await fetch(`${API_URL}/api/branches/categories/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/api/branches/categories/${id}`, { method: 'DELETE', headers: authHdr() });
       const data = await res.json();
       if (data.success) { fetchFacilities(); showAlert('success', 'Category deleted'); }
       else showAlert('error', data.message || 'Error deleting category');
@@ -178,7 +180,7 @@ function Settings() {
     try {
       const res = await fetch(`${API_URL}/api/branches/district/${editDistrict.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
         body: JSON.stringify({ name: editDistrictName })
       });
       const data = await res.json();
@@ -193,7 +195,7 @@ function Settings() {
   const handleDeleteDistrict = async (id) => {
     if (!window.confirm('Delete this district?')) return;
     try {
-      const res = await fetch(`${API_URL}/api/branches/district/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/api/branches/district/${id}`, { method: 'DELETE', headers: authHdr() });
       const data = await res.json();
       if (data.success) { fetchFacilities(); showAlert('success', 'District deleted'); }
       else showAlert('error', data.message || 'Error deleting district');
@@ -245,7 +247,7 @@ function Settings() {
           {(roleLevel === 'Central' || roleLevel === 'Sub-Central') && (
             <button
               onClick={() => setActiveTab('facilities')}
-              style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'facilities' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'facilities' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
+              style={{ width: '100%', textAlign: 'left', padding: '12px 16px', border: 'none', background: activeTab === 'facilities' ? 'var(--blue-pale)' : 'transparent', color: activeTab === 'facilities' ? 'var(--blue-primary)' : 'var(--text-mid)', fontWeight: 600, borderRadius: '8px', cursor: 'pointer', marginBottom: '8px', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
             >
               <Hospital size={18} /> Facility Setup
             </button>

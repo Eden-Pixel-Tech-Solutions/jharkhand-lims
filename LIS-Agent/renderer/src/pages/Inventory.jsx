@@ -6,12 +6,12 @@ import {
   Truck,
   FileText
 } from 'lucide-react';
+import { API_BASE } from '../apiBase';
 
 const Inventory = () => {
   const [activeTab, setActiveTab] = useState('stock');
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const API_BASE = 'https://lims.poxiatechnologies.com';
 
   useEffect(() => {
     fetchData();

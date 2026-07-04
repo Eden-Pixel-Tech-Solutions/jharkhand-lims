@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE } from '../apiBase';
 
 const EditResults = () => {
   const [tests, setTests] = useState([]);
@@ -7,8 +8,6 @@ const EditResults = () => {
   const [search, setSearch] = useState('');
   const [selectedTest, setSelectedTest] = useState(null);
   const [editedResults, setEditedResults] = useState([]);
-
-  const API_BASE = 'https://lims.poxiatechnologies.com';
 
   useEffect(() => {
     fetchTests();

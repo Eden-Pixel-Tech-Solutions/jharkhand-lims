@@ -1,9 +1,46 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
-const { app } = require("electron");
+const fs = require("fs");
+const { app, safeStorage } = require("electron");
 
 const dbPath = path.join(app.getPath("userData"), "lis_agent.db");
-const db = new sqlite3.Database(dbPath);
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) return console.error("Failed to open LIS Agent DB:", err.message);
+  // Cached patient sample results shouldn't be world-readable on multi-user machines.
+  fs.chmod(dbPath, 0o600, (chmodErr) => {
+    if (chmodErr) console.warn("Could not restrict lis_agent.db permissions:", chmodErr.message);
+  });
+});
+
+// Keys whose values get OS-keychain-encrypted (via safeStorage) before hitting
+// disk, instead of being stored as plain SQLite text.
+const ENCRYPTED_KEYS = new Set(["authToken"]);
+const ENC_PREFIX = "enc:v1:";
+
+function canEncrypt() {
+  try {
+    return safeStorage.isEncryptionAvailable();
+  } catch {
+    return false;
+  }
+}
+
+function encryptValue(value) {
+  if (!canEncrypt()) {
+    console.warn("[db] OS-level encryption unavailable — storing setting as plaintext.");
+    return value;
+  }
+  return ENC_PREFIX + safeStorage.encryptString(value).toString("base64");
+}
+
+function decryptValue(stored) {
+  if (stored == null || !stored.startsWith(ENC_PREFIX)) return stored;
+  if (!canEncrypt()) {
+    console.warn("[db] OS-level encryption unavailable — cannot decrypt stored setting.");
+    return null;
+  }
+  return safeStorage.decryptString(Buffer.from(stored.slice(ENC_PREFIX.length), "base64"));
+}
 
 db.serialize(() => {
   db.run(`
@@ -33,8 +70,9 @@ db.serialize(() => {
 });
 
 function saveSetting(key, value) {
+  const toStore = ENCRYPTED_KEYS.has(key) && value != null ? encryptValue(value) : value;
   return new Promise((resolve, reject) => {
-    db.run(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`, [key, value], (err) => {
+    db.run(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`, [key, toStore], (err) => {
       if (err) reject(err);
       else resolve(true);
     });
@@ -44,8 +82,9 @@ function saveSetting(key, value) {
 function getSetting(key) {
   return new Promise((resolve, reject) => {
     db.get(`SELECT value FROM settings WHERE key = ?`, [key], (err, row) => {
-      if (err) reject(err);
-      else resolve(row ? row.value : null);
+      if (err) return reject(err);
+      if (!row) return resolve(null);
+      resolve(ENCRYPTED_KEYS.has(key) ? decryptValue(row.value) : row.value);
     });
   });
 }

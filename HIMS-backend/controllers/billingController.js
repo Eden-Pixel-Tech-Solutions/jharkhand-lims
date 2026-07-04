@@ -6,7 +6,10 @@ import { generateInvoicePDFStream } from '../utils/invoiceGenerator.js';
 // Generate unique bill number using the branch's hospital code
 const generateBillNumber = (hospital_code = 'BILL') => {
   const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+  // 8 base36 chars (~2.8e12 combinations) — bill numbers double as a public,
+  // unauthenticated lookup key (trackTestStatus), so this needs to resist
+  // guessing, not just avoid collisions.
+  const random = Math.random().toString(36).substring(2, 10).toUpperCase();
   return `${hospital_code}-${timestamp}-${random}`;
 };
 
@@ -37,11 +40,15 @@ export const createBill = async (req, res) => {
       payment_status = 'Pending',
       paid_amount = 0,
       notes,
-      branch_id = 1,
       hospital_code = 'BILL',
       overwrite_duplicates = false,
-      user_id // new field
+      user_id,
+      appointment_booking = null
     } = req.body;
+
+    // Enforce branch from JWT; Central admins may pass branch_id in body
+    const callerBranch = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
+    const branch_id = callerBranch || req.body.branch_id || 1;
 
     if (!patient_id || !items || items.length === 0) {
       return res.status(400).json({
@@ -268,6 +275,49 @@ export const createBill = async (req, res) => {
       }
     }
 
+    // --- Auto-create appointment if none exists for this patient today ---
+    try {
+      // Use the appointment date from booking form (local IST), fall back to today
+      const today = appointment_booking?.apptDate || (() => {
+        const d = new Date();
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().split('T')[0];
+      })();
+      const [patForAppt] = await connection.query(
+        'SELECT reg_no, first_name, middle_name, last_name FROM patients WHERE id = ?',
+        [patient_id]
+      );
+      if (patForAppt.length > 0) {
+        const regNo = patForAppt[0].reg_no;
+        const [existingAppt] = await connection.query(
+          'SELECT id FROM appointments WHERE reg_no = ? AND appt_date = ? LIMIT 1',
+          [regNo, today]
+        );
+        if (existingAppt.length === 0) {
+          const hasConsult = uniqueItems.some(i => i.service_type === 'Consultation' || i.service_type === 'OPD');
+          const dept = appointment_booking?.department || (hasConsult ? 'OPD' : (hasLabItems ? 'Laboratory' : 'OPD'));
+          const apptDoctor = appointment_booking?.doctor || null;
+          const apptDoctorId = appointment_booking?.doctor_id || null;
+          const apptTime = appointment_booking?.apptTime || new Date().toTimeString().substring(0, 5);
+          await connection.query(
+            `INSERT INTO appointments (reg_no, department, doctor, doctor_id, priority, appt_date, appt_time, reason)
+             VALUES (?, ?, ?, ?, 'Normal', ?, ?, ?)`,
+            [regNo, dept, apptDoctor, apptDoctorId, today, apptTime, notes || 'Walk-in']
+          );
+          console.log(`[Billing] Auto-created appointment for ${regNo} on ${today}`);
+        } else if (appointment_booking?.doctor_id && existingAppt[0].doctor_id == null) {
+          // Appointment exists but has no doctor — update it with the booking's doctor
+          await connection.query(
+            `UPDATE appointments SET doctor = ?, doctor_id = ? WHERE id = ?`,
+            [appointment_booking.doctor || null, appointment_booking.doctor_id, existingAppt[0].id]
+          );
+        }
+      }
+    } catch (apptErr) {
+      console.error('[Billing] Auto-appointment creation failed (non-fatal):', apptErr.message);
+    }
+    // -----------------------------------------------------------------
+
     await connection.commit();
 
     res.status(201).json({
@@ -297,12 +347,23 @@ export const createBill = async (req, res) => {
 // Get all bills
 export const getAllBills = async (req, res) => {
   try {
+    const scope = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
+    const filterBranch = scope || req.query.branch_id || null;
+
+    let where = "WHERE b.status = 'Active'";
+    const params = [];
+    if (filterBranch) {
+      where += ' AND b.branch_id = ?';
+      params.push(filterBranch);
+    }
+
     const [bills] = await db.query(
       `SELECT b.*,
         (SELECT COUNT(*) FROM bill_items WHERE bill_id = b.id) as item_count
        FROM bills b
-       WHERE b.status = 'Active'
-       ORDER BY b.created_at DESC`
+       ${where}
+       ORDER BY b.created_at DESC`,
+      params
     );
 
     res.json({ success: true, data: bills });
@@ -316,10 +377,11 @@ export const getAllBills = async (req, res) => {
 export const getBillById = async (req, res) => {
   try {
     const { id } = req.params;
+    const scope = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
 
     const [bills] = await db.query(
-      'SELECT * FROM bills WHERE id = ? AND status = "Active"',
-      [id]
+      `SELECT * FROM bills WHERE id = ? AND status = "Active" ${scope ? 'AND branch_id = ?' : ''}`,
+      scope ? [id, scope] : [id]
     );
 
     if (bills.length === 0) {
@@ -346,14 +408,15 @@ export const processPayment = async (req, res) => {
   try {
     const { id } = req.params;
     const { paid_amount, payment_method } = req.body;
+    const scope = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
 
     if (!paid_amount || paid_amount <= 0) {
       return res.status(400).json({ success: false, message: 'Valid paid amount is required' });
     }
 
     const [bills] = await db.query(
-      'SELECT net_amount, paid_amount FROM bills WHERE id = ?',
-      [id]
+      `SELECT net_amount, paid_amount FROM bills WHERE id = ? ${scope ? 'AND branch_id = ?' : ''}`,
+      scope ? [id, scope] : [id]
     );
 
     if (bills.length === 0) {
@@ -370,8 +433,8 @@ export const processPayment = async (req, res) => {
     }
 
     await db.query(
-      'UPDATE bills SET paid_amount = ?, payment_status = ?, payment_method = ? WHERE id = ?',
-      [new_paid, payment_status, payment_method, id]
+      `UPDATE bills SET paid_amount = ?, payment_status = ?, payment_method = ? WHERE id = ? ${scope ? 'AND branch_id = ?' : ''}`,
+      scope ? [new_paid, payment_status, payment_method, id, scope] : [new_paid, payment_status, payment_method, id]
     );
 
     res.json({
@@ -438,8 +501,16 @@ export const getPatients = async (req, res) => {
 export const deleteBill = async (req, res) => {
   try {
     const { id } = req.params;
+    const scope = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
 
-    await db.query('UPDATE bills SET status = "Inactive" WHERE id = ?', [id]);
+    const [result] = await db.query(
+      `UPDATE bills SET status = "Inactive" WHERE id = ? ${scope ? 'AND branch_id = ?' : ''}`,
+      scope ? [id, scope] : [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Bill not found' });
+    }
 
     res.json({ success: true, message: 'Bill deleted successfully' });
   } catch (error) {
@@ -490,7 +561,11 @@ export const sendWhatsApp = async (req, res) => {
 export const downloadInvoicePdf = async (req, res) => {
   try {
     const { id } = req.params;
-    const [bills] = await db.query('SELECT * FROM bills WHERE bill_number = ? OR id = ?', [id, id]);
+    const scope = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
+    const [bills] = await db.query(
+      `SELECT * FROM bills WHERE (bill_number = ? OR id = ?) ${scope ? 'AND branch_id = ?' : ''}`,
+      scope ? [id, id, scope] : [id, id]
+    );
     if (bills.length === 0) return res.status(404).json({ success: false, message: 'Bill not found' });
     const bill = bills[0];
 
@@ -552,7 +627,11 @@ export const updateBill = async (req, res) => {
     }
 
     // Get the bill
-    const [billRows] = await connection.query('SELECT id, bill_number FROM bills WHERE bill_number = ? OR id = ?', [id, id]);
+    const scope = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
+    const [billRows] = await connection.query(
+      `SELECT id, bill_number FROM bills WHERE (bill_number = ? OR id = ?) ${scope ? 'AND branch_id = ?' : ''}`,
+      scope ? [id, id, scope] : [id, id]
+    );
     if (billRows.length === 0) {
       await connection.rollback();
       return res.status(404).json({ success: false, message: 'Bill not found' });
@@ -655,5 +734,33 @@ export const updateBill = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error updating bill' });
   } finally {
     connection.release();
+  }
+};
+
+export const getPatientBills = async (req, res) => {
+  try {
+    const { regNo } = req.params;
+    const scope = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
+    const [[patient]] = await db.query(
+      `SELECT id FROM patients WHERE reg_no = ? ${scope ? 'AND branch_id = ?' : ''} LIMIT 1`,
+      scope ? [regNo, scope] : [regNo]
+    );
+    if (!patient) return res.json({ success: true, bills: [] });
+    const [bills] = await db.query(
+      `SELECT id, bill_number, total_amount, discount_amount, paid_amount, payment_status, payment_method, created_at
+       FROM bills WHERE patient_id = ? ORDER BY created_at DESC LIMIT 30`,
+      [patient.id]
+    );
+    for (const b of bills) {
+      const [items] = await db.query(
+        `SELECT service_type, service_name, quantity, unit_price, total_price FROM bill_items WHERE bill_id = ?`,
+        [b.id]
+      );
+      b.items = items;
+    }
+    res.json({ success: true, bills });
+  } catch (error) {
+    console.error('Error fetching patient bills:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

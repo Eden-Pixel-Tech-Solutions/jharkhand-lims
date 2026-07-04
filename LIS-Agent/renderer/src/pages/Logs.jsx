@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-
-const API_BASE = 'https://lims.poxiatechnologies.com';
+import { API_BASE } from '../apiBase';
 
 function Logs() {
   const [logs, setLogs] = useState([]);

@@ -15,8 +15,7 @@ import cqScanSuccessMp3 from '../assets/mp3/cq-scan-success.mp3';
 import cqScanUsedMp3 from '../assets/mp3/cq-scan-used.mp3';
 import cqScanFailMp3 from '../assets/mp3/cq-scan-fail.mp3';
 import cqSuccessMp3 from '../assets/mp3/cq-succcess.mp3';
-
-const API_BASE = 'https://lims.poxiatechnologies.com';
+import { API_BASE } from '../apiBase';
 
 const KyroSetupCliniQuant = () => {
   const navigate = useNavigate();

@@ -7,12 +7,13 @@ import {
   getUsers, createUser, updateUser, toggleUserStatus, resetPassword,
   getBrands
 } from '../controllers/developerController.js';
+import { otpLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
 // Public — OTP auth
-router.post('/send-otp',    sendOTP);
-router.post('/verify-otp',  verifyOTP);
+router.post('/send-otp',    otpLimiter, sendOTP);
+router.post('/verify-otp',  otpLimiter, verifyOTP);
 
 // Protected — all routes below require developer JWT
 router.use(devAuth);

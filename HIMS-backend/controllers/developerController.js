@@ -96,7 +96,7 @@ export const devAuth = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(401).json({ success: false, message: 'No token' });
   try {
-    const decoded = jwt.verify(token, DEV_SECRET);
+    const decoded = jwt.verify(token, DEV_SECRET, { algorithms: ['HS256'] });
     if (!decoded.dev) throw new Error('Not a dev token');
     req.dev = decoded;
     next();
@@ -153,7 +153,7 @@ export const createHospital = async (req, res) => {
     );
     res.json({ success: true, message: 'Hospital created', id: result.insertId });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, message: 'Hospital code already exists' });
+    if (err.code === '23505') return res.status(409).json({ success: false, message: 'Hospital code already exists' });
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -178,7 +178,7 @@ export const deleteHospital = async (req, res) => {
     await db.query(`DELETE FROM branches WHERE id = ?`, [id]);
     res.json({ success: true, message: 'Hospital deleted' });
   } catch (err) {
-    if (err.code === 'ER_ROW_IS_REFERENCED_2') {
+    if (err.code === '23503') {
       return res.status(400).json({ success: false, message: 'Cannot delete — hospital has linked records' });
     }
     res.status(500).json({ success: false, message: err.message });
@@ -193,7 +193,7 @@ export const createDistrict = async (req, res) => {
     const [result] = await db.query(`INSERT INTO districts (name, state) VALUES (?, ?)`, [name, state]);
     res.json({ success: true, message: 'District created', id: result.insertId });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, message: 'District already exists' });
+    if (err.code === '23505') return res.status(409).json({ success: false, message: 'District already exists' });
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -251,7 +251,7 @@ export const deleteLab = async (req, res) => {
     await db.query(`DELETE FROM infrastructure WHERE id = ? AND type = 'Lab'`, [id]);
     res.json({ success: true, message: 'Lab deleted' });
   } catch (err) {
-    if (err.code === 'ER_ROW_IS_REFERENCED_2') {
+    if (err.code === '23503') {
       return res.status(400).json({ success: false, message: 'Cannot delete — lab has linked machines or records' });
     }
     res.status(500).json({ success: false, message: err.message });
@@ -294,7 +294,7 @@ export const createUser = async (req, res) => {
     );
     res.json({ success: true, message: 'User created', id: result.insertId });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ success: false, message: 'Email already exists' });
+    if (err.code === '23505') return res.status(409).json({ success: false, message: 'Email already exists' });
     res.status(500).json({ success: false, message: err.message });
   }
 };

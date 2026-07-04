@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import JsBarcode from 'jsbarcode';
+import { API_BASE } from '../apiBase';
 
 // ─── Inline barcode for table rows ────────────────────────────────────────────
 const BarcodeImage = ({ value }) => {
@@ -187,8 +188,6 @@ const Worklist = () => {
   const [isFetchingParams, setIsFetchingParams] = useState(false);
   const [selectedParams, setSelectedParams] = useState([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  const API_BASE = 'https://lims.poxiatechnologies.com';
 
   useEffect(() => {
     fetchWorklist();

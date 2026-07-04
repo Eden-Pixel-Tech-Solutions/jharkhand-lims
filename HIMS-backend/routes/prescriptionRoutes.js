@@ -9,12 +9,21 @@ const router = express.Router();
 
 const upload = multer({
   dest: 'uploads/prescriptions/',
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB — a photographed prescription shouldn't exceed this
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    if (allowed.includes(file.mimetype)) return cb(null, true);
+    cb(new Error('Only image uploads (JPEG, PNG, WebP, HEIC) are allowed'));
+  },
 });
 
 // Helper to generate unique bill number
 const generateBillNumber = (hospital_code = 'BILL') => {
   const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+  // 8 base36 chars (~2.8e12 combinations) — bill numbers double as a public,
+  // unauthenticated lookup key (trackTestStatus), so this needs to resist
+  // guessing, not just avoid collisions.
+  const random = Math.random().toString(36).substring(2, 10).toUpperCase();
   return `${hospital_code}-${timestamp}-${random}`;
 };
 
@@ -47,7 +56,7 @@ router.post(
       const prompt = `
 You are an advanced medical prescription extraction AI.
 Analyze the uploaded prescription image carefully.
-Extract: patient_name, abha_id, age, gender, doctor_name, tests, medicines, diagnosis.
+Extract: patient_name, age, gender, doctor_name, tests, medicines, diagnosis.
 
 Rules:
 - Return STRICT JSON only
@@ -58,7 +67,6 @@ Rules:
 Example format:
 {
   "patient_name": { "value": "Ravi Kumar", "confidence": 0.96 },
-  "abha_id": { "value": "1234-5678-9012", "confidence": 0.9 },
   "tests": [ { "test_name": "CBC", "confidence": 0.92 } ]
 }
 `;
@@ -115,7 +123,6 @@ Example format:
         aiResponse: aiJson,
         proposedData: {
           patientName: aiJson.patient_name?.value,
-          abhaId: aiJson.abha_id?.value,
           gender: aiJson.gender?.value,
           tests: matchedTests,
           totalAmount,
@@ -133,29 +140,21 @@ Example format:
 router.post('/finalize-billing', authenticateToken, authorizeRole(['Admin', 'Doctor', 'Lab Head', 'Lab Technician']), async (req, res) => {
   const connection = await db.getConnection();
   try {
-    const { patientName, abhaId, gender, tests, totalAmount, barcodeId } = req.body;
+    const { patientName, gender, tests, totalAmount, barcodeId } = req.body;
 
     await connection.beginTransaction();
 
-    // 1. Find or Create Patient
-    let patientId = null;
-    if (abhaId) {
-      const [rows] = await connection.query('SELECT id FROM patients WHERE abha_id = ?', [abhaId]);
-      if (rows.length > 0) patientId = rows[0].id;
-    }
+    // 1. Create Patient
+    const regNo = generateRegNo();
+    const nameParts = patientName.split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Patient';
 
-    if (!patientId) {
-      const regNo = generateRegNo();
-      const nameParts = patientName.split(' ');
-      const firstName = nameParts[0];
-      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Patient';
-
-      const [result] = await connection.query(
-        'INSERT INTO patients (reg_no, reg_date, first_name, last_name, abha_id, gender) VALUES (?, NOW(), ?, ?, ?, ?)',
-        [regNo, firstName, lastName, abhaId || null, gender || 'Other']
-      );
-      patientId = result.insertId;
-    }
+    const [result] = await connection.query(
+      'INSERT INTO patients (reg_no, reg_date, first_name, last_name, gender) VALUES (?, NOW(), ?, ?, ?)',
+      [regNo, firstName, lastName, gender || 'Other']
+    );
+    const patientId = result.insertId;
 
     // 2. Create Bill
     const billNumber = generateBillNumber();

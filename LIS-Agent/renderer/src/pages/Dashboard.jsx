@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-
-const API_BASE = 'https://lims.poxiatechnologies.com';
+import { API_BASE } from "../apiBase";
 
 const ShortcutCard = ({ title, icon, desc, onClick, color, borderColor }) => (
     <div 
@@ -101,6 +100,9 @@ export default function Dashboard() {
         <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
                 <div>
+                    <p style={{ fontSize: '12px', fontWeight: '800', color: '#2563eb', letterSpacing: '1px', textTransform: 'uppercase', margin: '0 0 4px' }}>
+                        Meril LIMS Agent
+                    </p>
                     <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#0f172a', margin: 0 }}>Laboratory Dashboard</h1>
                     <p style={{ color: '#64748b', marginTop: '4px' }}>
                         {selectedMachine ? `Connected to ${selectedMachine.unique_id} (${selectedMachine.model})` : 'No analyzer selected'}

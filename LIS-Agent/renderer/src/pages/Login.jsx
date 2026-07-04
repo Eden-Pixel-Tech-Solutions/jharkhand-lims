@@ -5,8 +5,21 @@ import m2 from '../assets/m2.png';
 import m3 from '../assets/m3.png';
 import merilLogo from '../assets/meril.png';
 import '../assets/CSS/Login.css';
+import { API_BASE } from '../apiBase';
 
-const API_BASE = 'https://lims.poxiatechnologies.com'; // Matches backend port
+// Only lab staff may use this agent — mirrors the backend's ROLE_ALIASES normalization
+// (HIMS-backend/middleware/auth.js) so legacy slug values like "lab_tech" still match.
+const ROLE_ALIASES = {
+    'lab_tech': 'Lab Technician',
+    'lab_doctor': 'Lab Head',
+    'lab doctor': 'Lab Head',
+};
+const ALLOWED_ROLES = ['Lab Technician', 'Lab Head', 'Lab Admin'];
+
+const isLabRole = (role) => {
+    const normalized = ROLE_ALIASES[(role || '').toLowerCase()] || role;
+    return ALLOWED_ROLES.includes(normalized);
+};
 
 export default function Login() {
     const navigate = useNavigate();
@@ -63,8 +76,15 @@ export default function Login() {
                 throw new Error(data.message || 'Login failed');
             }
 
+            if (!isLabRole(data.role)) {
+                throw new Error('This app is restricted to lab staff (Lab Technician, Lab Head, Lab Admin).');
+            }
+
             // Store auth data
-            if (data.token) localStorage.setItem('hims_token', data.token);
+            if (data.token) {
+                localStorage.setItem('hims_token', data.token);
+                await window.electronAPI.saveSetting('authToken', data.token);
+            }
             if (data.branch_id) localStorage.setItem('branch_id', data.branch_id);
             if (data.role) localStorage.setItem('role', data.role);
             if (data.role_level) localStorage.setItem('role_level', data.role_level);

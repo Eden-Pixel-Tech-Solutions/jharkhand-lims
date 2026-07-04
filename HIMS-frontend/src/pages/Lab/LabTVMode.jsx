@@ -57,7 +57,7 @@ function LabTVMode() {
   
   // Kiosk modal state
   const [showModal, setShowModal]     = useState(false);
-  const [kioskInput, setKioskInput]   = useState('');        // phone / ABHA being typed
+  const [kioskInput, setKioskInput]   = useState('');        // phone number being typed
   const [kioskStep, setKioskStep]     = useState('input');   // 'input' | 'results'
   const [patient, setPatient]         = useState(null);
   const [reports, setReports]         = useState([]);
@@ -131,7 +131,7 @@ function LabTVMode() {
     }
   };
 
-  // ── Lookup reports by phone or ABHA ──────────────────────────────────────
+  // ── Lookup reports by phone ───────────────────────────────────────────────
   const handleSearch = async () => {
     if (kioskInput.length < 4) { setSearchErr('Enter at least 4 digits'); return; }
     setSearching(true); setSearchErr('');
@@ -330,14 +330,14 @@ function LabTVMode() {
               <>
                 <div className="kiosk-service-header">
                   <h2>Get Your Reports</h2>
-                  <p>Enter your registered mobile number or ABHA number</p>
+                  <p>Enter your registered mobile number</p>
                 </div>
 
                 <div className="token-input-display">
                   <div className="token-placeholder">
                     {kioskInput
                       ? kioskInput.replace(/(\d{4})(\d{3})(\d{3,})/, '$1 $2 $3')
-                      : 'Phone / ABHA No.'}
+                      : 'Phone No.'}
                   </div>
                   {kioskInput && <span className="cursor-blink">|</span>}
                 </div>

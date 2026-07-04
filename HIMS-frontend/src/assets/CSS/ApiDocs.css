@@ -1,0 +1,139 @@
+.api-docs-shell {
+  --api-bg: #F5F6FA;
+  --api-surface: #FFFFFF;
+  --api-surface-2: #ECEEF4;
+  --api-ink: #191A23;
+  --api-ink-soft: #565A6E;
+  --api-ink-faint: #8A8EA3;
+  --api-line: #DBDEE8;
+  --api-accent: #93286B;
+  --api-accent-soft: #F5E4EF;
+  --api-get: #2563A8;    --api-get-soft: #E6EEF8;
+  --api-post: #1F7A4D;   --api-post-soft: #E5F3EA;
+  --api-put: #A8600C;    --api-put-soft: #FBEFE0;
+  --api-patch: #0F766E;  --api-patch-soft: #E1F2F0;
+  --api-delete: #B3261E; --api-delete-soft: #FBEAE9;
+  --api-auth-public: #A8600C;
+  --api-auth-key: #6D3FA0;
+  --api-auth-dev: #2563A8;
+  --api-font-mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', Consolas, 'Roboto Mono', monospace;
+  --api-font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  display: flex;
+  min-height: 100vh;
+  background: var(--api-bg);
+  color: var(--api-ink);
+  font-family: var(--api-font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  .api-docs-shell {
+    --api-bg: #12131B; --api-surface: #191B26; --api-surface-2: #212433;
+    --api-ink: #E8E9F2; --api-ink-soft: #A6A9BC; --api-ink-faint: #6E7288;
+    --api-line: #2C2F41; --api-accent: #F080C4; --api-accent-soft: #2E1D2A;
+    --api-get: #7EB6FF;    --api-get-soft: #16232F;
+    --api-post: #6EE7A8;   --api-post-soft: #132A1E;
+    --api-put: #FFB86B;    --api-put-soft: #2E2110;
+    --api-patch: #5EEAD4;  --api-patch-soft: #102523;
+    --api-delete: #FF8A80; --api-delete-soft: #2E1717;
+    --api-auth-public: #FFB86B; --api-auth-key: #C09AF0; --api-auth-dev: #7EB6FF;
+  }
+}
+
+.api-docs-shell * { box-sizing: border-box; }
+
+/* ---------- Sidebar ---------- */
+.api-sidebar {
+  width: 280px; flex-shrink: 0; background: var(--api-surface); border-right: 1px solid var(--api-line);
+  height: 100vh; position: sticky; top: 0; display: flex; flex-direction: column;
+}
+.api-sidebar-head { padding: 22px 20px 16px; border-bottom: 1px solid var(--api-line); }
+.api-brand { font-family: var(--api-font-mono); font-weight: 700; font-size: 15px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
+.api-brand::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--api-accent); display: inline-block; flex-shrink: 0; }
+.api-brand-sub { font-size: 11.5px; color: var(--api-ink-faint); margin-top: 4px; font-family: var(--api-font-mono); }
+.api-search-wrap { padding: 12px 16px; border-bottom: 1px solid var(--api-line); }
+.api-search-input {
+  width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--api-line);
+  background: var(--api-surface-2); color: var(--api-ink); font-family: var(--api-font-mono); font-size: 12.5px;
+}
+.api-search-input:focus { outline: 2px solid var(--api-accent); outline-offset: -1px; }
+.api-search-input::placeholder { color: var(--api-ink-faint); }
+.api-stats-row { display: flex; gap: 10px; padding: 10px 16px; font-family: var(--api-font-mono); font-size: 10.5px; color: var(--api-ink-faint); border-bottom: 1px solid var(--api-line); }
+.api-stats-row b { color: var(--api-ink); font-variant-numeric: tabular-nums; }
+
+.api-nav { flex: 1; overflow-y: auto; padding: 8px 0 24px; }
+.api-nav-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 6px 20px; font-size: 12.5px; color: var(--api-ink-soft); text-decoration: none;
+  cursor: pointer; border-left: 2px solid transparent;
+}
+.api-nav-item:hover { background: var(--api-surface-2); color: var(--api-ink); }
+.api-nav-item.active { color: var(--api-accent); border-left-color: var(--api-accent); background: var(--api-accent-soft); }
+.api-nav-item-count { font-family: var(--api-font-mono); font-size: 10px; color: var(--api-ink-faint); }
+
+/* ---------- Main ---------- */
+.api-main { flex: 1; min-width: 0; padding: 40px 48px 96px; max-width: 980px; }
+.api-page-head { padding-bottom: 28px; border-bottom: 1px solid var(--api-line); margin-bottom: 8px; }
+.api-eyebrow { font-family: var(--api-font-mono); font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--api-accent); margin-bottom: 10px; }
+.api-docs-shell h1 { font-family: var(--api-font-mono); font-weight: 700; font-size: clamp(26px, 3.4vw, 34px); margin: 0 0 12px; letter-spacing: -0.01em; text-wrap: balance; color: var(--api-ink); }
+.api-dek { font-size: 14.5px; line-height: 1.65; color: var(--api-ink-soft); max-width: 68ch; }
+.api-dek code { font-family: var(--api-font-mono); background: var(--api-surface-2); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+
+.api-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 18px; font-size: 12px; color: var(--api-ink-soft); }
+.api-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.api-dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+
+.api-group { margin-top: 44px; scroll-margin-top: 20px; }
+.api-group-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+.api-docs-shell h2 { font-family: var(--api-font-mono); font-weight: 700; font-size: 19px; margin: 0; color: var(--api-ink); }
+.api-group-count { font-family: var(--api-font-mono); font-size: 11.5px; color: var(--api-ink-faint); }
+.api-group-desc { font-size: 13.5px; color: var(--api-ink-soft); margin: 4px 0 18px; max-width: 68ch; line-height: 1.55; }
+.api-group-flag {
+  display: inline-block; margin-top: 8px; padding: 5px 10px; font-size: 12px; border-radius: 6px;
+  background: var(--api-delete-soft); color: var(--api-delete); font-weight: 600;
+}
+
+.api-endpoint {
+  border: 1px solid var(--api-line); border-radius: 8px; margin-bottom: 10px; background: var(--api-surface);
+  overflow: hidden;
+}
+.api-endpoint-row { display: flex; align-items: center; gap: 10px; padding: 11px 14px; flex-wrap: wrap; }
+.api-method {
+  font-family: var(--api-font-mono); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 5px;
+  letter-spacing: 0.02em; flex-shrink: 0; width: 56px; text-align: center;
+}
+.api-method-get { color: var(--api-get); background: var(--api-get-soft); }
+.api-method-post { color: var(--api-post); background: var(--api-post-soft); }
+.api-method-put { color: var(--api-put); background: var(--api-put-soft); }
+.api-method-patch { color: var(--api-patch); background: var(--api-patch-soft); }
+.api-method-delete { color: var(--api-delete); background: var(--api-delete-soft); }
+
+.api-path { font-family: var(--api-font-mono); font-size: 13px; color: var(--api-ink); flex: 1; min-width: 200px; word-break: break-all; }
+.api-path .param { color: var(--api-accent); }
+
+.api-auth-badge {
+  font-family: var(--api-font-mono); font-size: 10px; padding: 2px 7px; border-radius: 4px; white-space: nowrap;
+  background: var(--api-surface-2); color: var(--api-ink-faint); font-weight: 600;
+}
+.api-auth-public { color: var(--api-auth-public); background: color-mix(in srgb, var(--api-auth-public) 14%, transparent); }
+.api-auth-key { color: var(--api-auth-key); background: color-mix(in srgb, var(--api-auth-key) 14%, transparent); }
+.api-auth-dev { color: var(--api-auth-dev); background: color-mix(in srgb, var(--api-auth-dev) 14%, transparent); }
+
+.api-endpoint-body { padding: 0 14px 13px 80px; }
+.api-endpoint-desc { font-size: 13px; color: var(--api-ink-soft); line-height: 1.5; margin: 0 0 6px; }
+.api-endpoint-desc code { font-family: var(--api-font-mono); background: var(--api-surface-2); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+.api-endpoint-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11.5px; color: var(--api-ink-faint); }
+.api-role { color: var(--api-ink-soft); }
+.api-body-params {
+  margin-top: 8px; font-family: var(--api-font-mono); font-size: 11.5px; color: var(--api-ink-soft);
+  background: var(--api-surface-2); padding: 8px 10px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap;
+}
+.api-params-label { color: var(--api-ink-faint); text-transform: uppercase; letter-spacing: 0.06em; font-size: 9.5px; display: block; margin-bottom: 4px; }
+
+.api-no-results { text-align: center; padding: 60px 20px; color: var(--api-ink-faint); font-size: 14px; }
+
+@media (max-width: 860px) {
+  .api-sidebar { display: none; }
+  .api-main { padding: 28px 20px 80px; max-width: 100%; }
+}

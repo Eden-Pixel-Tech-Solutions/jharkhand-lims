@@ -3,7 +3,11 @@ import db from '../config/db.js';
 // Get all infrastructure items
 export const getInfraList = async (req, res) => {
   try {
-    const { type, branch_id } = req.query;
+    const { type } = req.query;
+    // Enforce branch from JWT; Central admins may filter via query param
+    const scope = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
+    const filterBranch = scope || (req.query.branch_id !== 'all' ? req.query.branch_id : null) || null;
+
     let query = 'SELECT * FROM infrastructure';
     let params = [];
     let conditions = [];
@@ -13,9 +17,9 @@ export const getInfraList = async (req, res) => {
       params.push(type);
     }
 
-    if (branch_id && branch_id !== 'all') {
+    if (filterBranch) {
       conditions.push('branch_id = ?');
-      params.push(branch_id);
+      params.push(filterBranch);
     }
 
     if (conditions.length > 0) {
@@ -35,17 +39,28 @@ export const getInfraList = async (req, res) => {
 // Add new infrastructure item
 export const addInfra = async (req, res) => {
   try {
-    const { name, type, block, floor, capacity, status, branch_id } = req.body;
+    const { name, type, block, floor, capacity, status } = req.body;
 
     if (!name || !type) {
       return res.status(400).json({ success: false, message: 'Name and Type are required' });
     }
 
+    const callerBranch = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
+    const branch_id = callerBranch || req.body.branch_id || null;
+
     const query = `
       INSERT INTO infrastructure (name, type, block, floor, capacity, status, branch_id)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    const values = [name, type, block, floor, capacity && capacity !== '' ? parseInt(capacity) : null, status || 'Available', branch_id || null];
+    const values = [
+      name,
+      type,
+      block,
+      floor !== undefined && floor !== '' ? parseInt(floor) : null,
+      capacity !== undefined && capacity !== '' ? parseInt(capacity) : null,
+      status || 'Available',
+      branch_id || null
+    ];
 
     const [result] = await db.query(query, values);
 
@@ -66,17 +81,24 @@ export const updateInfra = async (req, res) => {
     const { id } = req.params;
     const { name, type, block, floor, capacity, status } = req.body;
 
+    // Enforce branch from JWT, not the client-supplied query string.
+    const callerBranch = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
+
     const query = `
-      UPDATE infrastructure 
+      UPDATE infrastructure
       SET name = ?, type = ?, block = ?, floor = ?, capacity = ?, status = ?
-      WHERE id = ? ${req.query.role_level !== '1' ? 'AND branch_id = ?' : ''}
+      WHERE id = ? ${callerBranch ? 'AND branch_id = ?' : ''}
     `;
     const values = [
-      name, type, block, floor, 
-      capacity && capacity !== '' ? parseInt(capacity) : null, 
-      status, id
+      name,
+      type,
+      block,
+      floor !== undefined && floor !== '' ? parseInt(floor) : null,
+      capacity !== undefined && capacity !== '' ? parseInt(capacity) : null,
+      status,
+      id
     ];
-    if (req.query.role_level !== '1') values.push(req.query.branch_id);
+    if (callerBranch) values.push(callerBranch);
 
     const [result] = await db.query(query, values);
 
@@ -97,10 +119,12 @@ export const deleteInfra = async (req, res) => {
     const { id } = req.params;
     let query = 'DELETE FROM infrastructure WHERE id = ?';
     let values = [id];
-    
-    if (req.query.role_level !== '1') {
+
+    // Enforce branch from JWT, not the client-supplied query string.
+    const callerBranch = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
+    if (callerBranch) {
       query += ' AND branch_id = ?';
-      values.push(req.query.branch_id);
+      values.push(callerBranch);
     }
 
     const [result] = await db.query(query, values);

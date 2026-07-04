@@ -3,10 +3,12 @@ import db from '../config/db.js';
 // 1. Get all branches (Hierarchy aware)
 export const getBranches = async (req, res) => {
   try {
-    const { district_id, role_level, branch_id } = req.query;
-    
+    // Enforce scope from the JWT, not the client-supplied query string.
+    const role_level = req.user?.role_level;
+    const branch_id = req.user?.branch_id;
+
     let query = `
-      SELECT b.*, d.name as district_name, p.branch_name as parent_branch_name 
+      SELECT b.*, d.name as district_name, p.branch_name as parent_branch_name
       FROM branches b
       LEFT JOIN districts d ON b.district_id = d.id
       LEFT JOIN branches p ON b.parent_branch_id = p.id
@@ -14,10 +16,11 @@ export const getBranches = async (req, res) => {
     `;
     const params = [];
 
-    // Sub-Central role: only see branches in their district
-    if (role_level === 'Sub-Central' && district_id) {
-      query += ' AND b.district_id = ?';
-      params.push(district_id);
+    // Sub-Central role: only see branches in their own district (looked up
+    // server-side via their branch, since district_id isn't in the JWT).
+    if (role_level === 'Sub-Central' && branch_id) {
+      query += ` AND b.district_id = (SELECT district_id FROM branches WHERE id = ?)`;
+      params.push(branch_id);
     }
     // Central role: sees all branches (no filter)
     // Branch level sees only their own branch
@@ -46,18 +49,18 @@ export const getBranches = async (req, res) => {
 // 2. Create District (Sub-Central Hub)
 export const createDistrict = async (req, res) => {
   try {
-    const { name, state = 'Jharkhand' } = req.body;
-    
+    const { name, state = 'Jharkhand', state_id = null } = req.body;
+
     if (!name) return res.status(400).json({ success: false, message: 'District name is required' });
 
     const [result] = await db.query(
-      'INSERT INTO districts (name, state) VALUES (?, ?)',
-      [name, state]
+      'INSERT INTO districts (name, state, state_id) VALUES (?, ?, ?)',
+      [name, state, state_id || null]
     );
 
     res.json({ success: true, message: 'District created successfully', district_id: result.insertId });
   } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505') {
       return res.status(400).json({ success: false, message: 'District already exists' });
     }
     console.error('Error creating district:', error);
@@ -69,13 +72,16 @@ export const createDistrict = async (req, res) => {
 export const updateDistrict = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, state_id } = req.body;
     if (!name) return res.status(400).json({ success: false, message: 'District name is required' });
 
-    await db.query('UPDATE districts SET name = ? WHERE id = ?', [name, id]);
+    await db.query(
+      'UPDATE districts SET name = ?, state_id = COALESCE(?, state_id) WHERE id = ?',
+      [name, state_id || null, id]
+    );
     res.json({ success: true, message: 'District updated successfully' });
   } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'District already exists' });
+    if (error.code === '23505') return res.status(400).json({ success: false, message: 'District already exists' });
     console.error('Error updating district:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
@@ -100,6 +106,19 @@ export const deleteDistrict = async (req, res) => {
   }
 };
 
+// Patch block_id on a branch (assign / unassign from a block)
+export const patchBranchBlock = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { block_id } = req.body;
+    await db.query('UPDATE branches SET block_id = ? WHERE id = ?', [block_id || null, id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error patching branch block:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 // 3. Create Center (Lab/Branch)
 export const createCenter = async (req, res) => {
   try {
@@ -117,7 +136,7 @@ export const createCenter = async (req, res) => {
 
     res.json({ success: true, message: 'Center created successfully', branch_id: result.insertId });
   } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505') {
       return res.status(400).json({ success: false, message: 'Hospital Code already exists' });
     }
     console.error('Error creating center:', error);
@@ -160,7 +179,7 @@ export const deleteCenter = async (req, res) => {
     res.json({ success: true, message: 'Center deleted successfully' });
   } catch (error) {
     console.error('Error deleting center:', error);
-    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+    if (error.code === '23503') {
       return res.status(400).json({ success: false, message: 'Cannot delete this facility because it is actively being used by registered staff, infrastructure, or patient records.' });
     }
     res.status(500).json({ success: false, message: 'Server error (Make sure no records depend on this center)' });
@@ -178,7 +197,7 @@ export const createFacilityCategory = async (req, res) => {
     const [result] = await db.query('INSERT INTO facility_categories (name) VALUES (?)', [name]);
     res.json({ success: true, message: 'Category created', category_id: result.insertId });
   } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'Category already exists' });
+    if (error.code === '23505') return res.status(400).json({ success: false, message: 'Category already exists' });
     console.error('Error creating category:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
@@ -194,7 +213,7 @@ export const updateFacilityCategory = async (req, res) => {
     await db.query('UPDATE facility_categories SET name = ? WHERE id = ?', [name, id]);
     res.json({ success: true, message: 'Category updated' });
   } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') return res.status(400).json({ success: false, message: 'Category already exists' });
+    if (error.code === '23505') return res.status(400).json({ success: false, message: 'Category already exists' });
     console.error('Error updating category:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }

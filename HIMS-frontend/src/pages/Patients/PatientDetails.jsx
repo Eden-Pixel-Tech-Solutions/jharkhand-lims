@@ -8,8 +8,6 @@ import {
 } from 'lucide-react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
-import AbhaRegistrationModal from '../../components/AbhaRegistrationModal';
-import AbhaFetchModal from '../../components/AbhaFetchModal';
 import '../../assets/CSS/PatientRegistration.css';
 
 const TITLES = ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.'];
@@ -25,12 +23,12 @@ const KIN_RELS = ['Spouse', 'Parent', 'Child', 'Sibling', 'Friend', 'Guardian', 
 const PAYERS = ['Self / Out of Pocket', 'Insurance', 'Government / NHIS', 'Employer'];
 
 const INIT = {
-  regNo: 'REG-' + Math.floor(10000 + Math.random() * 90000),
+  regNo: '',
   regDate: new Date().toISOString().split('T')[0],
   isNewBorn: false,
   title: '', firstName: '', middleName: '', lastName: '',
   dob: '', ageYears: '', ageMonths: '', ageDays: '',
-  gender: '', aadharNumber: '', abhaId: '', maritalStatus: '', occupation: '', language: '',
+  gender: '', aadharNumber: '', maritalStatus: '', occupation: '', language: '',
   educationLevel: '', religion: '', citizen: '', emailId: '', telephone: '', fileRequired: false,
   address: '', suburb: '', city: '', country: '', postalCode: '', postalAddress: false,
   kinSameAddress: false, kinName: '', kinRelation: '', kinTelephone: '',
@@ -54,9 +52,114 @@ const Select = ({ options, placeholder = 'Select', ...props }) => (
   </select>
 );
 
+// ── Merge Modal ──────────────────────────────────────────────────────────────
+function MergeModal({ defaultSecondary, onClose, onMerged }) {
+  const [primaryQ, setPrimaryQ]     = useState('');
+  const [secondaryQ, setSecondaryQ] = useState(defaultSecondary?.telephone || '');
+  const [primary, setPrimary]       = useState(null);
+  const [secondary, setSecondary]   = useState(defaultSecondary || null);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState('');
+  const API_BASE = import.meta.env.VITE_API_URL || '';
+  const hdr = { Authorization: `Bearer ${localStorage.getItem('hims_token')}` };
+
+  const search = async (q, setter) => {
+    if (!q.trim()) return;
+    try {
+      const res  = await fetch(`${API_BASE}/api/patients/search?q=${encodeURIComponent(q)}`, { headers: hdr });
+      const json = await res.json();
+      if (json.success && json.patients?.length) setter(json.patients[0]);
+      else setter(null);
+    } catch { setter(null); }
+  };
+
+  const doMerge = async () => {
+    if (!primary || !secondary) { setError('Search and select both patients first'); return; }
+    if (primary.reg_no === secondary.reg_no) { setError('Primary and secondary must be different patients'); return; }
+    setLoading(true); setError('');
+    try {
+      const res  = await fetch(`${API_BASE}/api/patients/merge`, {
+        method: 'POST',
+        headers: { ...hdr, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ primaryRegNo: primary.reg_no, secondaryRegNo: secondary.reg_no })
+      });
+      const json = await res.json();
+      if (json.success) onMerged(primary.reg_no);
+      else setError(json.message || 'Merge failed');
+    } catch { setError('Network error'); }
+    finally { setLoading(false); }
+  };
+
+  const PCard = ({ p, label, color }) => p ? (
+    <div style={{border:`1.5px solid ${color}`,borderRadius:10,padding:'12px 14px',background:'#fafafa'}}>
+      <div style={{fontSize:10,fontWeight:700,color,textTransform:'uppercase',marginBottom:6}}>{label}</div>
+      <div style={{fontWeight:700,fontSize:14,color:'#1e293b'}}>{[p.first_name,p.middle_name,p.last_name].filter(Boolean).join(' ')}</div>
+      <div style={{fontSize:12,color:'#64748b',marginTop:2}}>{p.reg_no} · {p.gender} · {p.telephone}</div>
+      {p.dob && <div style={{fontSize:11,color:'#94a3b8'}}>DOB: {new Date(p.dob).toLocaleDateString('en-IN')}</div>}
+    </div>
+  ) : <div style={{border:'1.5px dashed #e2e8f0',borderRadius:10,padding:'20px',textAlign:'center',color:'#94a3b8',fontSize:12}}>Search a patient above</div>;
+
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{background:'#fff',borderRadius:16,padding:'28px',width:600,maxWidth:'95vw',boxShadow:'0 20px 60px rgba(0,0,0,.2)'}}>
+        <div style={{display:'flex',alignItems:'center',marginBottom:20}}>
+          <h2 style={{margin:0,fontSize:18,fontWeight:700,color:'#1e293b'}}>Merge Duplicate Patients</h2>
+          <button onClick={onClose} style={{marginLeft:'auto',border:'none',background:'none',fontSize:20,cursor:'pointer',color:'#94a3b8'}}>✕</button>
+        </div>
+
+        <div style={{background:'#fef9c3',border:'1px solid #fde047',borderRadius:8,padding:'10px 14px',marginBottom:18,fontSize:12,color:'#854d0e'}}>
+          All appointments, bills, consultations and labs from the <strong>secondary</strong> will move to the <strong>primary</strong>. The secondary record will be permanently deleted.
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:18}}>
+          <div>
+            <label style={{fontSize:12,fontWeight:600,color:'#475569',display:'block',marginBottom:6}}>Keep (Primary)</label>
+            <div style={{display:'flex',gap:6}}>
+              <input value={primaryQ} onChange={e=>setPrimaryQ(e.target.value)}
+                placeholder="Search name or phone…"
+                style={{flex:1,padding:'8px 10px',border:'1.5px solid #e2e8f0',borderRadius:7,fontSize:13,outline:'none'}} />
+              <button onClick={()=>search(primaryQ,setPrimary)}
+                style={{padding:'8px 12px',background:'#4f46e5',color:'#fff',border:'none',borderRadius:7,fontSize:12,fontWeight:600,cursor:'pointer'}}>Find</button>
+            </div>
+          </div>
+          <div>
+            <label style={{fontSize:12,fontWeight:600,color:'#475569',display:'block',marginBottom:6}}>Delete (Secondary)</label>
+            <div style={{display:'flex',gap:6}}>
+              <input value={secondaryQ} onChange={e=>setSecondaryQ(e.target.value)}
+                placeholder="Search name or phone…"
+                style={{flex:1,padding:'8px 10px',border:'1.5px solid #e2e8f0',borderRadius:7,fontSize:13,outline:'none'}} />
+              <button onClick={()=>search(secondaryQ,setSecondary)}
+                style={{padding:'8px 12px',background:'#64748b',color:'#fff',border:'none',borderRadius:7,fontSize:12,fontWeight:600,cursor:'pointer'}}>Find</button>
+            </div>
+          </div>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:12,alignItems:'center',marginBottom:20}}>
+          <PCard p={primary}   label="Keep (Primary)"   color="#4f46e5" />
+          <div style={{fontSize:22,color:'#94a3b8',fontWeight:300}}>→</div>
+          <PCard p={secondary} label="Delete (Secondary)" color="#ef4444" />
+        </div>
+
+        {error && <div style={{color:'#ef4444',fontSize:12,marginBottom:12,padding:'8px 12px',background:'#fee2e2',borderRadius:6}}>{error}</div>}
+
+        <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}>
+          <button onClick={onClose} style={{padding:'9px 18px',border:'1.5px solid #e2e8f0',background:'none',borderRadius:8,fontSize:13,cursor:'pointer'}}>Cancel</button>
+          <button onClick={doMerge} disabled={loading||!primary||!secondary}
+            style={{padding:'9px 20px',background:loading||!primary||!secondary?'#cbd5e1':'#dc2626',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer'}}>
+            {loading ? 'Merging…' : 'Merge & Delete Secondary'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PatientDetails({ onSaveSuccess }) {
   const { alert, showAlert, hideAlert } = useAlert();
-  const [data, setData] = useState(INIT);
+  const [data, setData] = useState(() => ({
+    ...INIT,
+    regNo: 'REG-' + Math.floor(10000 + Math.random() * 90000)
+  }));
   const [photo, setPhoto] = useState(null);
   const [cam, setCam] = useState(false);
   const [stream, setStream] = useState(null);
@@ -67,9 +170,13 @@ function PatientDetails({ onSaveSuccess }) {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [isAbhaModalOpen, setIsAbhaModalOpen] = useState(false);
-  const [abhaFetchModal, setAbhaFetchModal] = useState({ open: false, mode: 'mobile' });
   const searchRef = useRef(null);
+
+  // Duplicate detection state
+  const [duplicates, setDuplicates] = useState([]);
+  const [showDuplicates, setShowDuplicates] = useState(false);
+  const [proceedAnyway, setProceedAnyway] = useState(false);
+  const [showMergeModal, setShowMergeModal] = useState(false);
 
   // Close dropdown if clicked outside
   useEffect(() => {
@@ -159,9 +266,49 @@ function PatientDetails({ onSaveSuccess }) {
     closeCam();
   };
 
+  const checkForDuplicates = async (telephone, firstName, lastName, dob) => {
+    if (!telephone || telephone.length < 5) return;
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || '';
+      const params = new URLSearchParams();
+      if (telephone) params.set('telephone', telephone);
+      if (firstName) params.set('firstName', firstName);
+      if (lastName)  params.set('lastName', lastName);
+      if (dob)       params.set('dob', dob);
+      const res  = await fetch(`${API_BASE}/api/patients/check-duplicate?${params}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('hims_token')}` }
+      });
+      const json = await res.json();
+      if (json.success && json.duplicates.length > 0) {
+        setDuplicates(json.duplicates);
+        setShowDuplicates(true);
+        setProceedAnyway(false);
+      } else {
+        setDuplicates([]);
+        setShowDuplicates(false);
+      }
+    } catch { /* silent */ }
+  };
+
+  const onPhoneBlur = () => {
+    if (!proceedAnyway) checkForDuplicates(data.telephone, data.firstName, data.lastName, data.dob);
+  };
+
+  const useExistingPatient = (patient) => {
+    setShowDuplicates(false);
+    if (onSaveSuccess) onSaveSuccess(patient.reg_no);
+  };
+
   const handleSave = async () => {
     if (!data.firstName || !data.lastName || !data.dob || !data.gender || !data.telephone) {
       showAlert('First Name, Last Name, DOB, Gender and Phone Number are required!', 'warning');
+      return;
+    }
+
+    // Final duplicate check before save
+    if (!proceedAnyway && duplicates.length > 0) {
+      setShowDuplicates(true);
+      showAlert('Possible duplicate patients found. Please review before saving.', 'warning');
       return;
     }
 
@@ -169,7 +316,7 @@ function PatientDetails({ onSaveSuccess }) {
       const payload = {
         ...data,
         photo_base64: photo,
-        branch_id: localStorage.getItem('branch_id')
+        branch_id: localStorage.getItem('branch_id'),
       };
 
       const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -229,62 +376,6 @@ function PatientDetails({ onSaveSuccess }) {
     setSearchQuery('');
     showAlert(`Returning patient selected: ${patient.first_name} ${patient.last_name}`, 'success');
     if (onSaveSuccess) onSaveSuccess(patient.reg_no);
-  };
-
-  const handleAbhaComplete = (profile) => {
-    let formattedDob = profile.dob;
-    if (formattedDob && /^\d{2}[-/]\d{2}[-/]\d{4}$/.test(formattedDob)) {
-      const parts = formattedDob.split(/[-/]/);
-      formattedDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
-    }
-
-    if (profile.profilePhoto) setPhoto(profile.profilePhoto);
-    setData(prev => ({
-      ...prev,
-      firstName: profile.firstName || prev.firstName,
-      middleName: profile.middleName || prev.middleName,
-      lastName: profile.lastName || prev.lastName,
-      dob: formattedDob || prev.dob,
-      gender: profile.gender === 'M' ? 'Male' : profile.gender === 'F' ? 'Female' : 'Other',
-      abhaId: profile.ABHANumber || prev.abhaId,
-      citizen: 'India',
-      emailId: profile.email || prev.emailId,
-      telephone: profile.mobile || prev.telephone,
-      address: profile.address || prev.address,
-      city: profile.city || prev.city,
-      country: 'India',
-      postalCode: profile.postalCode || prev.postalCode
-    }));
-    showAlert('Patient details auto-filled from ABHA Profile successfully!', 'success');
-  };
-
-  const handleAbhaFetchComplete = (profile) => {
-    const parsedName = profile.name ? profile.name.trim().split(/\s+/) : [];
-    let formattedDob = profile.dob || '';
-    if (formattedDob && /^\d{2}[-/]\d{2}[-/]\d{4}$/.test(formattedDob)) {
-      const parts = formattedDob.split(/[-/]/);
-      formattedDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
-    }
-    const rawPhoto = profile.profilePhoto || profile.photo || '';
-    const photoUrl = rawPhoto ? (rawPhoto.startsWith('data:') ? rawPhoto : `data:image/jpeg;base64,${rawPhoto}`) : '';
-    if (photoUrl) setPhoto(photoUrl);
-    setData(prev => ({
-      ...prev,
-      firstName: profile.firstName || parsedName[0] || prev.firstName,
-      middleName: profile.middleName || (parsedName.length > 2 ? parsedName.slice(1, -1).join(' ') : '') || prev.middleName,
-      lastName: profile.lastName || (parsedName.length > 1 ? parsedName[parsedName.length - 1] : '') || prev.lastName,
-      dob: formattedDob || prev.dob,
-      gender: profile.gender === 'M' ? 'Male' : profile.gender === 'F' ? 'Female' : (prev.gender || 'Other'),
-      abhaId: profile.ABHANumber || profile.abhaNumber || prev.abhaId,
-      citizen: 'India',
-      emailId: profile.email || profile.emailAddress || prev.emailId,
-      telephone: profile.mobile || profile.mobileNumber || prev.telephone,
-      address: profile.address || prev.address,
-      city: profile.districtName || profile.city || prev.city,
-      country: 'India',
-      postalCode: profile.pincode || profile.postalCode || prev.postalCode
-    }));
-    showAlert('Patient details fetched from ABHA successfully!', 'success');
   };
 
   return (
@@ -359,28 +450,6 @@ function PatientDetails({ onSaveSuccess }) {
                 )}
               </div>
 
-              {/* ABHA Buttons */}
-              <div style={{ display: 'flex', gap: '8px', marginLeft: 16 }}>
-                <button
-                  className="btn-primary"
-                  onClick={() => setIsAbhaModalOpen(true)}
-                  style={{ height: 42, padding: '0 16px', borderRadius: 8, fontSize: 13 }}
-                >
-                  + Register with ABHA
-                </button>
-                <button
-                  onClick={() => setAbhaFetchModal({ open: true, mode: 'mobile' })}
-                  style={{
-                    height: 42, padding: '0 16px', borderRadius: 8, fontSize: 13, fontWeight: 700,
-                    background: '#fff', border: '1.5px solid #005eb8', color: '#005eb8',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  ↓ Fetch from ABHA
-                </button>
-              </div>
-              
               {/* Avatar */}
               <div className="preg-avatar" onClick={openCam} title="Add Photo (Alt + C)">
                 {photo
@@ -444,12 +513,6 @@ function PatientDetails({ onSaveSuccess }) {
                 <Input type="text" name="aadharNumber" value={data.aadharNumber} onChange={ch} placeholder="XXXX XXXX XXXX" />
               </Field>
 
-              <Field label="ABHA ID" span={1}>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch' }}>
-                  <Input type="text" name="abhaId" value={data.abhaId} onChange={ch} placeholder="XX-XXXX-XXXX-XXXX" style={{ flex: 1, minWidth: 0 }} />
-                </div>
-              </Field>
-
               <Field label="Education" span={1}>
                 <Select name="educationLevel" value={data.educationLevel} onChange={ch} options={EDUS} />
               </Field>
@@ -470,7 +533,7 @@ function PatientDetails({ onSaveSuccess }) {
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch' }}>
                   <div className="preg-phone-prefix" style={{ flex: 1, minWidth: 0 }}>
                     <span className="country-code">+91</span>
-                    <Input type="tel" name="telephone" value={data.telephone} onChange={ch} placeholder="12345 67890" />
+                    <Input type="tel" name="telephone" value={data.telephone} onChange={ch} onBlur={onPhoneBlur} placeholder="12345 67890" />
                   </div>
                 </div>
               </Field>
@@ -579,6 +642,83 @@ function PatientDetails({ onSaveSuccess }) {
 
       </div>
 
+      {/* ── Duplicate Warning Banner ── */}
+      {showDuplicates && duplicates.length > 0 && !proceedAnyway && (
+        <div style={{
+          position:'sticky', bottom:56, zIndex:100, margin:'0 24px',
+          background:'#fff7ed', border:'1.5px solid #f97316', borderRadius:12,
+          padding:'14px 18px', boxShadow:'0 4px 20px rgba(249,115,22,.15)'
+        }}>
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span style={{fontWeight:700,color:'#c2410c',fontSize:14}}>
+              {duplicates.length} possible duplicate{duplicates.length>1?'s':''} found with this phone number
+            </span>
+            <button onClick={() => setShowDuplicates(false)} style={{marginLeft:'auto',border:'none',background:'none',cursor:'pointer',color:'#9a3412',fontSize:18,lineHeight:1}}>✕</button>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:200,overflowY:'auto'}}>
+            {duplicates.map(p => (
+              <div key={p.id} style={{
+                display:'flex',alignItems:'center',gap:12,padding:'10px 12px',
+                background:'#fff',border:'1px solid #fed7aa',borderRadius:8
+              }}>
+                <div style={{
+                  width:38,height:38,borderRadius:'50%',background:'#ffedd5',
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  fontWeight:700,color:'#ea580c',fontSize:15,flexShrink:0,overflow:'hidden'
+                }}>
+                  {p.photo_base64
+                    ? <img src={p.photo_base64.startsWith('data:')?p.photo_base64:`data:image/jpeg;base64,${p.photo_base64}`} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="" />
+                    : (p.first_name?.[0]||'?')}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:600,fontSize:13,color:'#1e293b'}}>
+                    {[p.first_name,p.middle_name,p.last_name].filter(Boolean).join(' ')}
+                  </div>
+                  <div style={{fontSize:11,color:'#64748b'}}>
+                    {p.reg_no} · {p.gender} · {p.telephone}
+                    {p.dob && ` · DOB: ${new Date(p.dob).toLocaleDateString('en-IN')}`}
+                  </div>
+                </div>
+                <button
+                  onClick={() => useExistingPatient(p)}
+                  style={{padding:'6px 12px',background:'#4f46e5',color:'#fff',border:'none',borderRadius:6,fontSize:12,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap'}}
+                >
+                  Use This Patient
+                </button>
+              </div>
+            ))}
+          </div>
+          <div style={{display:'flex',gap:8,marginTop:12}}>
+            <button
+              onClick={() => setShowMergeModal(true)}
+              style={{padding:'7px 14px',background:'none',border:'1.5px solid #f97316',color:'#c2410c',borderRadius:6,fontSize:12,fontWeight:600,cursor:'pointer'}}
+            >
+              Merge Duplicates
+            </button>
+            <button
+              onClick={() => { setProceedAnyway(true); setShowDuplicates(false); }}
+              style={{padding:'7px 14px',background:'none',border:'1.5px solid #cbd5e1',color:'#64748b',borderRadius:6,fontSize:12,fontWeight:600,cursor:'pointer'}}
+            >
+              Proceed as New Patient
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Merge Patient Modal ── */}
+      {showMergeModal && (
+        <MergeModal
+          defaultSecondary={duplicates[0]}
+          onClose={() => setShowMergeModal(false)}
+          onMerged={(primaryRegNo) => {
+            setShowMergeModal(false);
+            setShowDuplicates(false);
+            if (onSaveSuccess) onSaveSuccess(primaryRegNo);
+          }}
+        />
+      )}
+
       {/* ── Sticky Action Bar ── */}
       <div className="preg-action-bar">
         <span style={{ fontSize: 12, color: 'var(--text-soft)', marginRight: 'auto' }}>
@@ -610,23 +750,6 @@ function PatientDetails({ onSaveSuccess }) {
           </div>
         </div>
       )}
-
-      {/* ABHA Registration Modal */}
-      <AbhaRegistrationModal
-        isOpen={isAbhaModalOpen}
-        onClose={() => setIsAbhaModalOpen(false)}
-        onComplete={handleAbhaComplete}
-      />
-
-      {/* ABHA Fetch Modal */}
-      <AbhaFetchModal
-        isOpen={abhaFetchModal.open}
-        mode={abhaFetchModal.mode}
-        initialMobile={data.telephone}
-        initialAbhaId={data.abhaId}
-        onClose={() => setAbhaFetchModal(m => ({ ...m, open: false }))}
-        onComplete={handleAbhaFetchComplete}
-      />
 
     </>
   );

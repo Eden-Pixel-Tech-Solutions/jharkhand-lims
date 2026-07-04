@@ -1,12 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import DeveloperLogin from './pages/Developer/DeveloperLogin';
 import DeveloperPanel from './pages/Developer/DeveloperPanel';
 import Login from './pages/Login';
-import Register from './pages/Billing/Register';
 import PatientRegistration from './pages/Patients/PatientRegistration';
 import StaffManagement from './pages/Staff/StaffManagement';
 import HospitalInfra from './pages/Settings/HospitalInfra';
 import DutyScheduler from './pages/Staff/DutyScheduler';
+import DoctorDashboard from './pages/Doctor/DoctorDashboard';
+import DoctorPatientSearch from './pages/Doctor/DoctorPatientSearch';
 import BillingPackages from './pages/Billing/BillingPackages';
 import LabTestManagement from './pages/Lab/LabTestManagement';
 import LabWorklist from './pages/Lab/LabWorklist';
@@ -43,6 +44,70 @@ import Layout from './components/Layout';
 import PatientLayout from './components/PatientLayout';
 import BarcodeGenerator from './pages/Prescriptions/BarcodeGenerator';
 import PrescriptionScan from './pages/Prescriptions/PrescriptionScan';
+import OrgManagement from './pages/Settings/OrgManagement';
+import ApiDocs from './pages/ApiDocs';
+
+// Redirects to login if no token is present
+function RequireAuth() {
+  return localStorage.getItem('hims_token') ? <Outlet /> : <Navigate to="/" replace />;
+}
+
+// Restricts a route to Doctor role only; other roles go to /dashboard
+function RequireDoctor() {
+  if (!localStorage.getItem('hims_token')) return <Navigate to="/" replace />;
+  return localStorage.getItem('role') === 'Doctor' ? <Outlet /> : <Navigate to="/dashboard" replace />;
+}
+
+// Redirects Doctors away from admin dashboard to their own console
+function DashboardGate() {
+  return localStorage.getItem('role') === 'Doctor'
+    ? <Navigate to="/doctor-dashboard" replace />
+    : <Dashboard />;
+}
+
+// Confines Lab Technician / Lab Doctor to their exact approved pages,
+// closing the gap where a hidden sidebar link could still be reached by typing the URL
+const LAB_TECHNICIAN_PATHS = ['/lab-worklist', '/lab-sample-list', '/lab-reports', '/lab-logs', '/lab-analyzer-logs', '/lab-test-management'];
+const LAB_DOCTOR_PATHS = [...LAB_TECHNICIAN_PATHS, '/lab-verification', '/duty-scheduler'];
+const LAB_HEAD_PATHS = [...LAB_DOCTOR_PATHS, '/staff-management'];
+
+function RequireLabAccess() {
+  const role = (localStorage.getItem('role') || '').toLowerCase();
+  const location = useLocation();
+
+  let allowed = null;
+  if (role === 'lab technician' || role === 'lab_tech') allowed = LAB_TECHNICIAN_PATHS;
+  else if (role === 'lab doctor' || role === 'lab_doctor') allowed = LAB_DOCTOR_PATHS;
+  else if (role === 'lab head') allowed = LAB_HEAD_PATHS;
+
+  if (allowed && !allowed.includes(location.pathname)) {
+    return <Navigate to={allowed[0]} replace />;
+  }
+  return <Outlet />;
+}
+
+// Staff Management: Admin / Super Admin / Lab Head only (mirrors Sidebar.jsx's
+// universal "only admin and lab head" rule for the 'staff' nav item — previously
+// enforced only by hiding the link, not by the route itself).
+function RequireStaffAccess() {
+  const role = (localStorage.getItem('role') || '').toLowerCase();
+  return ['admin', 'super admin', 'lab head'].includes(role)
+    ? <Outlet />
+    : <Navigate to="/dashboard" replace />;
+}
+
+// Central/org-tier admin pages a Doctor shouldn't reach (per Sidebar.jsx's own
+// doctorAllowed allowlist, which excludes all of these) — previously enforced
+// only by hiding the links, not by the routes themselves.
+const CENTRAL_ADMIN_PATHS = ['/hospitals', '/org-management', '/machine-network', '/hospital-infra'];
+function RequireNonDoctorArea() {
+  const role = (localStorage.getItem('role') || '').toLowerCase();
+  const location = useLocation();
+  if (role === 'doctor' && CENTRAL_ADMIN_PATHS.includes(location.pathname)) {
+    return <Navigate to="/doctor-dashboard" replace />;
+  }
+  return <Outlet />;
+}
 
 function App() {
   return (
@@ -54,7 +119,6 @@ function App() {
 
         {/* Auth Routes */}
         <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/patient-login" element={<PatientLogin />} />
 
         {/* Public App Routes */}
@@ -62,11 +126,24 @@ function App() {
         <Route path="/track" element={<LabTrack />} />
         <Route path="/track/:referenceId" element={<LabTrack />} />
         <Route path="/disaster-dashboard" element={<DisasterDashboard />} />
-        
+        <Route path="/docs" element={<ApiDocs />} />
+
+        {/* All layout routes require a valid token */}
+        <Route element={<RequireAuth />}>
+        <Route element={<RequireLabAccess />}>
+        <Route element={<RequireNonDoctorArea />}>
         <Route element={<Layout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<DashboardGate />} />
+
+          {/* Doctor-only routes */}
+          <Route element={<RequireDoctor />}>
+            <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+            <Route path="/doctor-patients" element={<DoctorPatientSearch />} />
+          </Route>
           <Route path="/patient-registration" element={<PatientRegistration />} />
-          <Route path="/staff-management" element={<StaffManagement />} />
+          <Route element={<RequireStaffAccess />}>
+            <Route path="/staff-management" element={<StaffManagement />} />
+          </Route>
           <Route path="/hospital-infra" element={<HospitalInfra />} />
           <Route path="/duty-scheduler" element={<DutyScheduler />} />
           <Route path="/billing-packages" element={<BillingPackages />} />
@@ -94,7 +171,11 @@ function App() {
           <Route path="/machine-network" element={<MachineNetwork />} />
           <Route path="/barcode-generator" element={<BarcodeGenerator />} />
           <Route path="/prescription-scan" element={<PrescriptionScan />} />
+          <Route path="/org-management" element={<OrgManagement />} />
         </Route>
+        </Route> {/* end RequireNonDoctorArea */}
+        </Route> {/* end RequireLabAccess */}
+        </Route> {/* end RequireAuth */}
 
         {/* Patient Portal Routes */}
         <Route element={<PatientLayout />}>

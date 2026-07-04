@@ -72,7 +72,7 @@ function Login() {
       if (data.district_id) localStorage.setItem('district_id', data.district_id);
       localStorage.setItem('user', JSON.stringify(data)); // helpful for full context
 
-      navigate('/dashboard');
+      navigate(data.role === 'Doctor' ? '/doctor-dashboard' : '/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -190,11 +190,6 @@ function Login() {
                 {loading ? 'Logging in...' : 'Login'}
               </button>
             </form>
-
-            <p className="auth-footer">
-              Don't have an account?{' '}
-              <Link to="/register" style={{ color: '#4F46E5', fontWeight: '600', textDecoration: 'none' }}>Register</Link>
-            </p>
           </div>
         </div>
       </main>

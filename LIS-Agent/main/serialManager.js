@@ -1,11 +1,9 @@
 const { SerialPort } = require('serialport');
-const axios = require('axios');
+const axios = require('./apiClient');
 const db = require('../db/sqlite');
 
-const API_BASE = 'https://lims.poxiatechnologies.com';
-
 function postAnalyzerEvent(machine, event) {
-  axios.post(`${API_BASE}/api/lab/analyzer-event`, {
+  axios.post(`/api/lab/analyzer-event`, {
     machine_id:   machine.unique_id || machine.id || '',
     machine_name: machine.analyzer_name || machine.name || '',
     model:        machine.model || '',
@@ -25,8 +23,8 @@ const silenceTimers = new Map();
 let reconnectTimer = null;
 let mainWindow = null;
 
-// patientId -> { testId, sampleId, results, requiredParams, ... }  [binary machines]
-// code       -> { testId, sampleId, results, requiredParams, ... }  [CelQuant Edge / HL7]
+// patientId -> { testId, sampleId, results, ... }  [binary machines]
+// code       -> { testId, sampleId, results, ... }  [CelQuant Edge / HL7]
 const sessionAccumulator = new Map();
 
 // machineId -> testInfo (set via Run Test in Worklist UI)
@@ -405,7 +403,16 @@ async function initializeAllPorts(win) {
   mainWindow = win;
   try {
     const configs = await db.getConfig();
-    const serialConfigs = configs.filter(c => c.port_type !== 'TCP' && !(c.model && (c.model.includes('ALTA') || c.model.includes('CelQuant 5plus'))));
+    const serialConfigs = configs.filter(c => 
+      c.port_type !== 'TCP' && 
+      !(c.model && (
+        c.model.includes('ALTA') || 
+        c.model.includes('CelQuant 5plus') || 
+        c.model.includes('ADX-AUTOCHEM-200') ||
+        c.model.includes('ADX') ||
+        c.model.includes('AUTOCHEM')
+      ))
+    );
 
     console.log(`🚀 Initializing background listeners for ${serialConfigs.length} machine(s)...`);
 
@@ -440,7 +447,7 @@ async function startBackgroundListener(machine, win) {
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const res = await axios.get(
-        `${API_BASE}/api/lab/machine-protocol/${encodeURIComponent(machine.model)}`,
+        `/api/lab/machine-protocol/${encodeURIComponent(machine.model)}`,
         { timeout: 5000 }
       );
       if (!res.data.success) throw new Error('Backend returned success=false');
@@ -524,6 +531,11 @@ async function startBackgroundListener(machine, win) {
         .replace(/\x1b\x00/g, '')
         .replace(/\x1b/g, '');
       buffer = Buffer.concat([buffer, Buffer.from(cleanChunk, 'binary')]);
+
+      if (buffer.length > 100_000) {
+        console.warn(`⚠️  TEXT buffer overflow on ${machine.port} — clearing.`);
+        buffer = Buffer.alloc(0);
+      }
 
       const timer = setTimeout(async () => {
         silenceTimers.delete(machine.port);
@@ -617,8 +629,8 @@ async function startBackgroundListener(machine, win) {
 // PROCESS BINARY FRAME  (Cliniquant Micro — keyed by patientId)
 // ─────────────────────────────────────────────────────────────────────────────
 async function processIncomingFrame(frame, protocol, machine, win) {
-  // Patient ID lives at bytes 4–9
-  const framePatientId = frame.slice(4, 10).toString('ascii').trim();
+  // Patient ID lives at bytes 3–8
+  const framePatientId = frame.slice(3, 9).toString('ascii').trim();
   if (!framePatientId || framePatientId === '000000') return;
 
   console.log(`🔍 Received binary data for ID: ${framePatientId} from ${machine.unique_id}`);
@@ -628,7 +640,7 @@ async function processIncomingFrame(frame, protocol, machine, win) {
   if (!session) {
     console.log(`🆕 New session for ${framePatientId} — fetching worklist...`);
     const wlRes = await axios.get(
-      `${API_BASE}/api/lab/worklist-by-id/${framePatientId}`,
+      `/api/lab/worklist-by-id/${framePatientId}`,
       { timeout: 5000 }
     );
 
@@ -638,38 +650,25 @@ async function processIncomingFrame(frame, protocol, machine, win) {
     }
     const test = wlRes.data.test;
 
-    let allParams = [];
-    try {
-      const pr = await axios.get(`${API_BASE}/api/lab/tests/${test.test_id}`, { timeout: 5000 });
-      if (pr.data.success) allParams = pr.data.parameters;
-    } catch {
-      console.warn(`⚠️  Could not fetch parameters for test ${test.test_id}`);
-    }
-
     session = {
       testId: test.bill_item_id,
       sampleId: test.sample_id,
       patientName: test.patient_name,
       testName: test.test_name,
       results: [],
-      requiredParams: allParams.map((p) => ({
-        id: (p.machine_parameter_code || p.parameter_name).toLowerCase(),
-        name: p.parameter_name.toLowerCase(),
-        unit: p.parameter_unit,
-      })),
     };
     sessionAccumulator.set(framePatientId, session);
   }
 
   // ── Parse result bytes ──────────────────────────────────────────────────
-  if (frame.length < 23) {
+  if (frame.length < 22) {
     console.warn(`⚠️  Frame too short (${frame.length} bytes) for ${framePatientId}`);
     return;
   }
 
   const testCode = frame[1];
   const unitCode = frame[2];
-  const resultValue = frame.readFloatBE(10).toFixed(2);  // result at bytes 10-13 per protocol spec
+  const resultValue = frame.readFloatBE(9).toFixed(2);  // result at bytes 9-12 per protocol spec
 
   const tests = protocol?.frame_structure?.['2']?.tests ?? [];
   const units = protocol?.frame_structure?.['3']?.units ?? [];
@@ -722,7 +721,7 @@ async function processHL7Message(msg, machine, win) {
     try {
       // OBR code == Sample ID — reuse the same worklist-by-id endpoint as binary machines
       const wlRes = await axios.get(
-        `${API_BASE}/api/lab/worklist-by-id/${sessionKey}`,
+        `/api/lab/worklist-by-id/${sessionKey}`,
         { timeout: 5000 }
       );
       if (wlRes.data.success && wlRes.data.test) test = wlRes.data.test;
@@ -735,25 +734,12 @@ async function processHL7Message(msg, machine, win) {
       return;
     }
 
-    let allParams = [];
-    try {
-      const pr = await axios.get(`${API_BASE}/api/lab/tests/${test.test_id}`, { timeout: 5000 });
-      if (pr.data.success) allParams = pr.data.parameters;
-    } catch {
-      console.warn(`⚠️  Could not fetch parameters for test ${test.test_id}`);
-    }
-
     session = {
       testId: test.bill_item_id,
       sampleId: test.sample_id,
       patientName: test.patient_name || parsed.name,
       testName: test.test_name,
       results: [],
-      requiredParams: allParams.map((p) => ({
-        id: (p.machine_parameter_code || p.parameter_name).toLowerCase(),
-        name: p.parameter_name.toLowerCase(),
-        unit: p.parameter_unit,
-      })),
       protocol: 'HL7',
       // Store parsed patient info from the HL7 message itself for reference
       hl7Meta: {
@@ -881,7 +867,7 @@ async function processTextMessage(msg, protocol, machine, win) {
     let test = null;
     try {
       const wlRes = await axios.get(
-        `${API_BASE}/api/lab/worklist-by-id/${sessionKey}`,
+        `/api/lab/worklist-by-id/${sessionKey}`,
         { timeout: 5000 }
       );
       if (wlRes.data.success && wlRes.data.test) test = wlRes.data.test;
@@ -899,9 +885,14 @@ async function processTextMessage(msg, protocol, machine, win) {
     }
 
     if (!test) {
+      const autoCreateAllowed = (await db.getSetting('allowUnsolicitedWorklistCreation')) === 'true';
+      if (!autoCreateAllowed) {
+        console.warn(`⚠️  Unsolicited Target ID "${sessionKey}" has no matching worklist entry — ignoring (auto-creation from unsolicited network data is disabled by default; enable "allowUnsolicitedWorklistCreation" in settings if this analyzer legitimately sends unordered results).`);
+        return;
+      }
       console.log(`🆕 Requesting auto-creation of worklist entry for unsolicited Target ID "${sessionKey}"...`);
       try {
-        const createRes = await axios.post(`${API_BASE}/api/lab/unsolicited-worklist`, {
+        const createRes = await axios.post(`/api/lab/unsolicited-worklist`, {
           sample_id: sessionKey,
           patient_name: parsed.patient_name || '',
           test_name: `Unmapped ${machine.model} Test`
@@ -916,25 +907,12 @@ async function processTextMessage(msg, protocol, machine, win) {
       }
     }
 
-    let allParams = [];
-    try {
-      const pr = await axios.get(`${API_BASE}/api/lab/tests/${test.test_id}`, { timeout: 5000 });
-      if (pr.data.success) allParams = pr.data.parameters;
-    } catch {
-      console.warn(`⚠️  Could not fetch parameters for test ${test.test_id}`);
-    }
-
     session = {
       testId: test.bill_item_id,
       sampleId: test.sample_id,
       patientName: test.patient_name || parsed.patient_name,
       testName: test.test_name,
       results: [],
-      requiredParams: allParams.map((p) => ({
-        id: (p.machine_parameter_code || p.parameter_name).toLowerCase(),
-        name: p.parameter_name.toLowerCase(),
-        unit: p.parameter_unit,
-      })),
       protocol: 'TEXT',
       textMeta: {
         patient_name: parsed.patient_name,
@@ -996,27 +974,15 @@ async function processTextMessage(msg, protocol, machine, win) {
 // SHARED: check completeness + POST results to API
 // ─────────────────────────────────────────────────────────────────────────────
 async function syncSession(session, machine, sessionKey) {
-  const receivedNamesLower = session.results.map((r) => r.parameter_name.toLowerCase());
-
-  let isComplete =
-    session.requiredParams.length === 0 ||
-    session.requiredParams.every(
-      (p) => receivedNamesLower.includes(p.name) || receivedNamesLower.includes(p.id)
-    );
-
-  // 🧪 CelQuant Edge / HDC-Lyte Plus Optimization:
-  // HL7 and TEXT messages always contain the full panel in one burst.
-  // We mark as complete immediately to avoid "stuck" sessions due to minor parameter naming mismatches.
-  if (session.protocol === 'HL7' || session.protocol === 'TEXT') {
-    isComplete = true;
-  }
-
-  const status = isComplete ? 'Test Done' : 'In Progress';
+  // We no longer gate on a fixed defined-parameter checklist — a machine/test
+  // config may legitimately only ever produce a subset of a test's template
+  // parameters. Just store the test name plus whatever the machine sent.
+  const status = 'Test Done';
   console.log(`☁️  Syncing [${status}] — ${session.results.length} result(s) for sample ID "${sessionKey}"...`);
 
   try {
     const res = await axios.post(
-      `${API_BASE}/api/lab/save-test-results`,
+      `/api/lab/save-test-results`,
       {
         bill_item_id: session.testId,
         sample_id: session.sampleId,
@@ -1044,14 +1010,7 @@ async function syncSession(session, machine, sessionKey) {
     return;   // don't close session on sync failure — retry on next result
   }
 
-  if (isComplete) {
-    console.log(`✅ Panel COMPLETE for ${session.patientName}. Results saved — awaiting doctor verification.`);
-  } else {
-    const remaining = session.requiredParams
-      .filter((p) => !receivedNamesLower.includes(p.name) && !receivedNamesLower.includes(p.id))
-      .map((p) => p.name);
-    console.log(`⏳ Waiting for: ${remaining.join(', ')}`);
-  }
+  console.log(`✅ Panel COMPLETE for ${session.patientName}. Results saved — awaiting doctor verification.`);
 }
 
 
@@ -1131,5 +1090,6 @@ module.exports = {
   initializeAllPorts,
   stopListening,
   setManualContext,
-  activePorts
+  activePorts,
+  CODE_MAP
 };

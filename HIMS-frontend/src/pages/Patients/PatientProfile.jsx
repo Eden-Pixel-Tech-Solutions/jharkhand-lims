@@ -215,10 +215,6 @@ function PatientProfile() {
                 <label>Aadhar Number</label>
                 <div className="value">{profile.aadhar_number ? 'XXXX-XXXX-' + profile.aadhar_number.slice(-4) : '-'}</div>
               </div>
-              <div className="info-field">
-                <label>ABHA ID</label>
-                <div className="value">{profile.abha_id || '-'}</div>
-              </div>
             </div>
           </section>
         </div>

@@ -18,6 +18,18 @@ const NAV_ITEMS = [
     )
   },
   {
+    id: 'doctor-dashboard',
+    label: 'Doctor Console',
+    path: '/doctor-dashboard',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>
+        <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/>
+        <circle cx="20" cy="10" r="2"/>
+      </svg>
+    )
+  },
+  {
     id: 'hospitals',
     label: 'Hospital Network',
     path: '/hospitals',
@@ -25,6 +37,19 @@ const NAV_ITEMS = [
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M3 21h18M3 7v14M21 7v14M6 21V5a2 2 0 012-2h8a2 2 0 012 2v16M9 9h6M9 13h6M9 17h6" />
+      </svg>
+    )
+  },
+  {
+    id: 'org-management',
+    label: 'Org Management',
+    path: '/org-management',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+        <circle cx="12" cy="5" r="1" fill="currentColor" />
+        <path d="M5 9v0M19 9v0" />
       </svg>
     )
   },
@@ -52,6 +77,16 @@ const NAV_ITEMS = [
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6M23 11h-6" />
+      </svg>
+    )
+  },
+  {
+    id: 'patient-records',
+    label: 'Patient Records',
+    path: '/doctor-patients',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M9 11H4a2 2 0 00-2 2v7a2 2 0 002 2h16a2 2 0 002-2v-7a2 2 0 00-2-2h-5" /><path d="M9 7l3-3 3 3" /><path d="M12 4v8" /><rect x="6" y="14" width="12" height="4" rx="1" />
       </svg>
     )
   },
@@ -112,36 +147,82 @@ const NAV_ITEMS = [
         id: 'lab-worklist',
         label: 'Worklist',
         path: '/lab-worklist',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+            <path d="M9 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3" />
+            <line x1="9" y1="12" x2="15" y2="12" /><line x1="9" y1="16" x2="15" y2="16" />
+          </svg>
+        )
       },
       {
         id: 'lab-sample-list',
         label: 'Sample List',
         path: '/lab-sample-list',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 2v6.5L4.5 17a3 3 0 0 0 2.6 4.5h9.8a3 3 0 0 0 2.6-4.5L15 8.5V2" />
+            <path d="M8 2h8" /><path d="M8.5 13h7" />
+          </svg>
+        )
       },
       {
         id: 'lab-verification',
         label: 'Verification',
         path: '/lab-verification',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" /><polyline points="8 12 11 15 16 9" />
+          </svg>
+        )
       },
       {
         id: 'lab-reports',
         label: 'Reports',
         path: '/lab-reports',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="15" y2="17" />
+          </svg>
+        )
       },
       {
         id: 'lab-test-management',
         label: 'Test Management',
         path: '/lab-test-management',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+            <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+            <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+          </svg>
+        )
       },
       {
         id: 'lab-logs',
         label: 'Audit Logs',
         path: '/lab-logs',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" />
+          </svg>
+        )
       },
       {
         id: 'lab-analyzer-logs',
         label: 'Analyzer Connectivity',
         path: '/lab-analyzer-logs',
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+            <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+            <line x1="12" y1="20" x2="12.01" y2="20" />
+          </svg>
+        )
       },
       {
         id: 'barcode-generator',
@@ -212,7 +293,7 @@ const NAV_ITEMS = [
   },
 ];
 
-function Sidebar() {
+function Sidebar({ onPhoneLookup }) {
   const [collapsed, setCollapsed] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const navigate = useNavigate();
@@ -220,16 +301,33 @@ function Sidebar() {
   const userRoleLevel = localStorage.getItem('role_level') || 'Branch';
   const userRole = localStorage.getItem('role') || ''; // e.g., 'Lab Technician', 'Lab Doctor', 'Receptionist'
 
+  const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const displayName = [loggedInUser.firstName, loggedInUser.lastName].filter(Boolean).join(' ') || 'User';
+  const displayRole = loggedInUser.role || userRole || 'Staff';
+  const avatarInitials = ((loggedInUser.firstName?.[0] || '') + (loggedInUser.lastName?.[0] || '')).toUpperCase() || 'U';
+
+  const lowerRole = userRole.toLowerCase();
+  const isLabTech = lowerRole === 'lab technician' || lowerRole === 'lab_tech';
+  const isLabDoctor = lowerRole === 'lab doctor' || lowerRole === 'lab_doctor';
+  const isLabHead = lowerRole === 'lab head';
+
   const filteredNavItems = NAV_ITEMS.filter(item => {
     // Basic role level filtering
     if (item.roles && !item.roles.includes(userRoleLevel)) return false;
 
-    const lowerRole = userRole.toLowerCase();
-    const isLabRole = lowerRole === 'lab technician' || lowerRole === 'lab_tech' || lowerRole === 'lab_doctor' || lowerRole === 'lab doctor';
+    // Lab Technician: only the Laboratory section, nothing else (no Dashboard/Settings)
+    if (isLabTech) {
+      if (item.id !== 'laboratory') return false;
+    }
 
-    // Lab Roles logic: Only show Dashboard, Laboratory, Settings
-    if (isLabRole) {
-      if (!['dashboard', 'laboratory', 'settings'].includes(item.id)) return false;
+    // Lab Doctor: Laboratory section + Duty Roster, nothing else
+    if (isLabDoctor) {
+      if (!['laboratory', 'duty'].includes(item.id)) return false;
+    }
+
+    // Lab Head: Laboratory section + Duty Roster + Employee Management, nothing else
+    if (isLabHead) {
+      if (!['laboratory', 'duty', 'staff'].includes(item.id)) return false;
     }
 
     // Receptionist logic: remove Laboratory and Duty Roster
@@ -237,26 +335,54 @@ function Sidebar() {
       if (item.id === 'laboratory' || item.id === 'duty') return false;
     }
 
-    // Staff Management logic: Only Admin and Lab Doctors/Admins
+    // Doctor logic: only show doctor-relevant modules
+    const isDoctor = lowerRole === 'doctor';
+    if (isDoctor) {
+      const doctorAllowed = ['doctor-dashboard', 'patients', 'patient-records', 'billing', 'settings'];
+      if (!doctorAllowed.includes(item.id)) return false;
+    }
+
+    // Staff Management logic: Only Admin and Lab Head
     if (item.id === 'staff') {
-      if (!['admin', 'lab head', 'doctor', 'lab admin'].includes(lowerRole)) return false;
+      if (!['admin', 'lab head'].includes(lowerRole)) return false;
     }
 
     return true;
   }).map(item => {
-    // Lab Technician logic: only show Worklist and Reports in Laboratory
-    const isLabTech = userRole.toLowerCase() === 'lab technician' || userRole.toLowerCase() === 'lab_tech';
-    if (item.id === 'laboratory' && isLabTech) {
+    if (item.id !== 'laboratory') return item;
+
+    // Lab Technician: only their 6 approved Laboratory features
+    if (isLabTech) {
       return {
         ...item,
-        children: item.children.filter(child => 
-          child.id === 'lab-worklist' || child.id === 'lab-reports' || child.id === 'lab-sample-list' || child.id === 'lab-logs' || child.id === 'lab-analyzer-logs' || child.id === 'barcode-generator' || child.id === 'prescription-scan'
+        children: item.children.filter(child =>
+          ['lab-worklist', 'lab-sample-list', 'lab-reports', 'lab-logs', 'lab-analyzer-logs', 'lab-test-management'].includes(child.id)
         )
       };
     }
-    // Lab Doctor: sees all children, so no change needed
+
+    // Lab Doctor / Lab Head: the same 6 plus Verification
+    if (isLabDoctor || isLabHead) {
+      return {
+        ...item,
+        children: item.children.filter(child =>
+          ['lab-worklist', 'lab-sample-list', 'lab-reports', 'lab-logs', 'lab-analyzer-logs', 'lab-test-management', 'lab-verification'].includes(child.id)
+        )
+      };
+    }
+
     return item;
   });
+
+  // Lab Technician / Lab Doctor / Lab Head: their menu is basically just Laboratory,
+  // so skip the dropdown and show each approved feature as a direct top-level link.
+  const navItems = (isLabTech || isLabDoctor || isLabHead)
+    ? filteredNavItems.flatMap(item =>
+        item.id === 'laboratory'
+          ? item.children.map(child => ({ id: child.id, label: child.label, path: child.path, icon: child.icon || item.icon }))
+          : [item]
+      )
+    : filteredNavItems;
 
   const handleLogout = () => {
     // Clear auth state if any (future)
@@ -290,7 +416,7 @@ function Sidebar() {
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        {filteredNavItems.map((item) => {
+        {navItems.map((item) => {
           const hasChildren = item.children && item.children.length > 0;
           const isDropdownOpen = openDropdown === item.id;
           const isActiveParent = hasChildren && isChildActive(item.children);
@@ -352,12 +478,21 @@ function Sidebar() {
       {/* Footer */}
       <div className="sidebar-footer">
         <div className="user-profile">
-          <div className="user-avatar">AD</div>
+          <div className="user-avatar">{avatarInitials}</div>
           <div className="user-info">
-            <span className="user-name">Admin User</span>
-            <span className="user-role">Super Admin</span>
+            <span className="user-name">{displayName}</span>
+            <span className="user-role">{displayRole}</span>
           </div>
         </div>
+
+        <button className="logout-btn" onClick={onPhoneLookup} title="Phone Patient Lookup" style={{marginBottom:4}}>
+          <div className="nav-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.01 1.18 2 2 0 012 0h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14v2.92z" />
+            </svg>
+          </div>
+          <span className="nav-text">Phone Lookup</span>
+        </button>
 
         <button className="logout-btn" onClick={handleLogout}>
           <div className="nav-icon">

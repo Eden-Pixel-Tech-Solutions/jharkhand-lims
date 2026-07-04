@@ -29,9 +29,15 @@ yarn-error.log*
 *.swo
 .DS_Store
 
-# LIS Agent specifics
-/LIS-Agent/db/lis-agent.db
+# LIS Agent specifics — matches the actual runtime filenames (underscore/.db
+# under db/, hyphen/.sqlite at the project root), unlike the old pattern which
+# matched neither and left both tracked in git.
+/LIS-Agent/db/lis_agent.db
 /LIS-Agent/db/*.db-journal
+/LIS-Agent/lis-agent.sqlite
+
+# Electron build output (electron-builder release artifacts — large binaries)
+/LIS-Agent/release/
 
 # WhatsApp Bot specifics
 /WhatsApp-chat-bot/.wwebjs_auth/

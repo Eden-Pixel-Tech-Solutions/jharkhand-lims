@@ -69,7 +69,7 @@ export const getPatientProfile = async (req, res) => {
       `SELECT
         id, reg_no, reg_date, is_new_born,
         title, first_name, middle_name, last_name,
-        dob, gender, aadhar_number, abha_id,
+        dob, gender, aadhar_number,
         marital_status, occupation, language, education_level, religion,
         citizen, email_id, telephone,
         address, suburb, city, country, postal_code,
@@ -381,7 +381,7 @@ export const registerPatient = async (req, res) => {
     const {
       regNo, regDate, isNewBorn, photo_base64,
       title, firstName, middleName, lastName, dob, gender,
-      aadharNumber, abhaId,
+      aadharNumber,
       maritalStatus, occupation, language, educationLevel, religion,
       citizen, emailId, telephone, fileRequired,
       address, suburb, city, country, postalCode, postalAddress,
@@ -395,20 +395,20 @@ export const registerPatient = async (req, res) => {
       INSERT INTO patients (
         reg_no, reg_date, is_new_born, photo_base64,
         title, first_name, middle_name, last_name, dob, gender,
-        aadhar_number, abha_id,
+        aadhar_number,
         marital_status, occupation, language, education_level, religion,
         citizen, email_id, telephone, file_required,
         address, suburb, city, country, postal_code, postal_address_check,
         kin_same_address, kin_name, kin_relation, kin_telephone,
         kin_address, kin_suburb, kin_city, kin_country, kin_code,
         payer_type, insurance_provider, policy_number, branch_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
       regNo, regDate, isNewBorn || false, photo_base64 || null,
       title, firstName, middleName, lastName, dob || null, gender,
-      aadharNumber || null, abhaId || null,
+      aadharNumber || null,
       maritalStatus, occupation, language, educationLevel, religion,
       citizen, emailId, telephone, fileRequired || false,
       address, suburb, city, country, postalCode, postalAddress || false,
@@ -428,7 +428,7 @@ export const registerPatient = async (req, res) => {
 
   } catch (error) {
     console.error('Error saving patient:', error);
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505') {
       return res.status(400).json({ success: false, message: 'Registration number already exists' });
     }
     res.status(500).json({ success: false, message: 'Server error saving patient' });
@@ -440,36 +440,39 @@ export const searchPatients = async (req, res) => {
     const { type, q } = req.query;
     if (!q) return res.status(400).json({ success: false, message: 'Search query required' });
 
+    // Enforce branch from the JWT — Central staff can search network-wide.
+    const scope = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
+    const branchClause = scope ? ' AND branch_id = ?' : '';
+
     let query = '';
     let params = [];
 
     // Allow targeting specific fields from the dropdown
     if (type === 'telephone') {
-      query = `SELECT * FROM patients WHERE telephone LIKE ? LIMIT 20`;
+      query = `SELECT * FROM patients WHERE telephone LIKE ?${branchClause} LIMIT 20`;
       params = [`%${q}%`];
     } else if (type === 'email_id') {
-      query = `SELECT * FROM patients WHERE email_id LIKE ? LIMIT 20`;
+      query = `SELECT * FROM patients WHERE email_id LIKE ?${branchClause} LIMIT 20`;
       params = [`%${q}%`];
     } else if (type === 'aadhar_number') {
-      query = `SELECT * FROM patients WHERE aadhar_number LIKE ? LIMIT 20`;
-      params = [`%${q}%`];
-    } else if (type === 'abha_id') {
-      query = `SELECT * FROM patients WHERE abha_id LIKE ? LIMIT 20`;
+      query = `SELECT * FROM patients WHERE aadhar_number LIKE ?${branchClause} LIMIT 20`;
       params = [`%${q}%`];
     } else {
       // Fallback global search
       query = `
-        SELECT * FROM patients 
-        WHERE telephone LIKE ? 
-           OR email_id LIKE ? 
-           OR aadhar_number LIKE ? 
-           OR abha_id LIKE ?
+        SELECT * FROM patients
+        WHERE (telephone LIKE ?
+           OR email_id LIKE ?
+           OR aadhar_number LIKE ?
            OR first_name LIKE ?
-           OR last_name LIKE ?
+           OR last_name LIKE ?)
+           ${branchClause}
         LIMIT 20
       `;
-      params = [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`];
+      params = [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`];
     }
+
+    if (scope) params.push(scope);
 
     const [rows] = await db.query(query, params);
 
@@ -479,3 +482,149 @@ export const searchPatients = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error searching patient' });
   }
 };
+
+// GET /api/patients/:regNo/chart — full demographics for doctor's patient chart view
+export const getPatientChart = async (req, res) => {
+  try {
+    const { regNo } = req.params;
+    const scope = req.user?.role_level !== 'Central' ? req.user?.branch_id : null;
+    const [[patient]] = await db.query(
+      `SELECT id, reg_no, reg_date, title, first_name, middle_name, last_name,
+              dob, gender, telephone, email_id, aadhar_number,
+              photo_base64, payer_type, insurance_provider, policy_number,
+              address, suburb, city, country, postal_code,
+              kin_name, kin_relation, kin_telephone, branch_id
+         FROM patients WHERE reg_no = ? ${scope ? 'AND branch_id = ?' : ''} LIMIT 1`,
+      scope ? [regNo, scope] : [regNo]
+    );
+    if (!patient) return res.status(404).json({ success: false, error: 'Patient not found' });
+    return res.json({ success: true, patient });
+  } catch (error) {
+    console.error('Error fetching patient chart:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// GET /api/patients/check-duplicate — find potential duplicates by phone, name, or DOB
+// Deliberately network-wide (not branch-scoped): this runs during registration
+// specifically to catch the same patient already registered at a different
+// branch, so scoping it would just create more duplicates across the network.
+export const checkDuplicate = async (req, res) => {
+  try {
+    const { telephone, firstName, lastName, dob } = req.query;
+    if (!telephone && !firstName) return res.json({ success: true, duplicates: [] });
+
+    let query = `SELECT id, reg_no, first_name, middle_name, last_name, dob, gender,
+                        telephone, photo_base64, reg_date
+                   FROM patients WHERE `;
+    const conditions = [], params = [];
+
+    if (telephone) {
+      conditions.push('telephone = ?');
+      params.push(telephone);
+    }
+    if (firstName && lastName) {
+      conditions.push('(first_name = ? AND last_name = ?)');
+      params.push(firstName, lastName);
+    }
+    if (dob && telephone) {
+      conditions.push('(dob = ? AND telephone LIKE ?)');
+      params.push(dob, `%${telephone.slice(-6)}%`);
+    }
+
+    query += conditions.join(' OR ') + ' ORDER BY reg_date DESC LIMIT 10';
+    const [rows] = await db.query(query, params);
+    res.json({ success: true, duplicates: rows });
+  } catch (error) {
+    console.error('Error checking duplicate:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// POST /api/patients/merge — merge secondaryId into primaryId
+export const mergePatients = async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const { primaryRegNo, secondaryRegNo } = req.body;
+    if (!primaryRegNo || !secondaryRegNo || primaryRegNo === secondaryRegNo)
+      return res.status(400).json({ success: false, message: 'primaryRegNo and secondaryRegNo are required and must differ' });
+
+    await conn.beginTransaction();
+
+    const [[primary]]   = await conn.query('SELECT id, reg_no FROM patients WHERE reg_no = ? LIMIT 1', [primaryRegNo]);
+    const [[secondary]] = await conn.query('SELECT id, reg_no FROM patients WHERE reg_no = ? LIMIT 1', [secondaryRegNo]);
+
+    if (!primary || !secondary)
+      return res.status(404).json({ success: false, message: 'One or both patients not found' });
+
+    // Migrate all linked records from secondary → primary
+    await conn.query('UPDATE appointments SET reg_no = ? WHERE reg_no = ?', [primary.reg_no, secondary.reg_no]);
+    await conn.query('UPDATE consultations SET patient_reg_no = ? WHERE patient_reg_no = ?', [primary.reg_no, secondary.reg_no]);
+    await conn.query('UPDATE bills SET patient_id = ? WHERE patient_id = ?', [primary.id, secondary.id]);
+
+    // Delete secondary patient
+    await conn.query('DELETE FROM patients WHERE id = ?', [secondary.id]);
+    await conn.commit();
+
+    res.json({ success: true, message: `Patient ${secondaryRegNo} merged into ${primaryRegNo} and deleted` });
+  } catch (error) {
+    await conn.rollback();
+    console.error('Error merging patients:', error);
+    res.status(500).json({ success: false, message: 'Server error during merge' });
+  } finally {
+    conn.release();
+  }
+};
+
+// GET /api/patients/phone-lookup/:phone — full patient demographics + history for phone demographic panel
+export const getPatientByPhone = async (req, res) => {
+  try {
+    const { phone } = req.params;
+    const [[patient]] = await db.query(
+      `SELECT id, reg_no, reg_date, title, first_name, middle_name, last_name,
+              dob, gender, telephone, email_id, aadhar_number,
+              photo_base64, payer_type, insurance_provider, policy_number,
+              address, suburb, city, country, postal_code,
+              kin_name, kin_relation, kin_telephone,
+              marital_status, occupation, language, education_level, religion
+         FROM patients WHERE telephone = ? LIMIT 1`,
+      [phone]
+    );
+    if (!patient) return res.status(404).json({ success: false, message: 'No patient found with this phone number' });
+
+    const [consultations] = await db.query(
+      `SELECT c.id, c.chief_complaints, c.diagnosis, c.doctor_notes, c.status, c.consultation_date AS created_at,
+              a.doctor, a.department, a.appt_time
+         FROM consultations c
+         LEFT JOIN appointments a ON c.appointment_id = a.id
+        WHERE c.patient_reg_no = ?
+        ORDER BY c.consultation_date DESC LIMIT 5`,
+      [patient.reg_no]
+    );
+
+    const [bills] = await db.query(
+      `SELECT id, bill_number, total_amount, paid_amount, payment_status, payment_method, created_at
+         FROM bills WHERE patient_id = ?
+        ORDER BY created_at DESC LIMIT 5`,
+      [patient.id]
+    );
+
+    const [labs] = await db.query(
+      `SELECT ltr.id, ltr.sample_id, ltr.test_name, ltr.result_value, ltr.unit,
+              ltr.reference_range, ltr.status, ltr.created_at
+         FROM lab_test_result ltr
+         JOIN bill_items bi ON ltr.bill_item_id = bi.id
+         JOIN bills b ON bi.bill_id = b.id
+        WHERE b.patient_id = ?
+          AND ltr.status IN ('Verified', 'Approved')
+        ORDER BY ltr.created_at DESC LIMIT 10`,
+      [patient.id]
+    );
+
+    res.json({ success: true, patient, consultations, bills, labs });
+  } catch (error) {
+    console.error('Error fetching patient by phone:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+

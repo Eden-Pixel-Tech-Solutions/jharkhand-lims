@@ -1,11 +1,9 @@
 const net = require('net');
-const axios = require('axios');
+const axios = require('./apiClient');
 const db = require('../db/sqlite');
 
-const API_BASE = 'https://lims.poxiatechnologies.com';
-
 function postAnalyzerEvent(machine, event, ip_address) {
-  axios.post(`${API_BASE}/api/lab/analyzer-event`, {
+  axios.post(`/api/lab/analyzer-event`, {
     machine_id:   machine.unique_id || machine.uniqueId || machine.id || '',
     machine_name: machine.analyzer_name || machine.name || '',
     model:        machine.model || '',
@@ -66,10 +64,44 @@ const parameter_map = {
     '2031': 'CRP'
 };
 
-function parseAltaHL7(message) {
+const adx_parameter_map = {
+    '1': 'ALBUMIN',
+    '2': 'ALPSR',
+    '3': 'SGPT',
+    '4': 'AMYLASE',
+    '5': 'SGOT',
+    '6': 'BIL D',
+    '7': 'BIL T',
+    '8': 'CLORIDE',
+    '9': 'CHOL',
+    '10': 'GLU',
+    '11': 'TGL',
+    '12': 'TP',
+    '13': 'URIC-ACID',
+    '14': 'UREA',
+    '15': 'POTTA',
+    '16': 'NA',
+    '17': 'CA',
+    '18': 'CRP',
+    '19': 'RF',
+    '20': 'ASO',
+    '21': 'URIC-ACID',
+    '22': 'CREAT',
+    '23': 'LIPASE',
+    '24': 'CREAT',
+    '25': 'GGT',
+    '26': 'DHDL',
+    '27': 'HbA1C',
+    '28': 'PHOSPHO'
+};
+
+function parseAltaHL7(message, machine) {
     const lines = message.split('\r');
     const patient = {};
     const results = {};
+
+    const model = (machine?.model || '').toUpperCase();
+    const isADX = model.includes('ADX') || model.includes('AUTOCHEM');
 
     for (const line of lines) {
         const fields = line.split('|');
@@ -97,7 +129,12 @@ function parseAltaHL7(message) {
 
             if (code_parts.length > 0) {
                 const code = code_parts[0];
-                const paramName = parameter_map[code] || code;  // undefined if not a known clinical param and no fallback
+                let paramName = code;
+                if (isADX) {
+                    paramName = adx_parameter_map[code] || (fields.length > 4 ? fields[4].trim() : '') || code;
+                } else {
+                    paramName = parameter_map[code] || code;
+                }
                 if (paramName && value) {
                     results[paramName] = { value, unit, ref_range };
                 }
@@ -126,7 +163,7 @@ async function syncSession(session, machine, sessionKey) {
             meta: { protocol: session.protocol, session_key: sessionKey }
         };
 
-        const res = await axios.post(`${API_BASE}/api/lab/save-test-results`, payload, { timeout: 10000 });
+        const res = await axios.post(`/api/lab/save-test-results`, payload, { timeout: 10000 });
 
         if (res.data.success) {
             console.log(`✅ Session "${sessionKey}" successfully saved to DB.`);
@@ -151,7 +188,7 @@ async function syncSession(session, machine, sessionKey) {
 }
 
 async function processAltaHL7(message, machine) {
-    const parsed = parseAltaHL7(message);
+    const parsed = parseAltaHL7(message, machine);
     let sessionKey = parsed.patient.sample_id; // Using sample_id as the session key
 
     let targetMachine = machine;
@@ -179,19 +216,19 @@ async function processAltaHL7(message, machine) {
     }
 
     if (!sessionKey) {
-        console.warn('⚠️  ALTA HL7 message has no sample ID (OBR[3]) and no manual context — skipping.');
+        console.warn(`⚠️  ${targetMachine?.model || 'HL7'} message has no sample ID (OBR[3]) and no manual context — skipping.`);
         return;
     }
 
-    console.log(`🔍 ALTA Hematology — Target ID: ${sessionKey}`);
+    console.log(`🔍 ${targetMachine?.model || 'HL7'} — Target ID: ${sessionKey}`);
 
     let session = sessionAccumulator.get(sessionKey);
     if (!session) {
-        console.log(`🆕 New ALTA session for sample ID "${sessionKey}" — fetching worklist...`);
+        console.log(`🆕 New ${targetMachine?.model || 'HL7'} session for sample ID "${sessionKey}" — fetching worklist...`);
 
         let test = null;
         try {
-            const wlRes = await axios.get(`${API_BASE}/api/lab/worklist-by-id/${sessionKey}`, { timeout: 5000 });
+            const wlRes = await axios.get(`/api/lab/worklist-by-id/${sessionKey}`, { timeout: 5000 });
             if (wlRes.data.success && wlRes.data.test) test = wlRes.data.test;
         } catch (err) {
             console.warn(`⚠️  Worklist fetch failed for sample ID "${sessionKey}": ${err.message}`);
@@ -207,19 +244,24 @@ async function processAltaHL7(message, machine) {
         }
 
         if (!test) {
-            console.log(`🆕 Requesting auto-creation of worklist entry for unsolicited Target ID "${sessionKey}"...`);
-            try {
-                const createRes = await axios.post(`${API_BASE}/api/lab/unsolicited-worklist`, {
-                    sample_id: sessionKey,
-                    patient_name: parsed.patient.name || '',
-                    test_name: 'Analyzer Auto-Test'
-                }, { timeout: 5000 });
-                if (createRes.data.success && createRes.data.test) {
-                    test = createRes.data.test;
-                    console.log(`✅ Auto-created worklist entry for "${sessionKey}"`);
+            const autoCreateAllowed = (await db.getSetting('allowUnsolicitedWorklistCreation')) === 'true';
+            if (!autoCreateAllowed) {
+                console.warn(`⚠️  Unsolicited Target ID "${sessionKey}" has no matching worklist entry — ignoring (auto-creation from unsolicited network data is disabled by default; enable "allowUnsolicitedWorklistCreation" in settings if this analyzer legitimately sends unordered results).`);
+            } else {
+                console.log(`🆕 Requesting auto-creation of worklist entry for unsolicited Target ID "${sessionKey}"...`);
+                try {
+                    const createRes = await axios.post(`/api/lab/unsolicited-worklist`, {
+                        sample_id: sessionKey,
+                        patient_name: parsed.patient.name || '',
+                        test_name: 'Analyzer Auto-Test'
+                    }, { timeout: 5000 });
+                    if (createRes.data.success && createRes.data.test) {
+                        test = createRes.data.test;
+                        console.log(`✅ Auto-created worklist entry for "${sessionKey}"`);
+                    }
+                } catch (err) {
+                    console.error(`❌ Failed to auto-create worklist entry for "${sessionKey}": ${err.message}`);
                 }
-            } catch (err) {
-                console.error(`❌ Failed to auto-create worklist entry for "${sessionKey}": ${err.message}`);
             }
         }
 
@@ -253,7 +295,7 @@ async function processAltaHL7(message, machine) {
         });
         newResultsCount++;
 
-        console.log(`📍 ALTA Recorded: ${param} = ${data.value} (Unit: ${data.unit}, Ref: ${data.ref_range})`);
+        console.log(`📍 ${targetMachine?.model || 'Analyzer'} Recorded: ${param} = ${data.value} (Unit: ${data.unit}, Ref: ${data.ref_range})`);
 
         mainWindow?.webContents?.send('test-completed', {
             sampleId: session.sampleId,
@@ -296,6 +338,15 @@ async function startTCPServer(machine, win) {
         conn.on('data', async (data) => {
             data_buffer = Buffer.concat([data_buffer, data]);
 
+            // A connection that never sends the FS+CR terminator would otherwise grow
+            // this buffer forever — cap it and drop the connection (matches the HL7
+            // buffer convention used in serialManager.js).
+            if (data_buffer.length > 100_000) {
+                console.warn(`⚠️  TCP buffer overflow on port ${machine.port} from ${conn.remoteAddress} — closing connection.`);
+                conn.destroy();
+                return;
+            }
+
             const fsCrIndex = data_buffer.indexOf(Buffer.concat([FS, CR]));
             if (fsCrIndex !== -1) {
                 // We have a complete message
@@ -305,7 +356,7 @@ async function startTCPServer(machine, win) {
                 }
 
                 const message = hl7_data.toString('utf-8');
-                console.log("\n========== RAW ALTA HL7 ==========\n");
+                console.log(`\n========== RAW HL7 (${machine.model || 'Unknown'}) ==========\n`);
                 console.log(message);
 
                 await processAltaHL7(message, machine);
@@ -381,7 +432,16 @@ async function initializeAllServers(win) {
     mainWindow = win;
     try {
         const configs = await db.getConfig();
-        const tcpConfigs = configs.filter(c => c.port_type === 'TCP' || (c.model && (c.model.includes('ALTA') || c.model.includes('CelQuant 5plus'))));
+        const tcpConfigs = configs.filter(c => 
+            c.port_type === 'TCP' || 
+            (c.model && (
+                c.model.includes('ALTA') || 
+                c.model.includes('CelQuant 5plus') || 
+                c.model.includes('ADX-AUTOCHEM-200') ||
+                c.model.includes('ADX') ||
+                c.model.includes('AUTOCHEM')
+            ))
+        );
 
         for (const config of tcpConfigs) {
             if (activeServers.has(config.port) || pendingPorts.has(config.port)) {
@@ -412,5 +472,7 @@ module.exports = {
     startTCPServer,
     setManualContext,
     activeServers,
-    activeClients
+    activeClients,
+    parameter_map,
+    adx_parameter_map
 };
