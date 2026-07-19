@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import m1 from '../assets/m1.png';
 import m2 from '../assets/m2.png';
 import m3 from '../assets/m3.png';
 import merilLogo from '../assets/meril.png';
 import '../assets/CSS/Login.css';
+import { useCaptcha } from '../hooks/useCaptcha';
 
 function Login() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [captchaText, setCaptchaText] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [blocked, setBlocked] = useState(false);
   const [focused, setFocused] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
+  const { svg: captchaSvg, captchaId, refresh: refreshCaptcha, applyCaptcha } = useCaptcha();
 
   const slides = [
     { image: m1, text: 'Innovation for better healthcare' },
@@ -33,10 +38,19 @@ function Login() {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  // VAPT #23: block copy/cut/paste (mouse and keyboard shortcuts) on
+  // credential fields so a shoulder-surfer with clipboard access, or a
+  // compromised clipboard manager, can't lift the value out of the DOM.
+  const blockClipboard = (e) => e.preventDefault();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.email || !formData.password) {
       setError('Please fill in all fields.');
+      return;
+    }
+    if (!captchaText) {
+      setError('Please enter the captcha text.');
       return;
     }
     setLoading(true);
@@ -47,23 +61,29 @@ function Login() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          captchaId,
+          captchaText
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
+        const err = new Error(data.message || 'Login failed');
+        err.status = response.status;
+        err.captcha = data.captcha;
+        throw err;
       }
 
       // Clear any stale session data from a previous user before writing new values
-      ['hims_token', 'branch_id', 'hospital_code', 'role_level', 'role', 'district_id'].forEach(
+      ['hims_token', 'hims_csrf', 'branch_id', 'hospital_code', 'role_level', 'role', 'district_id', 'password_change_required'].forEach(
         key => localStorage.removeItem(key)
       );
 
       // Store fresh session context
       if (data.token) localStorage.setItem('hims_token', data.token);
+      if (data.csrfToken) localStorage.setItem('hims_csrf', data.csrfToken);
       if (data.id) localStorage.setItem('user_id', data.id);
       if (data.branch_id !== undefined && data.branch_id !== null) localStorage.setItem('branch_id', data.branch_id);
       if (data.hospital_code) localStorage.setItem('hospital_code', data.hospital_code);
@@ -71,10 +91,25 @@ function Login() {
       if (data.role) localStorage.setItem('role', data.role);
       if (data.district_id) localStorage.setItem('district_id', data.district_id);
       localStorage.setItem('user', JSON.stringify(data)); // helpful for full context
+      localStorage.setItem('password_change_required', data.passwordChangeRequired ? '1' : '0');
 
-      navigate(data.role === 'Doctor' ? '/doctor-dashboard' : '/dashboard');
+      navigate(
+        data.passwordChangeRequired
+          ? '/change-password'
+          : data.role === 'Doctor' ? '/doctor-dashboard' : '/dashboard'
+      );
     } catch (err) {
       setError(err.message);
+      if (err.status === 429) {
+        // IP is locked out for 24h — nothing left to retry, no captcha comes
+        // back with this response, so just lock the form.
+        setBlocked(true);
+      } else {
+        // The captcha is single-use on the server regardless of outcome, so
+        // a failed attempt needs a fresh one before the user can retry.
+        setCaptchaText('');
+        applyCaptcha(err.captcha);
+      }
     } finally {
       setLoading(false);
     }
@@ -134,7 +169,7 @@ function Login() {
               </div>
             )}
 
-            <form id="login-form" className="auth-form" onSubmit={handleSubmit} noValidate>
+            <form id="login-form" className="auth-form" onSubmit={handleSubmit} noValidate autoComplete="off">
               <div className="form-group">
                 <label className="field-label">Email</label>
                 <input
@@ -144,6 +179,10 @@ function Login() {
                   placeholder="admin@test.com"
                   value={formData.email}
                   onChange={handleChange}
+                  autoComplete="off"
+                  onCopy={blockClipboard}
+                  onCut={blockClipboard}
+                  onPaste={blockClipboard}
                   required
                 />
               </div>
@@ -158,6 +197,10 @@ function Login() {
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={handleChange}
+                    autoComplete="off"
+                    onCopy={blockClipboard}
+                    onCut={blockClipboard}
+                    onPaste={blockClipboard}
                     required
                   />
                   <button
@@ -173,6 +216,38 @@ function Login() {
                 </div>
               </div>
 
+              <div className="form-group">
+                <label className="field-label">Captcha</label>
+                <div className="captcha-row">
+                  <div
+                    className="captcha-image"
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(captchaSvg, { USE_PROFILES: { svg: true, svgFilters: true } }) }}
+                  />
+                  <button
+                    type="button"
+                    className="captcha-refresh"
+                    onClick={() => { setCaptchaText(''); refreshCaptcha(); }}
+                    aria-label="Refresh captcha"
+                    title="Refresh captcha"
+                  >
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M23 4v6h-6M1 20v-6h6" />
+                      <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                    </svg>
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  name="captchaText"
+                  className="field-input"
+                  placeholder="Enter the text shown above"
+                  value={captchaText}
+                  onChange={(e) => setCaptchaText(e.target.value)}
+                  autoComplete="off"
+                  required
+                />
+              </div>
+
               <div className="form-options">
                 <label className="remember-me">
                   <input type="checkbox" /> Remember Me
@@ -185,9 +260,9 @@ function Login() {
               <button
                 type="submit"
                 className="btn-login-new"
-                disabled={loading}
+                disabled={loading || blocked}
               >
-                {loading ? 'Logging in...' : 'Login'}
+                {loading ? 'Logging in...' : blocked ? 'Temporarily blocked' : 'Login'}
               </button>
             </form>
           </div>

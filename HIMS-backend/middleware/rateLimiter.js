@@ -37,3 +37,25 @@ export const publicLookupLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests. Please try again in 15 minutes.' },
 });
+
+// Captcha generation — served to staff/patient/developer login screens before
+// each submit attempt. Generous since a user may refresh the image a few
+// times, but still bounded against scripted captcha-farming.
+export const captchaLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many captcha requests. Please try again shortly.' },
+});
+
+// Care HIMS (CARE) inbound endpoints — /send-order, /health/status. Higher
+// limit than publicLookupLimiter since CARE may legitimately call frequently
+// (health checks, order delivery), but still bounded against abuse.
+export const careInboundLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests. Please try again in 15 minutes.' },
+});

@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { verifyAndRotateCsrfToken } from '../utils/csrfStore.js';
 
 // Maps legacy DB role slugs → canonical display names used in route guards
 const ROLE_ALIASES = {
@@ -10,8 +11,10 @@ const ROLE_ALIASES = {
   'phlebotomist': 'Phlebotomist',
 };
 
-const normalizeRole = (role = '') =>
+export const normalizeRole = (role = '') =>
   ROLE_ALIASES[role.toLowerCase()] ?? role;
+
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -21,13 +24,24 @@ export const authenticateToken = (req, res, next) => {
     return res.status(401).json({ message: 'Access denied. No token provided.' });
   }
 
+  let decoded;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
-    req.user = decoded;
-    next();
+    decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
   } catch (error) {
     return res.status(403).json({ message: 'Invalid or expired token' });
   }
+
+  req.user = decoded;
+
+  if (MUTATING_METHODS.has(req.method)) {
+    const rotated = verifyAndRotateCsrfToken(decoded.sid, req.headers['x-csrf-token']);
+    if (!rotated) {
+      return res.status(403).json({ message: 'Invalid or missing CSRF token' });
+    }
+    res.setHeader('X-CSRF-Token', rotated);
+  }
+
+  next();
 };
 
 export const authorizeRole = (roles) => {

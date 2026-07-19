@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import merilLogo from '../assets/meril.png';
 import '../assets/CSS/Sidebar.css';
+import { clearStaffSession } from '../utils/session';
 
 const LOGO_SRC = '/meril_hims_logo.png';
 
@@ -67,6 +68,18 @@ const NAV_ITEMS = [
         <path d="M12 10v4" />
         <path d="M8 10v4" />
         <path d="M16 10v4" />
+      </svg>
+    )
+  },
+  {
+    id: 'cdac-mapping',
+    label: 'CDAC Mapping',
+    path: '/cdac-mapping',
+    roles: ['Central', 'Sub-Central'],
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />
+        <path d="M9 12h6M12 9v6" />
       </svg>
     )
   },
@@ -385,8 +398,8 @@ function Sidebar({ onPhoneLookup }) {
     : filteredNavItems;
 
   const handleLogout = () => {
-    // Clear auth state if any (future)
-    navigate('/');
+    clearStaffSession();
+    navigate('/', { replace: true });
   };
 
   const toggleDropdown = (id) => {

@@ -1,10 +1,24 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import '../assets/CSS/Sidebar.css';
+import { useIdleLogout } from '../hooks/useIdleLogout';
+import { clearPatientSession, hasPatientToken } from '../utils/session';
 
 function PatientLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  useIdleLogout(clearPatientSession, '/patient-login');
+
+  useEffect(() => {
+    const onPageShow = (e) => {
+      if (e.persisted && !hasPatientToken()) {
+        navigate('/patient-login', { replace: true });
+      }
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, [navigate]);
 
   const patient = useMemo(() => {
     const patientData = localStorage.getItem('patient_data');
@@ -16,9 +30,8 @@ function PatientLayout() {
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('patient_token');
-    localStorage.removeItem('patient_data');
-    navigate('/patient-login');
+    clearPatientSession();
+    navigate('/patient-login', { replace: true });
   };
 
   const navItems = [

@@ -45,11 +45,19 @@ import PatientLayout from './components/PatientLayout';
 import BarcodeGenerator from './pages/Prescriptions/BarcodeGenerator';
 import PrescriptionScan from './pages/Prescriptions/PrescriptionScan';
 import OrgManagement from './pages/Settings/OrgManagement';
-import ApiDocs from './pages/ApiDocs';
+import CdacMapping from './pages/Settings/CdacMapping';
+import ChangePassword from './pages/ChangePassword';
 
-// Redirects to login if no token is present
+// Redirects to login if no token is present; forces a password change first
+// if the account was flagged for one (VAPT #16) — everything else in the app
+// is unreachable until that's cleared.
 function RequireAuth() {
-  return localStorage.getItem('hims_token') ? <Outlet /> : <Navigate to="/" replace />;
+  const location = useLocation();
+  if (!localStorage.getItem('hims_token')) return <Navigate to="/" replace />;
+  if (localStorage.getItem('password_change_required') === '1' && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />;
+  }
+  return <Outlet />;
 }
 
 // Restricts a route to Doctor role only; other roles go to /dashboard
@@ -126,10 +134,12 @@ function App() {
         <Route path="/track" element={<LabTrack />} />
         <Route path="/track/:referenceId" element={<LabTrack />} />
         <Route path="/disaster-dashboard" element={<DisasterDashboard />} />
-        <Route path="/docs" element={<ApiDocs />} />
-
+        
         {/* All layout routes require a valid token */}
         <Route element={<RequireAuth />}>
+        {/* Outside RequireLabAccess/Layout so a forced password change isn't
+            blocked by a role's route allowlist or hidden behind the sidebar chrome */}
+        <Route path="/change-password" element={<ChangePassword />} />
         <Route element={<RequireLabAccess />}>
         <Route element={<RequireNonDoctorArea />}>
         <Route element={<Layout />}>
@@ -172,6 +182,7 @@ function App() {
           <Route path="/barcode-generator" element={<BarcodeGenerator />} />
           <Route path="/prescription-scan" element={<PrescriptionScan />} />
           <Route path="/org-management" element={<OrgManagement />} />
+          <Route path="/cdac-mapping" element={<CdacMapping />} />
         </Route>
         </Route> {/* end RequireNonDoctorArea */}
         </Route> {/* end RequireLabAccess */}
