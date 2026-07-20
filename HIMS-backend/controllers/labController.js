@@ -1626,7 +1626,7 @@ export const getActivityLogs = async (req, res) => {
     res.json({ success: true, logs });
   } catch (err) {
     console.error('getActivityLogs error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -3197,6 +3197,6 @@ export const sendKioskReportWhatsApp = async (req, res) => {
     });
   } catch (error) {
     console.error('Kiosk WhatsApp send report error:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

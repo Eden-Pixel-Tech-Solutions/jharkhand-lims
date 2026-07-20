@@ -16,7 +16,7 @@ export const getInvoices = async (req, res) => {
     res.json({ success: true, data: invoices });
   } catch (error) {
     console.error('Error fetching invoices:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -54,7 +54,7 @@ export const createInvoice = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error creating invoice:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -118,7 +118,7 @@ export const createPayment = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error recording payment:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -156,7 +156,7 @@ export const getDashboardStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching AP dashboard stats:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -176,6 +176,6 @@ export const getSupplierLedger = async (req, res) => {
     res.json({ success: true, data: ledger });
   } catch (error) {
     console.error('Error fetching ledger:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

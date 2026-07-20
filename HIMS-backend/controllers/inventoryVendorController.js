@@ -30,7 +30,7 @@ export const getVendors = async (req, res) => {
     res.json({ success: true, data: vendors });
   } catch (error) {
     console.error('Error fetching inventory vendors:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -45,7 +45,7 @@ export const getVendorById = async (req, res) => {
     res.json({ success: true, data: vendors[0] });
   } catch (error) {
     console.error('Error fetching vendor:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -73,7 +73,7 @@ export const createVendor = async (req, res) => {
     });
   } catch (error) {
     console.error('Error adding vendor:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -97,7 +97,7 @@ export const updateVendor = async (req, res) => {
     res.json({ success: true, message: 'Vendor updated successfully' });
   } catch (error) {
     console.error('Error updating vendor:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -119,6 +119,6 @@ export const deleteVendor = async (req, res) => {
     res.json({ success: true, message: 'Vendor deleted successfully' });
   } catch (error) {
     console.error('Error deleting vendor:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

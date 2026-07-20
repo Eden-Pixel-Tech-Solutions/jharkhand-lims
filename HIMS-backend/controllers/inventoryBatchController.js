@@ -55,7 +55,7 @@ export const getBatches = async (req, res) => {
     res.json({ success: true, data: updatedBatches });
   } catch (error) {
     console.error('Error fetching inventory batches:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -76,7 +76,7 @@ export const getBatchById = async (req, res) => {
     res.json({ success: true, data: batches[0] });
   } catch (error) {
     console.error('Error fetching batch:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -100,7 +100,7 @@ export const createBatch = async (req, res) => {
     });
   } catch (error) {
     console.error('Error adding batch:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -121,7 +121,7 @@ export const updateBatch = async (req, res) => {
     res.json({ success: true, message: 'Batch updated successfully' });
   } catch (error) {
     console.error('Error updating batch:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -133,6 +133,6 @@ export const deleteBatch = async (req, res) => {
     res.json({ success: true, message: 'Batch deleted successfully' });
   } catch (error) {
     console.error('Error deleting batch:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

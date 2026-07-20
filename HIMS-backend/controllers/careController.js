@@ -29,7 +29,8 @@ export const receiveOrder = async (req, res) => {
   try {
     branchConfig = await resolveActiveCareBranch();
   } catch (err) {
-    return res.status(err.status || 500).json({ success: false, message: err.message });
+    console.error(err);
+    return res.status(err.status || 500).json({ success: false, message: 'Server error' });
   }
 
   let result;
@@ -54,7 +55,7 @@ export const receiveOrder = async (req, res) => {
     return res.status(201).json({ success: true, message, ...result });
   } catch (err) {
     console.error('CARE receiveOrder error:', err);
-    return res.status(err.status || 500).json({ success: false, message: err.message || 'Failed to process order' });
+    return res.status(err.status || 500).json({ success: false, message: 'Failed to process order' });
   } finally {
     try {
       await db.query(

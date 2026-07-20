@@ -74,7 +74,7 @@ function Register() {
     const fetchBranches = async () => {
       try {
         const API_BASE = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(`${API_BASE}/branches`);
+        const res = await fetch(`${API_BASE}/api/branches`);
         const data = await res.json();
         if (data.success) {
           setBranches(data.branches || []);
@@ -142,7 +142,7 @@ function Register() {
     setLoading(true);
     try {
       const API_BASE = import.meta.env.VITE_API_URL || '';
-      const response = await fetch(`${API_BASE}/auth/register`, {
+      const response = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -43,7 +43,7 @@ export const getStockLedger = async (req, res) => {
     res.json({ success: true, data: transactions });
   } catch (error) {
     console.error('Error generating stock ledger:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -103,7 +103,7 @@ export const getConsumptionReport = async (req, res) => {
     res.json({ success: true, data: { details: logs, summary } });
   } catch (error) {
     console.error('Error generating consumption report:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -158,7 +158,7 @@ export const getExpiryReport = async (req, res) => {
     res.json({ success: true, data: { items, summary } });
   } catch (error) {
     console.error('Error generating expiry report:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -232,7 +232,7 @@ export const getPurchaseReport = async (req, res) => {
     });
   } catch (error) {
     console.error('Error generating purchase report:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -283,7 +283,7 @@ export const getReagentUsageByTest = async (req, res) => {
     res.json({ success: true, data: { usage, test_summary: testSummary } });
   } catch (error) {
     console.error('Error generating reagent usage report:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -335,7 +335,7 @@ export const getLowStockReport = async (req, res) => {
     res.json({ success: true, data: { items: lowStock, summary } });
   } catch (error) {
     console.error('Error generating low stock report:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 

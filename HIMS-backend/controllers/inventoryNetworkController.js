@@ -124,7 +124,7 @@ export const getCentralInventoryStats = async (req, res) => {
     });
   } catch (err) {
     console.error('Central inventory stats error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -198,7 +198,7 @@ export const getSubCentralInventoryStats = async (req, res) => {
     });
   } catch (err) {
     console.error('Sub-Central inventory stats error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -275,7 +275,7 @@ export const getBranchInventoryStats = async (req, res) => {
     });
   } catch (err) {
     console.error('Branch inventory stats error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -346,6 +346,6 @@ export const getOverallStock = async (req, res) => {
     res.json({ success: true, items, facilityStock });
   } catch (err) {
     console.error('Overall stock error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

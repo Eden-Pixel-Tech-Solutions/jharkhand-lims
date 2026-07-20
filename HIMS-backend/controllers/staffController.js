@@ -20,7 +20,8 @@ export const getStaffStats = async (req, res) => {
     const stats = rows.reduce((acc, row) => { acc[row.role] = row.count; return acc; }, {});
     res.json({ success: true, stats });
   } catch (e) {
-    res.status(500).json({ success: false, message: e.message });
+    console.error(e);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -31,7 +32,8 @@ export const getDoctors = async (req, res) => {
     );
     res.json({ success: true, doctors: rows });
   } catch (e) {
-    res.status(500).json({ success: false, message: e.message });
+    console.error(e);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -56,7 +58,8 @@ export const getAllStaff = async (req, res) => {
     );
     res.json({ success: true, staff: rows });
   } catch (e) {
-    res.status(500).json({ success: false, message: e.message });
+    console.error(e);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -87,7 +90,8 @@ export const addStaff = async (req, res) => {
     );
     res.status(201).json({ success: true, message: 'Staff member added successfully', id: result.insertId });
   } catch (e) {
-    res.status(500).json({ success: false, message: e.message });
+    console.error(e);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -114,7 +118,8 @@ export const updateStaff = async (req, res) => {
     );
     res.json({ success: true });
   } catch (e) {
-    res.status(500).json({ success: false, message: e.message });
+    console.error(e);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -135,6 +140,7 @@ export const deleteStaff = async (req, res) => {
     await db.query('DELETE FROM users WHERE id = ?', [id]);
     res.json({ success: true });
   } catch (e) {
-    res.status(500).json({ success: false, message: e.message });
+    console.error(e);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

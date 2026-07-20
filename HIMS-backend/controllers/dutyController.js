@@ -122,7 +122,7 @@ export const getDutySlots = async (req, res) => {
     res.json({ success: true, slots, hasDuty: !!duty });
   } catch (error) {
     console.error('Error fetching duty slots:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 

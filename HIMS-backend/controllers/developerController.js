@@ -140,7 +140,7 @@ export const getStats = async (req, res) => {
     res.json({ success: true, stats: { hospitals, labs, users, active_users: active, districts, bills_today, tests_today } });
   } catch (err) {
     console.error('getStats error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -157,7 +157,8 @@ export const getHospitals = async (req, res) => {
     const [districts] = await db.query(`SELECT * FROM districts ORDER BY name`);
     res.json({ success: true, hospitals: rows, districts });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -175,7 +176,7 @@ export const createHospital = async (req, res) => {
     res.json({ success: true, message: 'Hospital created', id: result.insertId });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ success: false, message: 'Hospital code already exists' });
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -189,7 +190,8 @@ export const updateHospital = async (req, res) => {
     );
     res.json({ success: true, message: 'Hospital updated' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -202,7 +204,7 @@ export const deleteHospital = async (req, res) => {
     if (err.code === '23503') {
       return res.status(400).json({ success: false, message: 'Cannot delete — hospital has linked records' });
     }
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -215,7 +217,7 @@ export const createDistrict = async (req, res) => {
     res.json({ success: true, message: 'District created', id: result.insertId });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ success: false, message: 'District already exists' });
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -234,7 +236,8 @@ export const getLabs = async (req, res) => {
     const [rows] = await db.query(sql, params);
     res.json({ success: true, labs: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -248,7 +251,8 @@ export const createLab = async (req, res) => {
     );
     res.json({ success: true, message: 'Lab created', id: result.insertId });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -262,7 +266,8 @@ export const updateLab = async (req, res) => {
     );
     res.json({ success: true, message: 'Lab updated' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -275,7 +280,7 @@ export const deleteLab = async (req, res) => {
     if (err.code === '23503') {
       return res.status(400).json({ success: false, message: 'Cannot delete — lab has linked machines or records' });
     }
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -297,7 +302,8 @@ export const getUsers = async (req, res) => {
     const [rows] = await db.query(sql, params);
     res.json({ success: true, users: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -316,7 +322,7 @@ export const createUser = async (req, res) => {
     res.json({ success: true, message: 'User created', id: result.insertId });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ success: false, message: 'Email already exists' });
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -330,7 +336,8 @@ export const updateUser = async (req, res) => {
     );
     res.json({ success: true, message: 'User updated' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -343,7 +350,8 @@ export const toggleUserStatus = async (req, res) => {
     await db.query(`UPDATE users SET is_active = ? WHERE id = ?`, [newStatus, id]);
     res.json({ success: true, message: newStatus ? 'User activated' : 'User deactivated', is_active: newStatus });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -356,7 +364,8 @@ export const resetPassword = async (req, res) => {
     await db.query(`UPDATE users SET password = ? WHERE id = ?`, [hashed, id]);
     res.json({ success: true, message: 'Password reset successfully' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -381,6 +390,7 @@ export const getBrands = async (req, res) => {
     );
     res.json({ success: true, brands });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

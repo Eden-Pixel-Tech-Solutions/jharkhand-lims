@@ -48,7 +48,7 @@ export const getTransactions = async (req, res) => {
     res.json({ success: true, data: transactions });
   } catch (error) {
     console.error('Error fetching transactions:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -106,7 +106,7 @@ export const createTransaction = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error creating transaction:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }

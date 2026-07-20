@@ -18,7 +18,7 @@ export const getPurchaseSuggestions = async (req, res) => {
     res.json({ success: true, data: suggestions });
   } catch (error) {
     console.error('Error fetching suggestions:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -83,7 +83,7 @@ export const generatePurchaseSuggestions = async (req, res) => {
     res.json({ success: true, message: `Successfully generated ${generatedCount} new suggestions.` });
   } catch (error) {
     console.error('Error generating suggestions:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -95,6 +95,6 @@ export const updateSuggestionStatus = async (req, res) => {
     res.json({ success: true, message: 'Suggestion status updated' });
   } catch (error) {
     console.error('Error updating suggestion:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

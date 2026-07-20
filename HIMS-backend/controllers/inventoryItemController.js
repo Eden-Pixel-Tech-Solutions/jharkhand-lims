@@ -39,7 +39,7 @@ export const getItems = async (req, res) => {
     res.json({ success: true, data: items });
   } catch (error) {
     console.error('Error fetching inventory items:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -59,7 +59,7 @@ export const getItemById = async (req, res) => {
     res.json({ success: true, data: items[0] });
   } catch (error) {
     console.error('Error fetching item:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -88,7 +88,7 @@ export const createItem = async (req, res) => {
     });
   } catch (error) {
     console.error('Error adding item:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -109,7 +109,7 @@ export const updateItem = async (req, res) => {
     res.json({ success: true, message: 'Item updated successfully' });
   } catch (error) {
     console.error('Error updating item:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -122,6 +122,6 @@ export const deleteItem = async (req, res) => {
     res.json({ success: true, message: 'Item deleted successfully' });
   } catch (error) {
     console.error('Error deleting item:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

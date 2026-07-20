@@ -70,7 +70,7 @@ export const getPurchaseRequisitions = async (req, res) => {
     res.json({ success: true, data: prs });
   } catch (error) {
     console.error('Error fetching PRs:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -103,7 +103,7 @@ export const getPurchaseRequisitionById = async (req, res) => {
     res.json({ success: true, data: { ...prs[0], items } });
   } catch (error) {
     console.error('Error fetching PR:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -150,7 +150,7 @@ export const createPurchaseRequisition = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error creating PR:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -169,7 +169,7 @@ export const updatePurchaseRequisition = async (req, res) => {
     res.json({ success: true, message: 'PR updated successfully' });
   } catch (error) {
     console.error('Error updating PR:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -186,7 +186,7 @@ export const approvePurchaseRequisition = async (req, res) => {
     res.json({ success: true, message: `PR ${status.toLowerCase()} successfully` });
   } catch (error) {
     console.error('Error approving PR:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -237,7 +237,7 @@ export const getPurchaseOrders = async (req, res) => {
     res.json({ success: true, data: pos });
   } catch (error) {
     console.error('Error fetching POs:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -275,7 +275,7 @@ export const getPurchaseOrderById = async (req, res) => {
     res.json({ success: true, data: { ...pos[0], items } });
   } catch (error) {
     console.error('Error fetching PO:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -330,7 +330,7 @@ export const createPurchaseOrder = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error creating PO:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -349,7 +349,7 @@ export const updatePurchaseOrder = async (req, res) => {
     res.json({ success: true, message: 'PO updated successfully' });
   } catch (error) {
     console.error('Error updating PO:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -401,7 +401,7 @@ export const getGoodsReceipts = async (req, res) => {
     res.json({ success: true, data: grns });
   } catch (error) {
     console.error('Error fetching GRNs:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -438,7 +438,7 @@ export const getGoodsReceiptById = async (req, res) => {
     res.json({ success: true, data: { ...grns[0], items } });
   } catch (error) {
     console.error('Error fetching GRN:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -492,7 +492,7 @@ export const createGoodsReceipt = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error creating GRN:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -609,7 +609,7 @@ export const approveGoodsReceipt = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error approving GRN:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -644,6 +644,6 @@ export const getPendingForGRN = async (req, res) => {
     res.json({ success: true, data: items });
   } catch (error) {
     console.error('Error fetching pending items:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

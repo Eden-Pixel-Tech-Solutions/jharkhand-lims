@@ -381,7 +381,7 @@ export const saveConsultation = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error saving consultation:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -423,7 +423,7 @@ export const getFollowUpDue = async (req, res) => {
     res.json({ success: true, followups: rows });
   } catch (error) {
     console.error('Error fetching follow-ups:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -498,7 +498,7 @@ export const autoBillFromConsultation = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error auto-billing:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -614,7 +614,7 @@ export const getPatientTimeline = async (req, res) => {
     res.json({ success: true, events, stats });
   } catch (error) {
     console.error('Error building timeline:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 

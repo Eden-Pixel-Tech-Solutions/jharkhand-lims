@@ -26,7 +26,7 @@ export const getMappings = async (req, res) => {
     res.json({ success: true, data: mappings });
   } catch (error) {
     console.error('Error fetching test mappings:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -47,7 +47,7 @@ export const createMapping = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating mapping:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -60,6 +60,6 @@ export const deleteMapping = async (req, res) => {
     res.json({ success: true, message: 'Mapping deleted successfully' });
   } catch (error) {
     console.error('Error deleting mapping:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

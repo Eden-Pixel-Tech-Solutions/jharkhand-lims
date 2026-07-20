@@ -62,7 +62,7 @@ export const listDevices = async (req, res) => {
     res.json({ success: true, data: response });
   } catch (error) {
     console.error('CARE list-devices error:', error);
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to list CARE devices' });
+    res.status(error.status || 500).json({ success: false, message: 'Failed to list CARE devices' });
   }
 };
 
@@ -91,7 +91,7 @@ export const runAutoMapLoincTests = async (req, res) => {
     res.json({ success: true, ...result });
   } catch (error) {
     console.error('CARE auto-map-loinc-tests error:', error);
-    res.status(500).json({ success: false, message: error.message || 'Failed to auto-map LOINC tests' });
+    res.status(500).json({ success: false, message: 'Failed to auto-map LOINC tests' });
   }
 };
 
@@ -106,7 +106,7 @@ export const confirmLoincMappingRow = async (req, res) => {
     res.json({ success: true, message: `Mapped to "${test.test_name}"`, test });
   } catch (error) {
     console.error('CARE confirm-loinc-mapping error:', error);
-    res.status(400).json({ success: false, message: error.message || 'Failed to confirm mapping' });
+    res.status(400).json({ success: false, message: 'Failed to confirm mapping' });
   }
 };
 
@@ -172,7 +172,7 @@ export const upsertLoincParameterMappingRow = async (req, res) => {
     res.json({ success: true, message: 'LOINC parameter mapping saved' });
   } catch (error) {
     console.error('CARE upsert-loinc-parameter-mapping error:', error);
-    res.status(500).json({ success: false, message: error.message || 'Failed to save parameter mapping' });
+    res.status(500).json({ success: false, message: 'Failed to save parameter mapping' });
   }
 };
 
@@ -188,6 +188,6 @@ export const importLoincParameterMappings = async (req, res) => {
     res.json({ success: true, ...result });
   } catch (error) {
     console.error('CARE import-loinc-parameter-mappings error:', error);
-    res.status(500).json({ success: false, message: error.message || 'Failed to import parameter mappings' });
+    res.status(500).json({ success: false, message: 'Failed to import parameter mappings' });
   }
 };

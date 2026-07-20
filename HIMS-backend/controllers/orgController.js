@@ -6,7 +6,7 @@ export const getStates = async (req, res) => {
   try {
     const [states] = await db.query('SELECT * FROM states ORDER BY name');
     res.json({ success: true, states });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const createState = async (req, res) => {
@@ -15,7 +15,7 @@ export const createState = async (req, res) => {
     if (!name || !code) return res.status(400).json({ success: false, message: 'name and code are required' });
     const [r] = await db.query('INSERT INTO states (name, code) VALUES (?, ?)', [name, code.toUpperCase()]);
     res.json({ success: true, state_id: r.insertId });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const updateState = async (req, res) => {
@@ -24,7 +24,7 @@ export const updateState = async (req, res) => {
     await db.query('UPDATE states SET name=?, code=?, is_active=? WHERE id=?',
       [name, code?.toUpperCase(), is_active ?? 1, req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const deleteState = async (req, res) => {
@@ -33,7 +33,7 @@ export const deleteState = async (req, res) => {
     if (cnt > 0) return res.status(400).json({ success: false, message: 'Cannot delete: districts are linked to this state' });
     await db.query('DELETE FROM states WHERE id=?', [req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 // ── Blocks ────────────────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ export const getBlocks = async (req, res) => {
     query += ' ORDER BY d.name, b.name';
     const [blocks] = await db.query(query, params);
     res.json({ success: true, blocks });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const createBlock = async (req, res) => {
@@ -57,7 +57,7 @@ export const createBlock = async (req, res) => {
     if (!name || !district_id) return res.status(400).json({ success: false, message: 'name and district_id are required' });
     const [r] = await db.query('INSERT INTO blocks (name, district_id) VALUES (?, ?)', [name, district_id]);
     res.json({ success: true, block_id: r.insertId });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const updateBlock = async (req, res) => {
@@ -66,7 +66,7 @@ export const updateBlock = async (req, res) => {
     await db.query('UPDATE blocks SET name=?, district_id=?, is_active=? WHERE id=?',
       [name, district_id, is_active ?? 1, req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const deleteBlock = async (req, res) => {
@@ -75,7 +75,7 @@ export const deleteBlock = async (req, res) => {
     if (cnt > 0) return res.status(400).json({ success: false, message: 'Cannot delete: branches are linked to this block' });
     await db.query('DELETE FROM blocks WHERE id=?', [req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 // ── Specialties ───────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export const getSpecialties = async (req, res) => {
       [branch_id || null]
     );
     res.json({ success: true, specialties });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const createSpecialty = async (req, res) => {
@@ -100,7 +100,7 @@ export const createSpecialty = async (req, res) => {
       [name, code || null, description || null, branch_id || null]
     );
     res.json({ success: true, specialty_id: r.insertId });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const updateSpecialty = async (req, res) => {
@@ -109,14 +109,14 @@ export const updateSpecialty = async (req, res) => {
     await db.query('UPDATE specialties SET name=?, code=?, description=?, is_active=? WHERE id=?',
       [name, code || null, description || null, is_active ?? 1, req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const deleteSpecialty = async (req, res) => {
   try {
     await db.query('DELETE FROM specialties WHERE id=?', [req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 // ── Beds ──────────────────────────────────────────────────────────────────────
@@ -141,7 +141,7 @@ export const getBeds = async (req, res) => {
       reserved:    beds.filter(b => b.status === 'Reserved').length,
     };
     res.json({ success: true, beds, summary });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const createBed = async (req, res) => {
@@ -154,7 +154,7 @@ export const createBed = async (req, res) => {
       [bed_number, ward_id, branch_id, bed_type || 'General', status || 'Available']
     );
     res.json({ success: true, bed_id: r.insertId });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const createBedsBulk = async (req, res) => {
@@ -177,7 +177,7 @@ export const createBedsBulk = async (req, res) => {
       [rows]
     );
     res.json({ success: true, created: rows.length });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const updateBed = async (req, res) => {
@@ -189,7 +189,7 @@ export const updateBed = async (req, res) => {
       [bed_number, ward_id, bed_type, status, req.params.id, branch_id]
     );
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const updateBedStatus = async (req, res) => {
@@ -197,7 +197,7 @@ export const updateBedStatus = async (req, res) => {
     const { status } = req.body;
     await db.query('UPDATE beds SET status=? WHERE id=?', [status, req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const deleteBed = async (req, res) => {
@@ -205,7 +205,7 @@ export const deleteBed = async (req, res) => {
     const branch_id = req.query.branch_id;
     await db.query('DELETE FROM beds WHERE id=? AND branch_id=?', [req.params.id, branch_id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 // ── Working Hours ─────────────────────────────────────────────────────────────
@@ -220,7 +220,7 @@ export const getWorkingHours = async (req, res) => {
       [branch_id]
     );
     res.json({ success: true, working_hours: rows });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const upsertWorkingHours = async (req, res) => {
@@ -238,14 +238,14 @@ export const upsertWorkingHours = async (req, res) => {
       );
     }
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const deleteWorkingHours = async (req, res) => {
   try {
     await db.query('DELETE FROM working_hours WHERE id=?', [req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 // ── Holidays ──────────────────────────────────────────────────────────────────
@@ -259,7 +259,7 @@ export const getHolidays = async (req, res) => {
     query += ' ORDER BY holiday_date';
     const [holidays] = await db.query(query, params);
     res.json({ success: true, holidays });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const createHoliday = async (req, res) => {
@@ -272,7 +272,7 @@ export const createHoliday = async (req, res) => {
       [branch_id || null, holiday_name, holiday_date, holiday_type || 'Hospital', is_recurring ? 1 : 0]
     );
     res.json({ success: true, holiday_id: r.insertId });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const updateHoliday = async (req, res) => {
@@ -283,12 +283,12 @@ export const updateHoliday = async (req, res) => {
       [holiday_name, holiday_date, holiday_type, is_recurring ? 1 : 0, req.params.id]
     );
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
 export const deleteHoliday = async (req, res) => {
   try {
     await db.query('DELETE FROM holidays WHERE id=?', [req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ success: false, message: 'Server error' }); }
 };

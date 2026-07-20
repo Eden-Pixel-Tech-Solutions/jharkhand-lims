@@ -127,7 +127,7 @@ export const pullCdacOrder = async (req, res) => {
     res.status(201).json({ success: true, message, ...result });
   } catch (error) {
     console.error('CDAC pull-order error:', error);
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to pull CDAC order' });
+    res.status(error.status || 500).json({ success: false, message: 'Failed to pull CDAC order' });
   }
 };
 
@@ -183,7 +183,7 @@ export const syncCdacMasterData = async (req, res) => {
     res.json({ success: true, message: 'CDAC master data synced', cachedRows: cached, newTestCodesSeeded: seededTestCodes });
   } catch (error) {
     console.error('CDAC sync-master-data error:', error);
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to sync CDAC master data' });
+    res.status(error.status || 500).json({ success: false, message: 'Failed to sync CDAC master data' });
   }
 };
 
@@ -242,7 +242,7 @@ export const getTestMappings = async (req, res) => {
     res.json({ success: true, data: rows });
   } catch (error) {
     console.error('CDAC get-test-mappings error:', error);
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to fetch test mappings' });
+    res.status(error.status || 500).json({ success: false, message: 'Failed to fetch test mappings' });
   }
 };
 
@@ -261,7 +261,7 @@ export const runAutoMapTestCodes = async (req, res) => {
     res.json({ success: true, ...result });
   } catch (error) {
     console.error('CDAC auto-map-test-codes error:', error);
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to auto-map test codes' });
+    res.status(error.status || 500).json({ success: false, message: 'Failed to auto-map test codes' });
   }
 };
 
@@ -276,7 +276,7 @@ export const confirmTestMappingRow = async (req, res) => {
     res.json({ success: true, message: `Mapped to "${test.test_name}"`, test });
   } catch (error) {
     console.error('CDAC confirm-test-mapping error:', error);
-    res.status(400).json({ success: false, message: error.message || 'Failed to confirm mapping' });
+    res.status(400).json({ success: false, message: 'Failed to confirm mapping' });
   }
 };
 
@@ -328,7 +328,7 @@ export const getParameterMappings = async (req, res) => {
     res.json({ success: true, data: rows });
   } catch (error) {
     console.error('CDAC get-parameter-mappings error:', error);
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to fetch parameter mappings' });
+    res.status(error.status || 500).json({ success: false, message: 'Failed to fetch parameter mappings' });
   }
 };
 
@@ -360,7 +360,7 @@ export const upsertParameterMappingRow = async (req, res) => {
     res.json({ success: true, message: 'Parameter mapping saved' });
   } catch (error) {
     console.error('CDAC upsert-parameter-mapping error:', error);
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to save parameter mapping' });
+    res.status(error.status || 500).json({ success: false, message: 'Failed to save parameter mapping' });
   }
 };
 
@@ -379,6 +379,6 @@ export const importParameterMappings = async (req, res) => {
     res.json({ success: true, ...result });
   } catch (error) {
     console.error('CDAC import-parameter-mappings error:', error);
-    res.status(error.status || 500).json({ success: false, message: error.message || 'Failed to import parameter mappings' });
+    res.status(error.status || 500).json({ success: false, message: 'Failed to import parameter mappings' });
   }
 };

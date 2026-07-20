@@ -40,7 +40,7 @@ export const getPRs = async (req, res) => {
     res.json({ success: true, data: enrichedPRs });
   } catch (error) {
     console.error('Error fetching PRs:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -85,7 +85,7 @@ export const createPR = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error creating PR:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -104,7 +104,7 @@ export const updatePRStatus = async (req, res) => {
     res.json({ success: true, message: `PR status updated to ${status}` });
   } catch (error) {
     console.error('Error updating PR status:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -146,7 +146,7 @@ export const getPOs = async (req, res) => {
     res.json({ success: true, data: enrichedPOs });
   } catch (error) {
     console.error('Error fetching POs:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -210,7 +210,7 @@ export const createPO = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error creating PO:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -229,7 +229,7 @@ export const updatePOStatus = async (req, res) => {
     res.json({ success: true, message: `PO status updated to ${status}` });
   } catch (error) {
     console.error('Error updating PO status:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -283,7 +283,7 @@ export const sendPOByEmail = async (req, res) => {
     res.json({ success: true, message: `Email sent to ${vendorEmail}` });
   } catch (error) {
     console.error('Error sending PO email:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 

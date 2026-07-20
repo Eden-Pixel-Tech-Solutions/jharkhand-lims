@@ -59,7 +59,7 @@ export const getInventoryItems = async (req, res) => {
     res.json({ success: true, data: items });
   } catch (error) {
     console.error('Error fetching inventory items:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -102,7 +102,7 @@ export const getInventoryItemById = async (req, res) => {
     res.json({ success: true, data: { ...items[0], batches } });
   } catch (error) {
     console.error('Error fetching inventory item:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -136,7 +136,7 @@ export const addInventoryItem = async (req, res) => {
     res.status(201).json({ success: true, message: 'Item created successfully', data: { id: result.insertId, item_code: itemCode } });
   } catch (error) {
     console.error('Error adding inventory item:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -165,7 +165,7 @@ export const updateInventoryItem = async (req, res) => {
     res.json({ success: true, message: 'Item updated successfully' });
   } catch (error) {
     console.error('Error updating inventory item:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -187,7 +187,7 @@ export const deleteInventoryItem = async (req, res) => {
     res.json({ success: true, message: 'Item deleted successfully' });
   } catch (error) {
     console.error('Error deleting inventory item:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -203,7 +203,8 @@ export const getItemCategories = async (req, res) => {
     ];
     res.json({ success: true, data: categories });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -249,7 +250,7 @@ export const getBatches = async (req, res) => {
     res.json({ success: true, data: batches });
   } catch (error) {
     console.error('Error fetching batches:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -275,7 +276,7 @@ export const addBatch = async (req, res) => {
     res.status(201).json({ success: true, message: 'Batch added successfully', data: { id: result.insertId } });
   } catch (error) {
     console.error('Error adding batch:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -292,7 +293,7 @@ export const updateBatch = async (req, res) => {
     res.json({ success: true, message: 'Batch updated successfully' });
   } catch (error) {
     console.error('Error updating batch:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -330,7 +331,7 @@ export const getLowStockAlerts = async (req, res) => {
     res.json({ success: true, data: alerts });
   } catch (error) {
     console.error('Error fetching low stock alerts:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -365,7 +366,7 @@ export const getExpiryAlerts = async (req, res) => {
     res.json({ success: true, data: alerts });
   } catch (error) {
     console.error('Error fetching expiry alerts:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -399,7 +400,7 @@ export const getExpiredStock = async (req, res) => {
     res.json({ success: true, data: expired });
   } catch (error) {
     console.error('Error fetching expired stock:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -515,7 +516,7 @@ export const getInventoryDashboard = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching dashboard:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -550,7 +551,7 @@ export const getReagentTestMappings = async (req, res) => {
     res.json({ success: true, data: mappings });
   } catch (error) {
     console.error('Error fetching mappings:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -567,7 +568,7 @@ export const addReagentTestMapping = async (req, res) => {
     res.status(201).json({ success: true, message: 'Mapping created successfully', data: { id: result.insertId } });
   } catch (error) {
     console.error('Error adding mapping:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -584,7 +585,7 @@ export const updateReagentTestMapping = async (req, res) => {
     res.json({ success: true, message: 'Mapping updated successfully' });
   } catch (error) {
     console.error('Error updating mapping:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -595,7 +596,7 @@ export const deleteReagentTestMapping = async (req, res) => {
     res.json({ success: true, message: 'Mapping deleted successfully' });
   } catch (error) {
     console.error('Error deleting mapping:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -614,6 +615,6 @@ export const getTestReagents = async (req, res) => {
     res.json({ success: true, data: reagents });
   } catch (error) {
     console.error('Error fetching test reagents:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

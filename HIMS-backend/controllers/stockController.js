@@ -58,7 +58,7 @@ export const getStockLevels = async (req, res) => {
     res.json({ success: true, data: result });
   } catch (error) {
     console.error('Error fetching stock levels:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -101,7 +101,7 @@ export const getBatchStock = async (req, res) => {
     res.json({ success: true, data: batches });
   } catch (error) {
     console.error('Error fetching batch stock:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -152,7 +152,7 @@ export const getStockTransactions = async (req, res) => {
     res.json({ success: true, data: transactions });
   } catch (error) {
     console.error('Error fetching transactions:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -214,7 +214,7 @@ export const adjustStock = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error adjusting stock:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -264,7 +264,7 @@ export const getStockTransfers = async (req, res) => {
     res.json({ success: true, data: transfers });
   } catch (error) {
     console.error('Error fetching transfers:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -305,7 +305,7 @@ export const getStockTransferById = async (req, res) => {
     res.json({ success: true, data: { ...transfers[0], items } });
   } catch (error) {
     console.error('Error fetching transfer:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -366,7 +366,7 @@ export const createStockTransfer = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error creating transfer:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -436,7 +436,7 @@ export const approveStockTransfer = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error approving transfer:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -509,7 +509,7 @@ export const receiveStockTransfer = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error receiving transfer:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -617,7 +617,7 @@ export const consumeReagentsForTest = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error consuming reagents:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -661,7 +661,7 @@ export const getConsumptionLogs = async (req, res) => {
     res.json({ success: true, data: logs });
   } catch (error) {
     console.error('Error fetching consumption logs:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -700,7 +700,7 @@ export const getQCInventory = async (req, res) => {
     res.json({ success: true, data: qcItems });
   } catch (error) {
     console.error('Error fetching QC inventory:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -717,6 +717,6 @@ export const openVial = async (req, res) => {
     res.json({ success: true, message: 'Vial opened successfully' });
   } catch (error) {
     console.error('Error opening vial:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

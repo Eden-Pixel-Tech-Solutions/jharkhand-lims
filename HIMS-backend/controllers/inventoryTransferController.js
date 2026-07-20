@@ -30,7 +30,7 @@ export const getTransfers = async (req, res) => {
     res.json({ success: true, data: enrichedTransfers });
   } catch (error) {
     console.error('Error fetching transfers:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -92,7 +92,7 @@ export const createTransfer = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error creating transfer:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }
@@ -187,7 +187,7 @@ export const updateTransferStatus = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     console.error('Error updating transfer status:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error' });
   } finally {
     connection.release();
   }

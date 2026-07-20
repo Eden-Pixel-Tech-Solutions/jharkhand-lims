@@ -40,6 +40,7 @@ export const getAlerts = async (req, res) => {
     ];
     res.json({ success: true, data: alerts });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
