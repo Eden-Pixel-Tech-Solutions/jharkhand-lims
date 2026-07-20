@@ -19,6 +19,8 @@ import html2canvas from 'html2canvas';
 import '../../assets/CSS/InventoryVendors.css';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
+const authHdr = () => ({ Authorization: `Bearer ${tok()}` });
 
 function PurchaseManagement() {
   const { alert, showAlert, hideAlert } = useAlert();
@@ -48,10 +50,10 @@ function PurchaseManagement() {
   const fetchDropdowns = async () => {
     try {
       const [infraRes, itemsRes, vendorsRes, settingsRes] = await Promise.all([
-        fetch(`${API_URL}/api/branches`),
+        fetch(`${API_URL}/api/branches`, { headers: authHdr() }),
         fetch(`${API_URL}/api/v2/inventory/items`),
         fetch(`${API_URL}/api/v2/inventory/vendors`),
-        fetch(`${API_URL}/api/settings`)
+        fetch(`${API_URL}/api/settings`, { headers: authHdr() })
       ]);
       const iData = await infraRes.json();
       const itData = await itemsRes.json();

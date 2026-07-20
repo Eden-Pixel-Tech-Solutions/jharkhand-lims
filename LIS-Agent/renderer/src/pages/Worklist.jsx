@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import JsBarcode from 'jsbarcode';
+import {
+  FlaskConical, Printer, Clock, Activity, Hourglass, RotateCcw,
+  RefreshCw, Search, X, Download, Loader2, Inbox, Play, Eye, Satellite, Radio
+} from 'lucide-react';
 import { API_BASE } from '../apiBase';
 
 // ─── Inline barcode for table rows ────────────────────────────────────────────
@@ -97,10 +101,10 @@ const BarcodeModal = ({ printLabel, onClose }) => {
             style={{
               background: '#1e293b', border: 'none', color: '#94a3b8',
               width: '36px', height: '36px', borderRadius: '50%',
-              cursor: 'pointer', fontSize: '20px', lineHeight: 1,
+              cursor: 'pointer', lineHeight: 1,
               display: 'flex', alignItems: 'center', justifyContent: 'center'
             }}
-          >×</button>
+          ><X size={18} /></button>
         </div>
 
         {/* Label Body */}
@@ -133,7 +137,7 @@ const BarcodeModal = ({ printLabel, onClose }) => {
               padding: '10px 14px', background: '#eff6ff',
               borderRadius: '8px', marginBottom: '20px'
             }}>
-              <span style={{ fontSize: '14px' }}>🧪</span>
+              <FlaskConical size={16} color="#2563eb" />
               <div>
                 <div style={{ fontSize: '10px', color: '#60a5fa', fontWeight: '700', letterSpacing: '0.5px' }}>TEST</div>
                 <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e40af' }}>{printLabel.testName}</div>
@@ -151,7 +155,7 @@ const BarcodeModal = ({ printLabel, onClose }) => {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
               }}
             >
-              🖨️ Print Label
+              <Printer size={16} /> Print Label
             </button>
             <button
               onClick={onClose}
@@ -175,7 +179,7 @@ const Worklist = () => {
   const [worklist, setWorklist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedBranch, setSelectedBranch] = useState('1');
+  const [selectedBranch, setSelectedBranch] = useState(localStorage.getItem('branch_id') || '1');
   const [printLabel, setPrintLabel] = useState(null);
   const [machines, setMachines] = useState([]);
   const [showAnalyzerPicker, setShowAnalyzerPicker] = useState(false);
@@ -188,6 +192,10 @@ const Worklist = () => {
   const [isFetchingParams, setIsFetchingParams] = useState(false);
   const [selectedParams, setSelectedParams] = useState([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [cdacCrNo, setCdacCrNo] = useState('');
+  const [cdacPulling, setCdacPulling] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
     fetchWorklist();
@@ -235,6 +243,7 @@ const Worklist = () => {
   }, []);
 
   const fetchWorklist = async () => {
+    setRefreshing(true);
     try {
       const res = await axios.get(`${API_BASE}/api/lab/worklist`, {
         params: {
@@ -245,9 +254,45 @@ const Worklist = () => {
           status: statusFilter !== 'all' ? statusFilter : undefined
         }
       });
-      if (res.data.success) setWorklist(res.data.worklist || []);
+      if (res.data.success) {
+        setWorklist(res.data.worklist || []);
+        setLastUpdated(new Date());
+      }
     } catch (err) { console.error("Error fetching worklist:", err); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setRefreshing(false); }
+  };
+
+  // Pulls a patient's CDAC-ordered investigations (API1, via our backend)
+  // and materializes them as a local bill — same call HIMS-frontend's
+  // SampleList/LabWorklist make. Only applies to branches configured for
+  // CDAC (see branch_hmis_config / the CDAC Mapping settings page).
+  const handlePullCdacOrder = async () => {
+    if (!cdacCrNo.trim()) {
+      alert('Enter a CDAC patient CR number first');
+      return;
+    }
+    setCdacPulling(true);
+    try {
+      const res = await axios.post(`${API_BASE}/api/cdac/pull-order`, {
+        branch_id: selectedBranch,
+        hmis_patCrNo: cdacCrNo.trim()
+      });
+      const data = res.data;
+      let message = data.message || (data.success ? `Pulled ${data.items?.length || 0} test(s) from CDAC` : 'Failed to pull CDAC order');
+      if (data.invalidItems?.length) {
+        message += '\n\nSkipped (missing data from CDAC): ' + data.invalidItems.map(i => `${i.hmis_test_name || i.hmis_req_dno || 'unknown'} (${i.reason})`).join(', ');
+      }
+      alert(message);
+      if (data.success) {
+        setCdacCrNo('');
+        fetchWorklist();
+      }
+    } catch (err) {
+      console.error('Error pulling CDAC order:', err);
+      alert(err.response?.data?.message || 'Failed to pull CDAC order');
+    } finally {
+      setCdacPulling(false);
+    }
   };
 
   const fetchMachines = async () => {
@@ -409,35 +454,119 @@ const Worklist = () => {
       'In Progress': { bg: '#fef9c3', color: '#854d0e', border: '#fef08a' },
       'Test Done': { bg: '#f0fdfa', color: '#115e59', border: '#99f6e4' },
       'Partially Done': { bg: '#fff7ed', color: '#c2410c', border: '#ffedd5' },
-      'Completed': { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' }
+      'Completed': { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+      'Rerun Requested': { bg: '#fffbeb', color: '#b45309', border: '#fde68a' }
     };
     return styles[status] || { bg: '#f8fafc', color: '#475569', border: '#e2e8f0' };
   };
 
+  const displayStatus = (item) =>
+    (item.status === 'Test Done' && item.pending_params?.length > 0)
+      ? 'Partially Done'
+      : (item.status === 'Collected' ? 'Pending' : item.status);
+
+  const activeWorklist = worklist.filter(item => {
+    const baseFilter = ['Pending', 'Collected', 'In Progress', 'Test Done', 'Rerun Requested'].includes(item.status);
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'Test Done') {
+        return item.status === 'Test Done' && item.pending_params?.length > 0;
+      }
+      return item.status === statusFilter;
+    }
+    return baseFilter;
+  });
+
+  // Quick-glance workload counts, computed from the unfiltered worklist so the
+  // stat cards always reflect the whole queue regardless of the active filter.
+  const stats = worklist.reduce((acc, item) => {
+    const key = displayStatus(item);
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const STAT_CARDS = [
+    { key: 'Pending', label: 'Pending', Icon: Clock, color: '#9a3412', bg: '#fff7ed' },
+    { key: 'In Progress', label: 'In Progress', Icon: Activity, color: '#854d0e', bg: '#fef9c3' },
+    { key: 'Partially Done', label: 'Partially Done', Icon: Hourglass, color: '#c2410c', bg: '#fff7ed' },
+    { key: 'Rerun Requested', label: 'Rerun Requested', Icon: RotateCcw, color: '#b45309', bg: '#fffbeb' },
+  ];
+
   return (
     <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* ── Header ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#0f172a', margin: 0 }}>Lab Worklist</h1>
           <p style={{ color: '#64748b', fontSize: '15px', marginTop: '4px' }}>Smart Diagnostic Command Center</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <div style={{ display: 'flex', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '4px 12px', alignItems: 'center' }}>
-            <span style={{ fontSize: '14px', color: '#64748b', marginRight: '8px' }}>🔍</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {lastUpdated && (
+            <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>
+              {refreshing ? 'Refreshing…' : `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+            </span>
+          )}
+          <button
+            onClick={fetchWorklist}
+            disabled={refreshing}
+            style={{
+              padding: '10px 18px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px',
+              fontWeight: '700', fontSize: '13px', cursor: refreshing ? 'default' : 'pointer', color: '#334155',
+              display: 'flex', alignItems: 'center', gap: '8px'
+            }}
+          >
+            <RefreshCw size={14} style={{ animation: refreshing ? 'lw-spin 0.8s linear infinite' : 'none' }} />
+            Refresh
+          </button>
+        </div>
+      </div>
+      <style>{`@keyframes lw-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+
+      {/* ── Workload at a glance ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+        {STAT_CARDS.map(card => (
+          <div key={card.key} style={{
+            background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px',
+            padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px'
+          }}>
+            <div style={{
+              width: '38px', height: '38px', borderRadius: '10px', background: card.bg,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+            }}><card.Icon size={18} color={card.color} /></div>
+            <div>
+              <div style={{ fontSize: '20px', fontWeight: '900', color: '#0f172a', lineHeight: 1 }}>{stats[card.key] || 0}</div>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', marginTop: '2px' }}>{card.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Toolbar: filters (left) + CDAC pull action (right, visually separated) ── */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px',
+        background: '#fff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '14px 16px', marginBottom: '20px'
+      }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '4px 12px', alignItems: 'center' }}>
+            <Search size={14} color="#64748b" style={{ marginRight: '8px', flexShrink: 0 }} />
             <input
               type="text"
               placeholder="Search patient or ID..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ border: 'none', outline: 'none', fontSize: '14px', padding: '8px 0', width: '200px' }}
+              style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '14px', padding: '8px 0', width: '190px' }}
             />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                title="Clear search"
+                style={{ border: 'none', background: 'transparent', color: '#94a3b8', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center' }}
+              ><X size={14} /></button>
+            )}
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', fontWeight: '600' }}
+            style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '13px', fontWeight: '700', color: '#334155' }}
           >
             <option value="all">All Status</option>
             <option value="Pending">Pending</option>
@@ -449,7 +578,7 @@ const Worklist = () => {
           <select
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '14px', fontWeight: '600' }}
+            style={{ padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#f8fafc', fontSize: '13px', fontWeight: '700', color: '#334155' }}
           >
             <option value="all">All Departments</option>
             <option value="Hematology">Hematology</option>
@@ -458,38 +587,85 @@ const Worklist = () => {
             <option value="Microbiology">Microbiology</option>
           </select>
 
-          <button onClick={fetchWorklist} style={{ padding: '12px 20px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', fontWeight: '600', cursor: 'pointer' }}>Refresh</button>
+          {(search || statusFilter !== 'all' || departmentFilter !== 'all') && (
+            <button
+              onClick={() => { setSearch(''); setStatusFilter('all'); setDepartmentFilter('all'); }}
+              style={{ border: 'none', background: 'transparent', color: '#2563eb', cursor: 'pointer', fontSize: '12px', fontWeight: '700', padding: '4px 6px' }}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingLeft: '16px', borderLeft: '1px solid #f1f5f9' }}>
+          <div style={{ display: 'flex', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px', padding: '4px 12px', alignItems: 'center' }}>
+            <Download size={14} color="#7c3aed" style={{ marginRight: '8px', flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="CDAC CR Number"
+              value={cdacCrNo}
+              onChange={(e) => setCdacCrNo(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handlePullCdacOrder()}
+              style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '14px', padding: '8px 0', width: '140px' }}
+            />
+          </div>
+          <button
+            onClick={handlePullCdacOrder}
+            disabled={cdacPulling}
+            style={{
+              padding: '10px 18px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '10px',
+              fontWeight: '700', fontSize: '13px', cursor: 'pointer', opacity: cdacPulling ? 0.6 : 1, whiteSpace: 'nowrap'
+            }}
+          >
+            {cdacPulling ? 'Fetching...' : 'Fetch CDAC Order'}
+          </button>
         </div>
       </div>
 
       {/* ── Table ── */}
       <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+        {!loading && (
+          <div style={{ padding: '12px 24px', fontSize: '12px', color: '#94a3b8', fontWeight: '700', borderBottom: '1px solid #f1f5f9' }}>
+            {activeWorklist.length} {activeWorklist.length === 1 ? 'item' : 'items'} in queue
+          </div>
+        )}
+        <div style={{ maxHeight: '65vh', overflowY: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: '#f8fafc', borderBottom: '2px solid #f1f5f9' }}>
-              <th style={{ padding: '20px 24px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Sample ID</th>
-              <th style={{ padding: '20px 24px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Barcode</th>
-              <th style={{ padding: '20px 24px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Patient</th>
-              <th style={{ padding: '20px 24px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Test Name</th>
-              <th style={{ padding: '20px 24px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Status</th>
-              <th style={{ padding: '20px 24px', fontSize: '12px', fontWeight: '700', color: '#64748b' }}>Action</th>
+              <th style={{ position: 'sticky', top: 0, background: '#f8fafc', padding: '16px 24px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', color: '#94a3b8' }}>Sample ID</th>
+              <th style={{ position: 'sticky', top: 0, background: '#f8fafc', padding: '16px 24px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', color: '#94a3b8' }}>Barcode</th>
+              <th style={{ position: 'sticky', top: 0, background: '#f8fafc', padding: '16px 24px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', color: '#94a3b8' }}>Patient</th>
+              <th style={{ position: 'sticky', top: 0, background: '#f8fafc', padding: '16px 24px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', color: '#94a3b8' }}>Test Name</th>
+              <th style={{ position: 'sticky', top: 0, background: '#f8fafc', padding: '16px 24px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', color: '#94a3b8' }}>Status</th>
+              <th style={{ position: 'sticky', top: 0, background: '#f8fafc', padding: '16px 24px', fontSize: '11px', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase', color: '#94a3b8' }}>Action</th>
             </tr>
           </thead>
           <tbody>
-            {worklist
-              .filter(item => {
-                const baseFilter = ['Pending', 'Collected', 'In Progress', 'Test Done'].includes(item.status);
-                if (statusFilter !== 'all') {
-                  if (statusFilter === 'Test Done') {
-                    return item.status === 'Test Done' && item.pending_params?.length > 0;
-                  }
-                  return item.status === statusFilter;
-                }
-                return baseFilter;
-              })
+            {loading ? (
+              <tr><td colSpan={6} style={{ padding: '80px 24px', textAlign: 'center', color: '#94a3b8' }}>
+                <Loader2 size={28} style={{ marginBottom: '12px', animation: 'lw-spin 0.8s linear infinite' }} />
+                <div>Loading worklist…</div>
+              </td></tr>
+            ) : activeWorklist.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: '80px 24px', textAlign: 'center', color: '#94a3b8' }}>
+                <Inbox size={32} style={{ marginBottom: '12px' }} />
+                <div style={{ fontWeight: '700', color: '#64748b', marginBottom: '4px' }}>No matching items</div>
+                <div style={{ fontSize: '13px' }}>
+                  {search || statusFilter !== 'all' || departmentFilter !== 'all'
+                    ? 'Try adjusting your search or filters.'
+                    : 'The worklist is empty right now.'}
+                </div>
+              </td></tr>
+            ) : activeWorklist
               .map((item) => (
-                <tr key={item.bill_item_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '20px 24px' }}>
+                <tr
+                  key={item.bill_item_id}
+                  style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}
+                  onMouseOver={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <td style={{ padding: '18px 24px' }}>
                     <div style={{ fontWeight: '800' }}>{item.sample_id || '---'}</div>
                     {item.short_id && <div style={{ fontSize: '11px', color: '#2563eb', fontWeight: '700' }}>Short ID: {item.short_id}</div>}
                   </td>
@@ -522,52 +698,62 @@ const Worklist = () => {
                         <div style={{ fontSize: '10px', fontWeight: '800', fontFamily: 'monospace', color: '#475569', marginTop: '2px', marginLeft: '2px' }}>
                           {item.short_id}
                         </div>
-                        <div style={{ fontSize: '9px', color: '#94a3b8', marginTop: '1px', marginLeft: '2px' }}>
-                          🖨️ Click to print
+                        <div style={{ fontSize: '9px', color: '#94a3b8', marginTop: '1px', marginLeft: '2px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <Printer size={9} /> Click to print
                         </div>
                       </div>
                     ) : (
                       <div style={{ fontWeight: '700', fontFamily: 'monospace', color: '#475569' }}>---</div>
                     )}
                   </td>
-                  <td style={{ padding: '20px 24px' }}>
+                  <td style={{ padding: '18px 24px' }}>
                     <div style={{ fontWeight: '700' }}>{item.patient_name}</div>
                     <div style={{ fontSize: '12px', color: '#64748b' }}>{item.patient_reg_no}</div>
                   </td>
-                  <td style={{ padding: '20px 24px' }}>
+                  <td style={{ padding: '18px 24px' }}>
                     <div style={{ fontWeight: '600' }}>{item.test_name}</div>
                     <div style={{ fontSize: '12px', color: '#94a3b8' }}>{item.sample_type}</div>
                   </td>
-                  <td style={{ padding: '20px 24px' }}>
+                  <td style={{ padding: '18px 24px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
                         padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', width: 'fit-content',
-                        background: getStatusStyle((item.status === 'Test Done' && item.pending_params?.length > 0) ? 'Partially Done' : item.status).bg,
-                        color: getStatusStyle((item.status === 'Test Done' && item.pending_params?.length > 0) ? 'Partially Done' : item.status).color,
-                        border: `1px solid ${getStatusStyle((item.status === 'Test Done' && item.pending_params?.length > 0) ? 'Partially Done' : item.status).border}`
+                        background: getStatusStyle(displayStatus(item)).bg,
+                        color: getStatusStyle(displayStatus(item)).color,
+                        border: `1px solid ${getStatusStyle(displayStatus(item)).border}`
                       }}>
-                        {(item.status === 'Test Done' && item.pending_params?.length > 0) ? 'Partially Done' : (item.status === 'Collected' ? 'Pending' : item.status)}
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: getStatusStyle(displayStatus(item)).color, flexShrink: 0 }} />
+                        {displayStatus(item)}
                       </span>
                       {item.pending_params && item.pending_params.length > 0 && (
-                        <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '600', maxWidth: '120px' }}>
-                          ⏳ Waiting: {item.pending_params.join(', ')}
+                        <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '600', maxWidth: '120px', display: 'flex', alignItems: 'flex-start', gap: '3px' }}>
+                          <Hourglass size={10} style={{ marginTop: '1px', flexShrink: 0 }} /> Waiting: {item.pending_params.join(', ')}
+                        </div>
+                      )}
+                      {item.status === 'Rerun Requested' && item.rerun_reason && (
+                        <div style={{ fontSize: '10px', color: '#b45309', fontWeight: '600', maxWidth: '160px' }}>
+                          Doctor: "{item.rerun_reason}"
                         </div>
                       )}
                     </div>
                   </td>
-                  <td style={{ padding: '20px 24px' }}>
+                  <td style={{ padding: '18px 24px' }}>
                     {item.status === 'Pending' ? (
                       <button onClick={() => handleAcknowledge(item)} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>Acknowledge</button>
                     ) : item.status === 'Collected' ? (
-                      <button onClick={() => handleRunTestRequest(item)} style={{ padding: '8px 16px', background: '#059669', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>🚀 Run Test</button>
+                      <button onClick={() => handleRunTestRequest(item)} style={{ padding: '8px 16px', background: '#059669', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}><Play size={14} /> Run Test</button>
+                    ) : item.status === 'Rerun Requested' ? (
+                      <button onClick={() => handleRunTestRequest(item)} style={{ padding: '8px 16px', background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}><RotateCcw size={14} /> Rerun Test</button>
                     ) : (
-                      <button onClick={() => handleViewProcess(item)} style={{ padding: '8px 16px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>👁️ View</button>
+                      <button onClick={() => handleViewProcess(item)} style={{ padding: '8px 16px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}><Eye size={14} /> View</button>
                     )}
                   </td>
                 </tr>
               ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* ── Analyzer Selection Modal ── */}
@@ -601,7 +787,7 @@ const Worklist = () => {
                 <h2 style={{ margin: 0, fontSize: '28px', fontWeight: '900' }}>{activeItem?.test_name}</h2>
                 <div style={{ color: '#64748b' }}>Sample: {activeItem?.sample_id} | Analyzer: {currentMachine?.unique_id}</div>
               </div>
-              <span style={{ padding: '8px 16px', background: '#10b981', color: 'white', borderRadius: '20px', fontWeight: '800', fontSize: '10px', letterSpacing: '1px' }}>📡 INTELLIGENT SYNC</span>
+              <span style={{ padding: '8px 16px', background: '#10b981', color: 'white', borderRadius: '20px', fontWeight: '800', fontSize: '10px', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '6px' }}><Radio size={12} /> INTELLIGENT SYNC</span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '32px' }}>
@@ -630,8 +816,8 @@ const Worklist = () => {
                 <div style={{ background: '#0f172a', borderRadius: '16px', padding: '20px', height: '350px', overflowY: 'auto', color: '#38bdf8', fontFamily: 'monospace' }}>
                   {incomingResults.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '100px 0', opacity: 0.4 }}>
-                      <div style={{ fontSize: '32px', marginBottom: '16px' }}>🛰️</div>
-                      Waiting for data from {currentMachine?.unique_id}...
+                      <Satellite size={32} style={{ marginBottom: '16px' }} />
+                      <div>Waiting for data from {currentMachine?.unique_id}...</div>
                     </div>
                   ) : (
                     incomingResults.map((res, i) => (

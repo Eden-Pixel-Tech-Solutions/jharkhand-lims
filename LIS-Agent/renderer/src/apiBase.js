@@ -1,14 +1,15 @@
 // Single source of truth for the HIMS-backend base URL used by the renderer.
-// Override via VITE_API_BASE_URL for non-local deployments (same convention as HIMS-frontend).
-const rawBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7005';
+// Override via VITE_API_BASE_URL for non-production deployments (same convention as HIMS-frontend).
+const PRODUCTION_API_BASE = 'https://lims.poxiatechnologies.com';
+const rawBase = import.meta.env.VITE_API_BASE_URL || PRODUCTION_API_BASE;
 
 function resolve(url) {
   let parsed;
   try {
     parsed = new URL(url);
   } catch {
-    console.error(`Invalid VITE_API_BASE_URL "${url}" — falling back to http://localhost:7005`);
-    return 'http://localhost:7005';
+    console.error(`Invalid VITE_API_BASE_URL "${url}" — falling back to ${PRODUCTION_API_BASE}`);
+    return PRODUCTION_API_BASE;
   }
 
   const isLoopback = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '::1';

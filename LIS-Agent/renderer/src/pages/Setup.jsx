@@ -177,23 +177,28 @@ export default function Setup() {
             return;
         }
 
+        const lab = labs.find(l => l.id == formData.labId);
+        const config = {
+            uniqueId: formData.uniqueId,
+            name: formData.uniqueId,
+            model: formData.model,
+            port: formData.port,
+            baud: parseInt(formData.baudRate),
+            labId: lab.id,
+            labName: lab.name,
+            manufacturer: formData.manufacturer,
+            serialNumber: formData.serialNumber,
+            portType: formData.portType,
+        };
+
+        // Sync to the cloud FIRST so the local save can honestly record
+        // whether it actually reached the backend — previously the local
+        // save always succeeded and the "CLOUD SYNCED" badge was shown
+        // unconditionally even when this call failed, so a machine could
+        // look fully set up here while being completely invisible on the
+        // web dashboard.
+        let synced = false;
         try {
-            const lab = labs.find(l => l.id == formData.labId);
-            const config = {
-                uniqueId: formData.uniqueId,
-                name: formData.uniqueId,
-                model: formData.model,
-                port: formData.port,
-                baud: parseInt(formData.baudRate),
-                labId: lab.id,
-                labName: lab.name,
-                manufacturer: formData.manufacturer,
-                serialNumber: formData.serialNumber,
-                portType: formData.portType,
-            };
-
-            await window.electronAPI.saveConfig(config);
-
             await axios.post(`${API_BASE}/api/lab/machines/sync`, {
                 lab_id: lab.id,
                 machine_id: formData.uniqueId,
@@ -205,14 +210,25 @@ export default function Setup() {
                 port_ip: formData.port,
                 baud_rate: parseInt(formData.baudRate)
             });
+            synced = true;
+        } catch (err) {
+            console.error("Cloud sync failed:", err);
+        }
 
-            alert("Machine Synchronized!");
+        try {
+            await window.electronAPI.saveConfig({ ...config, synced });
+
+            if (synced) {
+                alert("Machine Synchronized!");
+            } else {
+                alert("Saved locally, but could NOT sync to the cloud — this machine will not appear on the web dashboard until it syncs. Check your connection, then Edit → Save this machine again.");
+            }
             fetchInitialData();
             setShowAddForm(false);
             setSearchSerial('');
         } catch (err) {
-            console.error("Error saving config:", err);
-            alert("Failed to synchronize with Cloud");
+            console.error("Error saving local config:", err);
+            alert("Failed to save machine configuration.");
         }
     };
 
@@ -277,7 +293,11 @@ export default function Setup() {
                             <div key={m.id} style={{ background: 'white', padding: '24px', borderRadius: '16px', border: '1.5px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                                     <div style={{ display: 'flex', gap: '8px' }}>
-                                        <span style={{ padding: '4px 10px', background: '#eff6ff', color: '#2563eb', borderRadius: '6px', fontSize: '10px', fontWeight: '900', border: '1px solid #dbeafe' }}>CLOUD SYNCED</span>
+                                        {m.synced ? (
+                                            <span style={{ padding: '4px 10px', background: '#eff6ff', color: '#2563eb', borderRadius: '6px', fontSize: '10px', fontWeight: '900', border: '1px solid #dbeafe' }}>☁️ CLOUD SYNCED</span>
+                                        ) : (
+                                            <span title="This machine won't show up on the web dashboard until it syncs — Edit → Save to retry." style={{ padding: '4px 10px', background: '#fef2f2', color: '#dc2626', borderRadius: '6px', fontSize: '10px', fontWeight: '900', border: '1px solid #fecaca' }}>⚠️ NOT SYNCED</span>
+                                        )}
                                         {activePorts.includes(String(m.port)) ? (
                                             <span style={{ padding: '4px 10px', background: '#ecfdf5', color: '#059669', borderRadius: '6px', fontSize: '10px', fontWeight: '900', border: '1px solid #d1fae5' }}>🟢 ONLINE</span>
                                         ) : (

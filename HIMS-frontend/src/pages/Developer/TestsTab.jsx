@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const API = import.meta.env.VITE_API_URL || '';
+const himsHdr = () => ({ Authorization: `Bearer ${localStorage.getItem('hims_token')}` });
 
 const ANALYZERS = [
   'CliniQuant Micro',
@@ -137,7 +138,7 @@ function TestDetail({ test, categories, labs, brands, onSaved, onDeleted }) {
 
   useEffect(() => {
     if (!test) return;
-    axios.get(`${API}/api/lab/tests/${test.id}`)
+    axios.get(`${API}/api/lab/tests/${test.id}`, { headers: himsHdr() })
       .then(r => {
         if (r.data.success) {
           setForm({
@@ -173,7 +174,7 @@ function TestDetail({ test, categories, labs, brands, onSaved, onDeleted }) {
     }
     setSaving(true); setErr('');
     try {
-      await axios.put(`${API}/api/lab/tests/${test.id}`, { ...form, parameters: params });
+      await axios.put(`${API}/api/lab/tests/${test.id}`, { ...form, parameters: params }, { headers: himsHdr() });
       setEditing(false);
       onSaved();
     } catch (e) {
@@ -186,7 +187,7 @@ function TestDetail({ test, categories, labs, brands, onSaved, onDeleted }) {
   const del = async () => {
     if (!confirm(`Delete test "${test.test_name}"? This cannot be undone.`)) return;
     try {
-      await axios.delete(`${API}/api/lab/tests/${test.id}`);
+      await axios.delete(`${API}/api/lab/tests/${test.id}`, { headers: himsHdr() });
       onDeleted();
     } catch (e) {
       alert(e.response?.data?.message || 'Cannot delete');
@@ -346,7 +347,7 @@ function AddTestModal({ categories, brands, onClose, onSaved }) {
     }
     setSaving(true); setErr('');
     try {
-      await axios.post(`${API}/api/lab/tests`, { ...form, parameters: [] });
+      await axios.post(`${API}/api/lab/tests`, { ...form, parameters: [] }, { headers: himsHdr() });
       onSaved();
     } catch (e) {
       setErr(e.response?.data?.message || 'Error creating test');
@@ -419,15 +420,15 @@ export default function TestsTab() {
 
   const loadTests = useCallback(() => {
     setLoading(true);
-    axios.get(`${API}/api/lab/tests`)
+    axios.get(`${API}/api/lab/tests`, { headers: himsHdr() })
       .then(r => setTests(r.data.tests || []))
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     loadTests();
-    axios.get(`${API}/api/lab/categories`).then(r => setCategories(r.data.categories || []));
-    axios.get(`${API}/api/lab/labs`).then(r => setLabs(r.data.labs || []));
+    axios.get(`${API}/api/lab/categories`, { headers: himsHdr() }).then(r => setCategories(r.data.categories || []));
+    axios.get(`${API}/api/lab/labs`, { headers: himsHdr() }).then(r => setLabs(r.data.labs || []));
     axios.get(`${API}/api/dev/brands`, { headers: authHeaders() }).then(r => setBrands(r.data.brands || []));
   }, [loadTests]);
 

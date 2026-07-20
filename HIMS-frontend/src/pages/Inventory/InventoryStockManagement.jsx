@@ -15,6 +15,8 @@ import { fetchWithBranchContext, appendBranchContext } from '../../utils/branchC
 import '../../assets/CSS/InventoryVendors.css';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
+const authHdr = () => ({ Authorization: `Bearer ${tok()}` });
 
 function InventoryStockManagement() {
   const { alert, showAlert, hideAlert } = useAlert();
@@ -68,7 +70,7 @@ function InventoryStockManagement() {
       const [itemsRes, vendorsRes, branchesRes] = await Promise.all([
         fetch(`${API_URL}/api/v2/inventory/items`),
         fetch(`${API_URL}/api/v2/inventory/vendors`),
-        fetch(`${API_URL}/api/branches`)
+        fetch(`${API_URL}/api/branches`, { headers: authHdr() })
       ]);
       const itemsData = await itemsRes.json();
       const vendorsData = await vendorsRes.json();

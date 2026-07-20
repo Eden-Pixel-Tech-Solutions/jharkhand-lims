@@ -1,6 +1,11 @@
 import db from '../config/db.js';
 import http from 'http';
 import { generateLabReportPDFStream } from '../utils/pdfGenerator.js';
+import * as cdacService from '../services/cdacService.js';
+import { buildSampleCollectionPayload, buildStatusUpdatePayload, buildResultRowDataPayload, buildReportPayload } from '../services/cdacMapper.js';
+import * as careService from '../services/careService.js';
+import { buildResultOruPayload } from '../services/careMapper.js';
+import { sendWhatsAppMessage } from '../services/whatsappService.js';
 
 // Lab Categories Management
 export const getLabCategories = async (req, res) => {
@@ -1006,7 +1011,8 @@ export const getWorklist = async (req, res) => {
         lt.tube_color,
         lc.name as category_name,
         lc.name as department,
-        CASE 
+        CASE
+          WHEN tr.status = 'Rerun Requested' THEN 'Rerun Requested'
           WHEN tr.id IS NOT NULL THEN 'Test Done'
           ELSE bi.status
         END as status,
@@ -1017,7 +1023,9 @@ export const getWorklist = async (req, res) => {
         b.created_at as bill_date,
         tr.id as result_id,
         tr.results_json,
-        tr.tested_at as result_tested_at
+        tr.tested_at as result_tested_at,
+        tr.rerun_reason,
+        tr.rerun_requested_at
       FROM bill_items bi
       JOIN bills b ON bi.bill_id = b.id
       JOIN patients p ON b.patient_id = p.id
@@ -1395,6 +1403,43 @@ export const acknowledgeTest = async (req, res) => {
       });
     }
 
+    // --- CDAC SAMPLE COLLECTED PUSH ---
+    // Only fires for bill_items that originated from a CDAC pull (most don't).
+    // Never throws into the main response — a failed/slow CDAC call must not
+    // block sample collection from being recorded locally.
+    try {
+      const [[cdacReq]] = await db.query(
+        `SELECT * FROM cdac_lab_requisitions WHERE bill_item_id = ? LIMIT 1`,
+        [bill_item_id]
+      );
+
+      if (cdacReq && (status || 'Collected') === 'Collected') {
+        const branchConfig = await cdacService.getBranchCdacConfig(cdacReq.branch_id);
+
+        if (branchConfig?.integration_type === 'CDAC' && branchConfig.is_active) {
+          try {
+            await cdacService.pushSampleCollectionAndRequisitionDtls(
+              buildSampleCollectionPayload(cdacReq),
+              branchConfig
+            );
+            await db.query(
+              `UPDATE cdac_lab_requisitions SET last_pushed_status = 'SAMPLE_COLLECTED', last_pushed_at = NOW(), last_push_error = NULL WHERE id = ?`,
+              [cdacReq.id]
+            );
+          } catch (cdacErr) {
+            console.error('CDAC sample-collected push failed:', cdacErr.message);
+            await db.query(
+              `UPDATE cdac_lab_requisitions SET last_push_error = ? WHERE id = ?`,
+              [String(cdacErr.message).slice(0, 1000), cdacReq.id]
+            );
+          }
+        }
+      }
+    } catch (cdacLookupErr) {
+      console.error('CDAC sample-collected lookup error:', cdacLookupErr.message);
+    }
+    // --- END CDAC SAMPLE COLLECTED PUSH ---
+
     // Automated WhatsApp Notification: Ping the NEXT two patients in line
     try {
       const [nextPatientsResult] = await db.query(
@@ -1667,9 +1712,12 @@ export const saveTestResults = async (req, res) => {
         }
       });
 
+      // Re-submitting results (e.g. after a doctor's rerun request) clears
+      // the rerun fields — a fresh result no longer needs the old flag/reason.
       await connection.query(
         `UPDATE lab_test_result
-         SET results_json = ?, machine_no = ?, tested_at = NOW(), status = ?
+         SET results_json = ?, machine_no = ?, tested_at = NOW(), status = ?,
+             rerun_reason = NULL, rerun_requested_by = NULL, rerun_requested_at = NULL
          WHERE id = ?`,
         [JSON.stringify(currentResults), machine_no || null, resultStatus, existing[0].id]
       );
@@ -2011,11 +2059,13 @@ export const verifyTest = async (req, res) => {
             CONCAT(doc_user.first_name, ' ', doc_user.last_name) as doctor_name,
             CONCAT(ut.first_name, ' ', ut.last_name) as tested_by_name,
             CONCAT(uv.first_name, ' ', uv.last_name) as verified_by_name,
-            i.name as lab_name
+            i.name as lab_name,
+            br.branch_name, br.address as branch_address, br.contact_number as branch_contact
           FROM lab_test_result tr
           LEFT JOIN bill_items bi ON tr.sample_id = bi.sample_id
           LEFT JOIN bills b ON bi.bill_id = b.id
           LEFT JOIN patients p ON b.patient_id = p.id
+          LEFT JOIN branches br ON b.branch_id = br.id
           LEFT JOIN doctor_lab_orders dlo ON dlo.test_id = bi.service_id AND dlo.patient_reg_no = p.reg_no
           LEFT JOIN doctors doc_ref ON dlo.doctor_id = doc_ref.id
           LEFT JOIN users doc_user ON doc_ref.user_id = doc_user.id
@@ -2058,13 +2108,16 @@ export const verifyTest = async (req, res) => {
 
              const reportData = {
                hospital_settings: hospitalSettings,
+               branch_name: report.branch_name,
+               branch_address: report.branch_address,
+               branch_contact: report.branch_contact,
                patient_name: report.patient_name || 'Unknown',
                patient_reg_no: report.patient_reg_no || 'N/A',
                sample_id: report.sample_id,
                gender: report.gender || 'N/A',
                age: age,
                referred_by: 'Self',
-               centre: report.lab_name || hospitalSettings?.hospital_name || 'MERIL HIMS',
+               centre: report.lab_name || report.branch_name || hospitalSettings?.hospital_name || 'MERIL HIMS',
                registration_date: formatDate(report.tested_at),
                tested_by_name: report.tested_by_name || 'N/A',
                tested_at: formatDate(report.tested_at),
@@ -2125,9 +2178,237 @@ export const verifyTest = async (req, res) => {
         console.error('Error generating PDF for WhatsApp:', pdfErr);
       }
       // --- END AUTOMATED WHATSAPP PDF SEND ---
+
+      // --- CDAC RESULTS/STATUS/REPORT PUSH ---
+      // Only fires for bill_items that originated from a CDAC pull. Each step
+      // is independently try/caught so a slow/failing API5 (the ~260KB PDF
+      // payload) can't block API31/API3 from having already succeeded, and
+      // each failure is independently visible in cdac_integration_logs.
+      try {
+        const [[cdacReq]] = await db.query(
+          `SELECT cr.* FROM bill_items bi
+           JOIN cdac_lab_requisitions cr ON cr.bill_item_id = bi.id
+           WHERE bi.sample_id = ? LIMIT 1`,
+          [sample_id]
+        );
+
+        if (cdacReq) {
+          const branchConfig = await cdacService.getBranchCdacConfig(cdacReq.branch_id);
+
+          if (branchConfig?.integration_type === 'CDAC' && branchConfig.is_active) {
+            // Step 1: parameter-level results (API 31)
+            try {
+              const [[labTestResult]] = await db.query(
+                `SELECT * FROM lab_test_result WHERE id = ? LIMIT 1`,
+                [test_result_id]
+              );
+              if (labTestResult) {
+                const resultPayload = await buildResultRowDataPayload(cdacReq, labTestResult, 'AUTHORIZED');
+                if (resultPayload.investigationData.length) {
+                  await cdacService.pushInvestigationStatusUpdateDtlsRowData(resultPayload, branchConfig);
+                }
+              }
+            } catch (e) {
+              console.error('CDAC API31 (results) push failed:', e.message);
+            }
+
+            // Step 2: overall status -> AUTHORIZED (API 3)
+            try {
+              await cdacService.pushInvestigationStatusUpdateDtls(
+                buildStatusUpdatePayload(cdacReq, 'AUTHORIZED'),
+                branchConfig
+              );
+              await db.query(
+                `UPDATE cdac_lab_requisitions SET last_pushed_status = 'AUTHORIZED', last_pushed_at = NOW(), last_push_error = NULL WHERE id = ?`,
+                [cdacReq.id]
+              );
+            } catch (e) {
+              console.error('CDAC API3 (status) push failed:', e.message);
+              await db.query(
+                `UPDATE cdac_lab_requisitions SET last_push_error = ? WHERE id = ?`,
+                [String(e.message).slice(0, 1000), cdacReq.id]
+              );
+            }
+
+            // Step 3: final PDF report (API 5) — independent query + PDF build.
+            // The WhatsApp block above skips PDF generation entirely when
+            // there's no doctor_phone, but CDAC needs the report regardless,
+            // so this deliberately regenerates it rather than sharing that buffer.
+            try {
+              const [cdacReportRows] = await db.query(
+                `SELECT
+                  tr.id, tr.sample_id, tr.test_name, tr.results_json, tr.tested_at, tr.verified_at, tr.notes,
+                  CONCAT(p.first_name, ' ', p.last_name) as patient_name,
+                  p.reg_no as patient_reg_no, p.gender, p.dob,
+                  CONCAT(ut.first_name, ' ', ut.last_name) as tested_by_name,
+                  CONCAT(uv.first_name, ' ', uv.last_name) as verified_by_name,
+                  i.name as lab_name,
+                  br.branch_name, br.address as branch_address, br.contact_number as branch_contact
+                FROM lab_test_result tr
+                LEFT JOIN bill_items bi ON tr.sample_id = bi.sample_id
+                LEFT JOIN bills b ON bi.bill_id = b.id
+                LEFT JOIN patients p ON b.patient_id = p.id
+                LEFT JOIN branches br ON b.branch_id = br.id
+                LEFT JOIN users ut ON tr.tested_by = ut.id
+                LEFT JOIN users uv ON tr.verified_by = uv.id
+                LEFT JOIN infrastructure i ON bi.lab_id = i.id
+                WHERE tr.sample_id = ?
+                LIMIT 1`,
+                [sample_id]
+              );
+
+              if (cdacReportRows.length > 0) {
+                const report = cdacReportRows[0];
+                let cdacResults = [];
+                try { cdacResults = typeof report.results_json === 'string' ? JSON.parse(report.results_json) : report.results_json; } catch (e) { /* leave empty */ }
+
+                const formatCdacDate = (date) => {
+                  if (!date) return 'N/A';
+                  return new Date(date).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+                };
+                let cdacAge = 'N/A';
+                if (report.dob) {
+                  cdacAge = (new Date().getFullYear() - new Date(report.dob).getFullYear()) + ' Y';
+                }
+
+                const [cdacSettingsRows] = await db.query(`SELECT * FROM hospital_settings LIMIT 1`);
+                const cdacHospitalSettings = cdacSettingsRows.length > 0 ? cdacSettingsRows[0] : null;
+
+                const cdacReportData = {
+                  hospital_settings: cdacHospitalSettings,
+                  branch_name: report.branch_name,
+                  branch_address: report.branch_address,
+                  branch_contact: report.branch_contact,
+                  patient_name: report.patient_name || 'Unknown',
+                  patient_reg_no: report.patient_reg_no || 'N/A',
+                  sample_id: report.sample_id,
+                  gender: report.gender || 'N/A',
+                  age: cdacAge,
+                  referred_by: 'Self',
+                  centre: report.lab_name || report.branch_name || cdacHospitalSettings?.hospital_name || 'MERIL HIMS',
+                  registration_date: formatCdacDate(report.tested_at),
+                  tested_by_name: report.tested_by_name || 'N/A',
+                  tested_at: formatCdacDate(report.tested_at),
+                  verified_by_name: report.verified_by_name || 'N/A',
+                  verified_at: formatCdacDate(report.verified_at),
+                  report_url: `${req.protocol || 'http'}://${req.get('host') || 'localhost:7005'}/api/lab/generate-report-pdf/${sample_id}`,
+                  tests: [{
+                    test_name: report.test_name || 'Lab Test',
+                    sample_type: 'Blood Sample',
+                    accession_no: report.sample_id,
+                    collected_on: formatCdacDate(report.tested_at),
+                    received_on: formatCdacDate(report.tested_at),
+                    approved_on: formatCdacDate(report.verified_at),
+                    remarks: report.notes || 'Please correlate results clinically.',
+                    parameters: cdacResults.map(r => ({
+                      parameter_name: r.parameter_name || r.parameter_code || 'Unknown',
+                      result_value: r.result_value || '',
+                      unit: r.unit || '',
+                      reference_range: r.reference_range || '',
+                      result_flag: (r.result_flag || 'normal').toLowerCase(),
+                      is_subheader: r.is_subheader || false
+                    }))
+                  }]
+                };
+
+                const cdacDoc = await generateLabReportPDFStream(cdacReportData);
+                const cdacPdfBase64 = await new Promise((resolve, reject) => {
+                  const chunks = [];
+                  cdacDoc.on('data', chunk => chunks.push(chunk));
+                  cdacDoc.on('end', () => resolve(Buffer.concat(chunks).toString('base64')));
+                  cdacDoc.on('error', reject);
+                });
+
+                await cdacService.pushInvestigationReportDtls(
+                  buildReportPayload(cdacReq, cdacPdfBase64, 'PRINTED'),
+                  branchConfig
+                );
+                await db.query(
+                  `UPDATE cdac_lab_requisitions SET last_pushed_status = 'PRINTED', last_pushed_at = NOW(), last_push_error = NULL WHERE id = ?`,
+                  [cdacReq.id]
+                );
+              }
+            } catch (e) {
+              console.error('CDAC API5 (report) push failed:', e.message);
+              await db.query(
+                `UPDATE cdac_lab_requisitions SET last_push_error = ? WHERE id = ?`,
+                [String(e.message).slice(0, 1000), cdacReq.id]
+              );
+            }
+          }
+        }
+      } catch (cdacLookupErr) {
+        console.error('CDAC results/status/report lookup error:', cdacLookupErr.message);
+      }
+      // --- END CDAC RESULTS/STATUS/REPORT PUSH ---
     }
 
     await connection.commit();
+
+    // --- CARE RESULT PUSH (ORU) ---
+    // Only fires for bill_items that originated from a CARE ORM order. CARE's
+    // contract has exactly one outbound push (final results) — no
+    // sample-collected or status-update equivalent, unlike CDAC's 3-step push
+    // above — so this is the only new hook needed. Deliberately placed AFTER
+    // connection.commit() (unlike the CDAC hook above, which runs before) —
+    // nothing this reads needs to be in the same transaction, and this avoids
+    // ever telling CARE a result is final while the local write could still
+    // roll back.
+    if (status === 'Approved') {
+      try {
+        const [[careOrder]] = await db.query(
+          `SELECT co.* FROM bill_items bi
+           JOIN care_lab_orders co ON co.bill_item_id = bi.id
+           WHERE bi.sample_id = ? LIMIT 1`,
+          [sample_id]
+        );
+
+        if (careOrder) {
+          const branchConfig = await careService.getBranchCareConfig(careOrder.branch_id);
+
+          if (branchConfig?.integration_type === 'CARE' && branchConfig.is_active) {
+            try {
+              const [[labTestResult]] = await db.query(
+                `SELECT * FROM lab_test_result WHERE id = ? LIMIT 1`,
+                [test_result_id]
+              );
+              if (labTestResult) {
+                const { rawMessage, resultCount } = await buildResultOruPayload(careOrder, labTestResult);
+                // Mirrors the CDAC hook's guard above (only pushes API31 if
+                // investigationData.length) — an ORU with zero OBX segments
+                // (no parameters matched care_loinc_parameter_map yet) is not
+                // worth sending and would likely be rejected by CARE anyway.
+                if (resultCount > 0) {
+                  await careService.pushResultToCare(
+                    { rawMessage, senderIp: branchConfig.care_sender_ip },
+                    branchConfig,
+                    { careLabOrderId: careOrder.id, billItemId: careOrder.bill_item_id, fillerOrderNumber: careOrder.filler_order_number }
+                  );
+                  await db.query(
+                    `UPDATE care_lab_orders SET last_pushed_status = 'RESULT_PUSHED', last_pushed_at = NOW(), last_push_error = NULL WHERE id = ?`,
+                    [careOrder.id]
+                  );
+                } else {
+                  await db.query(
+                    `UPDATE care_lab_orders SET last_push_error = 'No parameters matched care_loinc_parameter_map — nothing pushed' WHERE id = ?`,
+                    [careOrder.id]
+                  );
+                }
+              }
+            } catch (careErr) {
+              console.error('CARE ORU push failed:', careErr.message);
+              await db.query(
+                `UPDATE care_lab_orders SET last_push_error = ? WHERE id = ?`,
+                [String(careErr.message).slice(0, 1000), careOrder.id]
+              );
+            }
+          }
+        }
+      } catch (careLookupErr) {
+        console.error('CARE result-push lookup error:', careLookupErr.message);
+      }
+    }
+    // --- END CARE RESULT PUSH (ORU) ---
 
     res.json({
       success: true,
@@ -2153,7 +2434,47 @@ export const verifyTest = async (req, res) => {
   }
 };
 
-// Get approved reports for download
+// A verifying/approving doctor who isn't satisfied with a result can kick it
+// back to the lab tech instead of Verify/Approve. Sets lab_test_result.status
+// to 'Rerun Requested' — this removes it from the doctor's own queue
+// (getPendingVerifications only looks at 'Test Done'/'Verified'/'Completed')
+// and, via getWorklist's status CASE, makes it reappear as actionable in the
+// lab tech's worklist. Re-submitting results through the normal
+// saveTestResults flow clears the rerun fields and puts it back in front of
+// the doctor automatically — no separate "clear rerun" step needed.
+export const requestRerun = async (req, res) => {
+  try {
+    const { test_result_id, sample_id, requested_by, reason } = req.body;
+
+    if (!test_result_id || !sample_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'test_result_id and sample_id are required'
+      });
+    }
+
+    const [result] = await db.query(
+      `UPDATE lab_test_result
+       SET status = 'Rerun Requested',
+           rerun_reason = ?,
+           rerun_requested_by = ?,
+           rerun_requested_at = NOW(),
+           updated_at = NOW()
+       WHERE id = ? AND sample_id = ?`,
+      [reason || null, requested_by || null, test_result_id, sample_id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Test result not found' });
+    }
+
+    res.json({ success: true, message: 'Rerun requested — sent back to the lab for re-testing' });
+  } catch (error) {
+    console.error('Error requesting rerun:', error);
+    res.status(500).json({ success: false, message: 'Server error requesting rerun' });
+  }
+};
+
 // Get approved reports for download
 export const getApprovedReports = async (req, res) => {
   try {
@@ -2344,12 +2665,15 @@ export const generateLabReportPDF = async (req, res) => {
         p.dob,
         CONCAT(ut.first_name, ' ', ut.last_name) as tested_by_name,
         CONCAT(uv.first_name, ' ', uv.last_name) as verified_by_name,
-        i.name as lab_name
+        i.name as lab_name,
+        br.branch_name, br.address as branch_address, br.contact_number as branch_contact
       FROM lab_test_result tr
       LEFT JOIN patients p ON tr.patient_id = p.id
       LEFT JOIN users ut ON tr.tested_by = ut.id
       LEFT JOIN users uv ON tr.verified_by = uv.id
       LEFT JOIN bill_items bi ON tr.bill_item_id = bi.id
+      LEFT JOIN bills b ON bi.bill_id = b.id
+      LEFT JOIN branches br ON b.branch_id = br.id
       LEFT JOIN infrastructure i ON bi.lab_id = i.id
       WHERE tr.sample_id = ? AND tr.status = 'Approved'
       ORDER BY tr.verified_at DESC
@@ -2409,13 +2733,16 @@ export const generateLabReportPDF = async (req, res) => {
     // Transform database results to PDF format
     const reportData = {
       hospital_settings: hospitalSettings,
+      branch_name: report.branch_name,
+      branch_address: report.branch_address,
+      branch_contact: report.branch_contact,
       patient_name: report.patient_name || 'Unknown',
       patient_reg_no: report.patient_reg_no || 'N/A',
       sample_id: report.sample_id,
       gender: report.gender || 'N/A',
       age: age,
       referred_by: 'Self', // Could be fetched from doctor if available
-      centre: report.lab_name || hospitalSettings?.hospital_name || 'MERIL HIMS',
+      centre: report.lab_name || report.branch_name || hospitalSettings?.hospital_name || 'MERIL HIMS',
       registration_date: formatDate(report.tested_at),
       tested_by_name: report.tested_by_name || 'N/A',
       tested_at: formatDate(report.tested_at),
@@ -2708,5 +3035,168 @@ export const getKioskReports = async (req, res) => {
   } catch (error) {
     console.error('Kiosk reports error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Public lobby-TV queue display. Deliberately a separate, minimal endpoint
+// rather than exposing getWorklist without auth — that one returns full
+// patient details AND actual results_json, which must never be reachable
+// unauthenticated. This mirrors getWorklist's same queue-numbering logic
+// (sequential per bill_id, computed across the whole day's items so numbers
+// stay stable as items move through the pipeline) but returns only what a
+// public screen may show: patient name, department, queue number.
+export const getKioskQueue = async (req, res) => {
+  try {
+    const { branch_id } = req.query;
+
+    let query = `
+      SELECT
+        bi.id as bill_item_id,
+        b.id as bill_id,
+        CONCAT(p.first_name, ' ', p.last_name) as patient_name,
+        lc.name as department,
+        CASE
+          WHEN tr.status = 'Rerun Requested' THEN 'Rerun Requested'
+          WHEN tr.id IS NOT NULL THEN 'Test Done'
+          ELSE bi.status
+        END as status
+      FROM bill_items bi
+      JOIN bills b ON bi.bill_id = b.id
+      JOIN patients p ON b.patient_id = p.id
+      JOIN lab_tests lt ON bi.service_id = lt.id
+      LEFT JOIN lab_categories lc ON lt.category_id = lc.id
+      LEFT JOIN lab_test_result tr ON bi.sample_id = tr.sample_id
+      WHERE bi.service_type = 'Laboratory'
+      AND bi.status IN ('Pending', 'Collected', 'In Progress', 'Test Done')
+      AND b.payment_status IN ('Pending', 'Partial', 'Paid')
+      AND DATE(b.created_at) = CURDATE()
+    `;
+    const params = [];
+
+    if (branch_id && branch_id !== 'all') {
+      query += ` AND b.branch_id = ?`;
+      params.push(branch_id);
+    }
+
+    query += ` GROUP BY bi.bill_id, bi.id, b.id, p.id, lc.name, tr.id, bi.status`;
+    query += ` ORDER BY b.created_at ASC`;
+
+    const [rows] = await db.query(query, params);
+
+    let currentQueueNo = 1;
+    const billQueueMap = {};
+    const queue = rows
+      .map(item => {
+        if (!billQueueMap[item.bill_id]) billQueueMap[item.bill_id] = currentQueueNo++;
+        return {
+          patient_name: item.patient_name,
+          department: item.department,
+          status: item.status,
+          lab_queue_number: billQueueMap[item.bill_id],
+        };
+      })
+      .filter(item => item.status === 'Pending');
+
+    res.json({ success: true, worklist: queue });
+  } catch (error) {
+    console.error('Kiosk queue error:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching queue' });
+  }
+};
+
+// Public kiosk: patient found their own report via getKioskQueue and asked to
+// have it sent to WhatsApp. Builds the PDF in-process (same reportData shape
+// as generateLabReportPDF, same restriction to status='Approved' — a patient
+// can only ever fetch their own already-finalized report this way) rather
+// than the previous self-HTTP-call to /generate-report-pdf, which always
+// 401'd since that route requires a staff token this caller never has.
+export const sendKioskReportWhatsApp = async (req, res) => {
+  const { sampleId, phone, patientName, testName } = req.body;
+
+  if (!sampleId || !phone) {
+    return res.status(400).json({ success: false, message: 'sampleId and phone are required' });
+  }
+
+  try {
+    const [rows] = await db.query(
+      `SELECT tr.id, tr.sample_id, tr.results_json, tr.notes, p.telephone AS patient_phone
+       FROM lab_test_result tr
+       LEFT JOIN patients p ON tr.patient_id = p.id
+       WHERE tr.sample_id = ? AND tr.status = 'Approved'
+       ORDER BY tr.verified_at DESC
+       LIMIT 1`,
+      [sampleId]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: 'Report not found or not approved' });
+    }
+    const report = rows[0];
+
+    // This is a public, unauthenticated kiosk endpoint (see labRoutes.js) — the
+    // only thing stopping it from sending any patient's report to an arbitrary
+    // attacker-chosen phone number is proving the caller already knows the
+    // phone on file for this sample, the same way authenticatePatientPortal
+    // proves phone+DOB ownership for the patient portal.
+    if (!report.patient_phone || String(report.patient_phone).trim() !== String(phone).trim()) {
+      return res.status(403).json({ success: false, message: 'Phone number does not match our records for this report' });
+    }
+
+    let results = [];
+    try {
+      results = typeof report.results_json === 'string' ? JSON.parse(report.results_json) : (report.results_json || []);
+    } catch (e) { results = []; }
+
+    const reportData = {
+      patient_name: patientName || 'Unknown',
+      sample_id: report.sample_id,
+      tests: [{
+        test_name: testName || 'Lab Test',
+        sample_type: 'Blood Sample',
+        accession_no: report.sample_id,
+        remarks: report.notes || 'Please correlate results clinically.',
+        parameters: results.map(r => ({
+          parameter_name: r.parameter_name || r.parameter_code || 'Unknown',
+          result_value: r.result_value || '',
+          unit: r.unit || '',
+          reference_range: r.reference_range || '',
+          result_flag: (r.result_flag || 'normal').toLowerCase(),
+          is_subheader: r.is_subheader || false
+        }))
+      }]
+    };
+
+    const doc = await generateLabReportPDFStream(reportData);
+    const chunks = [];
+    doc.on('data', chunk => chunks.push(chunk));
+    doc.on('end', async () => {
+      try {
+        const base64Pdf = Buffer.concat(chunks).toString('base64');
+
+        let normalizedPhone = phone.replace(/[\s\-\+]/g, '');
+        if (normalizedPhone.length === 10) normalizedPhone = '91' + normalizedPhone;
+
+        const caption = [
+          `🏥 *JHARKHAND STATE DIAGNOSTIC SERVICES*`,
+          `Powered by *Merilyzer LIS*`,
+          ``,
+          `✅ *Report Ready!*`,
+          `👤 *Patient:* ${patientName || 'Patient'}`,
+          `🔬 *Test:* ${testName || 'Lab Test'}`,
+          `🆔 *Sample ID:* ${sampleId}`,
+          ``,
+          `_Please find your lab report attached as PDF._`,
+          `_Thank you for choosing Meril HIMS._`
+        ].join('\n');
+
+        await sendWhatsAppMessage(normalizedPhone, caption, base64Pdf, `lab-report-${sampleId}.pdf`);
+        res.json({ success: true, message: 'Report sent on WhatsApp successfully' });
+      } catch (sendErr) {
+        console.error('Kiosk WhatsApp send error:', sendErr.message);
+        res.status(500).json({ success: false, message: sendErr.message });
+      }
+    });
+  } catch (error) {
+    console.error('Kiosk WhatsApp send report error:', error.message);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

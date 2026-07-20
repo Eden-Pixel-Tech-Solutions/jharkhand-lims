@@ -19,11 +19,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://lims.poxiatechnologies.com',
+        target: 'http://localhost:7005',
         changeOrigin: true,
         secure: false,
         headers: {
-          Origin: 'https://lims.poxiatechnologies.com'
+          Origin: 'http://localhost:7005'
         }
       }
     },

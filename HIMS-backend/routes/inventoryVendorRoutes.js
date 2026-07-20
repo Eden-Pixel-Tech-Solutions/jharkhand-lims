@@ -7,12 +7,16 @@ import {
   deleteVendor
 } from '../controllers/inventoryVendorController.js';
 
+import { authenticateToken, authorizeRole } from '../middleware/auth.js';
 const router = express.Router();
+router.use(authenticateToken);
+
+const LAB_MANAGE_ROLES = authorizeRole(['Admin', 'Super Admin', 'Lab Head']);
 
 router.get('/', getVendors);
 router.get('/:id', getVendorById);
-router.post('/', createVendor);
-router.put('/:id', updateVendor);
-router.delete('/:id', deleteVendor);
+router.post('/', LAB_MANAGE_ROLES, createVendor);
+router.put('/:id', LAB_MANAGE_ROLES, updateVendor);
+router.delete('/:id', LAB_MANAGE_ROLES, deleteVendor);
 
 export default router;

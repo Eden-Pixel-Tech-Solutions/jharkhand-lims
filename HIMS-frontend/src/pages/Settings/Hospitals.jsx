@@ -23,6 +23,8 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 // ─── Role / Auth Helpers ─────────────────────────────────────────────────────
 const roleLevel = () => localStorage.getItem('role_level') || 'Central';
 const userBranchId = () => localStorage.getItem('branch_id') || '';
+const tok = () => localStorage.getItem('hims_token');
+const authHdr = () => ({ Authorization: `Bearer ${tok()}` });
 const canEdit = (branch) => {
   const rl = roleLevel();
   if (rl === 'Central') return true;
@@ -45,7 +47,7 @@ const TOP_CLASS = { Central: 'top-central', 'Sub-Central': 'top-sub', Center: 't
 // ─── EMPTY CENTER DATA ────────────────────────────────────────────────────────
 const EMPTY_CENTER = {
   district_id: '', branch_name: '', category: '',
-  hospital_code: '', address: '', contact_number: '',
+  hospital_code: '', hmis_hosp_mapping_code: '', address: '', contact_number: '',
   branch_level: 'Center', parent_branch_id: '',
   latitude: '', longitude: ''
 };
@@ -567,6 +569,7 @@ function MapView({ branches, selectedId, onSelect, onCoordsUpdate }) {
 export default function Hospitals() {
   const [branches, setBranches] = useState([]);
   const [districts, setDistricts] = useState([]);
+  const [states, setStates] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('graph'); // 'graph' | 'grid' | 'map'
@@ -580,6 +583,7 @@ export default function Hospitals() {
 
   const [districtData, setDistrictData] = useState({ name: '' });
   const [centerData, setCenterData] = useState(EMPTY_CENTER);
+  const [formStateId, setFormStateId] = useState('');
 
   // Geocoding state
   const [geoStatus, setGeoStatus] = useState('idle'); // 'idle' | 'loading' | 'found' | 'error'
@@ -593,13 +597,18 @@ export default function Hospitals() {
     setLoading(true);
     try {
       const districtId = localStorage.getItem('district_id') || '';
-      const res = await fetch(`${API_BASE}/api/branches?role_level=${roleLevel()}&district_id=${districtId}`);
-      const data = await res.json();
+      const [branchRes, statesRes] = await Promise.all([
+        fetch(`${API_BASE}/api/branches?role_level=${roleLevel()}&district_id=${districtId}`, { headers: authHdr() }),
+        fetch(`${API_BASE}/api/org/states`, { headers: authHdr() }),
+      ]);
+      const data = await branchRes.json();
       if (data.success) {
         setBranches(data.branches || []);
         setCategories(data.categories || []);
         setDistricts(data.districts || []);
       }
+      const stData = await statesRes.json();
+      if (stData.success) setStates(stData.states || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -631,7 +640,7 @@ export default function Hospitals() {
     const url = editDistrictId ? `${API_BASE}/api/branches/district/${editDistrictId}` : `${API_BASE}/api/branches/district`;
     const method = editDistrictId ? 'PUT' : 'POST';
     try {
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(districtData) });
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', ...authHdr() }, body: JSON.stringify(districtData) });
       const data = await res.json();
       if (data.success) { setShowDistrictModal(false); setDistrictData({ name: '' }); setEditDistrictId(null); fetchData(); }
       else alert(data.message || 'Error');
@@ -641,7 +650,7 @@ export default function Hospitals() {
   const handleDeleteDistrict = async (id) => {
     if (!window.confirm('Delete this district?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/branches/district/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/api/branches/district/${id}`, { method: 'DELETE', headers: authHdr() });
       const data = await res.json();
       if (data.success) fetchData(); else alert(data.message || 'Error');
     } catch (err) { console.error(err); }
@@ -652,7 +661,7 @@ export default function Hospitals() {
     const url = editCenterId ? `${API_BASE}/api/branches/center/${editCenterId}` : `${API_BASE}/api/branches/center`;
     const method = editCenterId ? 'PUT' : 'POST';
     try {
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(centerData) });
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', ...authHdr() }, body: JSON.stringify(centerData) });
       const data = await res.json();
       if (data.success) { setShowCenterModal(false); setEditCenterId(null); setCenterData(EMPTY_CENTER); fetchData(); }
       else alert(data.message || 'Error');
@@ -662,7 +671,7 @@ export default function Hospitals() {
   const handleDeleteCenter = async (id) => {
     if (!window.confirm('Delete this facility? Records linked to it may be affected.')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/branches/center/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/api/branches/center/${id}`, { method: 'DELETE', headers: authHdr() });
       const data = await res.json();
       if (data.success) { if (selectedNode?.id === id) setSelectedNode(null); fetchData(); }
       else alert(data.message || 'Error');
@@ -676,6 +685,7 @@ export default function Hospitals() {
       branch_name: branch.branch_name,
       category: branch.category || '',
       hospital_code: branch.hospital_code,
+      hmis_hosp_mapping_code: branch.hmis_hosp_mapping_code || '',
       address: branch.address || '',
       contact_number: branch.contact_number || '',
       branch_level: branch.branch_level || 'Center',
@@ -683,12 +693,15 @@ export default function Hospitals() {
       latitude: branch.latitude || '',
       longitude: branch.longitude || '',
     });
+    const dist = districts.find(d => d.id == branch.district_id);
+    setFormStateId(dist?.state_id ? String(dist.state_id) : '');
     setShowCenterModal(true);
   };
 
   const openNewCenter = () => {
     setEditCenterId(null);
     setCenterData(EMPTY_CENTER);
+    setFormStateId('');
     setGeoStatus('idle');
     setGeoResults([]);
     setGeoError('');
@@ -1092,10 +1105,17 @@ export default function Hospitals() {
                       </select>
                     </div>
                     <div className="h-form-group">
+                      <label>State</label>
+                      <select value={formStateId} onChange={e => { setFormStateId(e.target.value); setCenterData({ ...centerData, district_id: '' }); }}>
+                        <option value="">Select State…</option>
+                        {states.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="h-form-group">
                       <label>District</label>
-                      <select required value={centerData.district_id} onChange={e => setCenterData({ ...centerData, district_id: e.target.value })}>
-                        <option value="">Select District…</option>
-                        {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      <select required value={centerData.district_id} onChange={e => setCenterData({ ...centerData, district_id: e.target.value })} disabled={!formStateId}>
+                        <option value="">{formStateId ? 'Select District…' : 'Select a state first'}</option>
+                        {(formStateId ? districts.filter(d => String(d.state_id) === formStateId) : districts).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                       </select>
                     </div>
                     <div className="h-form-group">
@@ -1118,6 +1138,12 @@ export default function Hospitals() {
                   <input required type="text" value={centerData.hospital_code}
                     onChange={e => setCenterData({ ...centerData, hospital_code: e.target.value.toUpperCase() })}
                     placeholder="e.g. DPHC" maxLength="10" />
+                </div>
+                <div className="h-form-group">
+                  <label>CDAC Hospital Mapping Code <span style={{ fontWeight: 400, color: '#94a3b8' }}>(optional — hmis_hosp_mapping_code, assigned by CDAC)</span></label>
+                  <input type="text" value={centerData.hmis_hosp_mapping_code}
+                    onChange={e => setCenterData({ ...centerData, hmis_hosp_mapping_code: e.target.value })}
+                    placeholder="e.g. 10000 — leave blank if not yet known, or if this branch uses Care HIMS instead" />
                 </div>
                 <div className="h-form-group">
                   <label>Contact Number</label>

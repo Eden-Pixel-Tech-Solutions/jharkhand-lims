@@ -70,9 +70,18 @@ function LabTVMode() {
   const datesList = useRef(getLast7Days()).current;
 
   // ── Data Fetching ────────────────────────────────────────────────────────
+  // Public, unauthenticated kiosk endpoint — deliberately NOT /api/lab/worklist,
+  // which requires a staff login and returns full patient/result detail this
+  // lobby screen has no business exposing. A specific physical kiosk can be
+  // scoped to its own branch via ?branch_id= in the page URL; omitted shows
+  // the queue across all branches.
+  const branchId = new URLSearchParams(window.location.search).get('branch_id');
+
   const fetchWorklist = useCallback(async () => {
     try {
-      const res  = await fetch(`${API_BASE}/api/lab/worklist?department=all`);
+      const params = new URLSearchParams({ department: 'all' });
+      if (branchId) params.set('branch_id', branchId);
+      const res  = await fetch(`${API_BASE}/api/lab/kiosk-queue?${params}`);
       const data = await res.json();
       if (data.success) {
         const pending = data.worklist.filter(item => item.status === 'Pending');
@@ -83,7 +92,7 @@ function LabTVMode() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     fetchWorklist();

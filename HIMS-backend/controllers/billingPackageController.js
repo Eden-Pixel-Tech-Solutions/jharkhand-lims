@@ -91,7 +91,7 @@ const createPackage = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating billing package:', error);
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505') {
       return res.status(409).json({ success: false, message: 'Package with this ID already exists' });
     }
     res.status(500).json({ success: false, message: 'Error creating billing package' });

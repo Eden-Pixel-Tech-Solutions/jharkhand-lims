@@ -226,6 +226,22 @@ const TestParametersSection = ({
                   {/* Basic Info Section */}
                   <div className="form-section">
                     <h4 className="section-title">Basic Information</h4>
+
+                    {/* Machine Output Code — prominent, full-width */}
+                    <div className="form-group machine-code-group">
+                      <label className="machine-code-label">
+                        Machine Output Code
+                        <span className="help-text" title="Exact code sent by the analyzer for this parameter (e.g., 6690-2 for WBC, Na for Sodium). Required for auto-import of results.">?</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={param.machine_parameter_code || ''}
+                        onChange={(e) => handleParamChange(index, 'machine_parameter_code', e.target.value)}
+                        placeholder="e.g., 6690-2 (WBC), Na (Sodium), 718-7 (HGB)"
+                        className="machine-code-input"
+                      />
+                    </div>
+
                     <div className="form-grid-3">
                       <div className="form-group required">
                         <label>
@@ -240,7 +256,7 @@ const TestParametersSection = ({
                           maxLength={10}
                         />
                       </div>
-                      
+
                       <div className="form-group required">
                         <label>Parameter Name</label>
                         <input
@@ -250,7 +266,7 @@ const TestParametersSection = ({
                           placeholder="e.g., Hemoglobin"
                         />
                       </div>
-                      
+
                       <div className="form-group">
                         <label>Unit</label>
                         <input

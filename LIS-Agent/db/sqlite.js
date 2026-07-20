@@ -58,9 +58,13 @@ db.serialize(() => {
       serial_number TEXT
     )
   `);
-  // Migrate existing databases that predate port_type / serial_number columns
+  // Migrate existing databases that predate port_type / serial_number / synced columns
   db.run(`ALTER TABLE analyzer_config ADD COLUMN port_type TEXT`, () => {});
   db.run(`ALTER TABLE analyzer_config ADD COLUMN serial_number TEXT`, () => {});
+  // Whether this machine's config actually reached the HIMS-backend
+  // lab_machines table — the UI "CLOUD SYNCED" badge reads this instead of
+  // assuming every locally-saved machine also made it to the cloud.
+  db.run(`ALTER TABLE analyzer_config ADD COLUMN synced INTEGER DEFAULT 0`, () => {});
   db.run(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
@@ -92,8 +96,8 @@ function getSetting(key) {
 function saveConfig(config) {
   return new Promise((resolve, reject) => {
     const stmt = db.prepare(`
-      INSERT OR REPLACE INTO analyzer_config (unique_id, analyzer_name, model, port, baud, lab_id, lab_name, manufacturer, port_type, serial_number)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO analyzer_config (unique_id, analyzer_name, model, port, baud, lab_id, lab_name, manufacturer, port_type, serial_number, synced)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -107,6 +111,7 @@ function saveConfig(config) {
       config.manufacturer,
       config.portType || null,
       config.serialNumber || null,
+      config.synced ? 1 : 0,
       function (err) {
         if (err) reject(err);
         else resolve(this.lastID);

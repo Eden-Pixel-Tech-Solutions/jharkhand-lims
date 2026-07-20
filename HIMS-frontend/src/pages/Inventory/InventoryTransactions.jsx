@@ -12,6 +12,8 @@ import { appendBranchContext } from '../../utils/branchContext';
 import '../../assets/CSS/InventoryVendors.css'; // Reusing glassmorphic CSS
 
 const API_URL = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
+const authHdr = () => ({ Authorization: `Bearer ${tok()}` });
 
 function InventoryTransactions() {
   const { alert, showAlert, hideAlert } = useAlert();
@@ -61,7 +63,7 @@ function InventoryTransactions() {
       const [itemsRes, batchesRes, branchesRes] = await Promise.all([
         fetch(`${API_URL}/api/v2/inventory/items`),
         fetch(`${API_URL}/api/v2/inventory/batches`),
-        fetch(`${API_URL}/api/branches`)
+        fetch(`${API_URL}/api/branches`, { headers: authHdr() })
       ]);
       const itemsData = await itemsRes.json();
       const batchesData = await batchesRes.json();

@@ -203,15 +203,49 @@ export const logAnalyzerEvent = async (req, res) => {
   }
 };
 
+// lab_machines.lab_id / analyzer_connection_logs.lab_id are infrastructure.id
+// values (a specific lab/department), NOT branches.id — a branch can have
+// zero, one, or several infrastructure/lab records. Callers that only know
+// the branch (e.g. the web Analyzer Connectivity page, scoped off
+// localStorage branch_id) need this resolved first, or they end up filtering
+// lab_machines.lab_id against a branches.id by coincidence of numbering.
+async function resolveInfraIdsForBranch(branchId) {
+  const [rows] = await db.query('SELECT id FROM infrastructure WHERE branch_id = ?', [branchId]);
+  return rows.map(r => r.id);
+}
+
 // Get analyzer connection/disconnection history
 export const getAnalyzerLogs = async (req, res) => {
   try {
-    const { lab_id, machine_id, event, limit = 200 } = req.query;
+    const { lab_id, branch_id, machine_id, event, limit = 200 } = req.query;
 
     let where = [];
     let params = [];
 
-    if (lab_id) { where.push('acl.lab_id = ?'); params.push(lab_id); }
+    if (branch_id) {
+      const infraIds = await resolveInfraIdsForBranch(branch_id);
+      if (infraIds.length === 0) {
+        return res.json({ success: true, logs: [] });
+      }
+      // Scope by which machines are CURRENTLY assigned to this branch's
+      // lab(s), not by whatever lab_id was stamped on each historical log
+      // row — a machine that gets reassigned to a different lab keeps its
+      // full connection history (same as how "Last Online" already matches
+      // on machine_id alone below), instead of that history disappearing
+      // the moment the machine moves.
+      const [machineRows] = await db.query(
+        `SELECT machine_id FROM lab_machines WHERE lab_id IN (${infraIds.map(() => '?').join(',')})`,
+        infraIds
+      );
+      if (machineRows.length === 0) {
+        return res.json({ success: true, logs: [] });
+      }
+      const machineIds = machineRows.map((r) => r.machine_id);
+      where.push(`acl.machine_id IN (${machineIds.map(() => '?').join(',')})`);
+      params.push(...machineIds);
+    } else if (lab_id) {
+      where.push('acl.lab_id = ?'); params.push(lab_id);
+    }
     if (machine_id) { where.push('acl.machine_id = ?'); params.push(machine_id); }
     if (event) { where.push('acl.event = ?'); params.push(event.toUpperCase()); }
 
@@ -248,26 +282,50 @@ export const getAnalyzerLogs = async (req, res) => {
 // Comprehensive stats for admin dashboard
 export const getMachineStats = async (req, res) => {
   try {
-    const { lab_id } = req.query;
-    // Optional WHERE clause when scoping to a single lab
-    const labWhere  = lab_id ? `WHERE lm.lab_id = ${db.escape(lab_id)}`      : '';
-    const labFilter = lab_id ? `WHERE lab_id   = ${db.escape(lab_id)}`        : '';
-    const labJoinWhere = lab_id ? `AND lm.lab_id = ${db.escape(lab_id)}`      : '';
+    const { lab_id, branch_id } = req.query;
 
-    // Overall totals
+    // branch_id (a hospital branch) resolves to every infrastructure/lab
+    // record under it, since lab_machines.lab_id is an infrastructure.id,
+    // not a branches.id — a branch can have zero, one, or several labs.
+    // lab_id, if given directly, scopes to exactly that one lab.
+    let scopeIds = null;
+    if (branch_id) {
+      scopeIds = await resolveInfraIdsForBranch(branch_id);
+      if (scopeIds.length === 0) {
+        return res.json({
+          success: true,
+          totals: { total: 0, online: 0, offline: 0, unknown: 0, tests_today: 0 },
+          brands: [], models: [], labs: [], machines: [],
+        });
+      }
+    } else if (lab_id) {
+      scopeIds = [lab_id];
+    }
+
+    const idList = scopeIds ? scopeIds.map((id) => db.escape(id)).join(',') : null;
+    // Optional WHERE clause when scoping to one or more labs
+    const labWhere  = idList ? `WHERE lm.lab_id IN (${idList})` : '';
+    const labFilter = idList ? `WHERE lab_id   IN (${idList})` : '';
+    const labJoinWhere = idList ? `AND lm.lab_id IN (${idList})` : '';
+
+    // Overall totals. A machine only ever counts as "online" once it's
+    // actually reported in — anything else (freshly registered and never
+    // connected, 'Active'/'Inactive'/'Maintenance' from other flows, NULL)
+    // counts as "offline" so total always equals online + offline; the UI
+    // only has tiles for those two, so a separate "unknown" bucket used to
+    // just vanish from the visible total instead of showing up anywhere.
     const [[totals]] = await db.query(`
       SELECT
         COUNT(*)                                                          AS total,
-        SUM(CASE WHEN status = 'Online'  THEN 1 ELSE 0 END)             AS online,
-        SUM(CASE WHEN status = 'Offline' THEN 1 ELSE 0 END)             AS offline,
-        SUM(CASE WHEN status NOT IN ('Online','Offline') OR status IS NULL THEN 1 ELSE 0 END) AS unknown
+        SUM(CASE WHEN status = 'Online' THEN 1 ELSE 0 END)               AS online,
+        SUM(CASE WHEN status != 'Online' OR status IS NULL THEN 1 ELSE 0 END) AS offline
       FROM lab_machines
       ${labFilter}
     `);
 
-    // Tests done today (scoped to lab if provided)
-    const testWhere = lab_id
-      ? `WHERE ltr.tested_at >= CURDATE() AND ltr.machine_no IN (SELECT machine_id FROM lab_machines WHERE lab_id = ${db.escape(lab_id)})`
+    // Tests done today (scoped to lab(s) if provided)
+    const testWhere = idList
+      ? `WHERE ltr.tested_at >= CURDATE() AND ltr.machine_no IN (SELECT machine_id FROM lab_machines WHERE lab_id IN (${idList}))`
       : `WHERE tested_at >= CURDATE()`;
     const [[testStats]] = await db.query(
       `SELECT COUNT(*) AS tests_today FROM lab_test_result ltr ${testWhere}`
@@ -278,8 +336,8 @@ export const getMachineStats = async (req, res) => {
       SELECT
         COALESCE(manufacturer, 'Unknown')                                AS brand,
         COUNT(*)                                                          AS total,
-        SUM(CASE WHEN status = 'Online'  THEN 1 ELSE 0 END)             AS online,
-        SUM(CASE WHEN status = 'Offline' THEN 1 ELSE 0 END)             AS offline
+        SUM(CASE WHEN status = 'Online' THEN 1 ELSE 0 END)               AS online,
+        SUM(CASE WHEN status != 'Online' OR status IS NULL THEN 1 ELSE 0 END) AS offline
       FROM lab_machines
       ${labFilter}
       GROUP BY manufacturer
@@ -292,24 +350,24 @@ export const getMachineStats = async (req, res) => {
         COALESCE(model, 'Unknown')                                        AS model,
         COALESCE(manufacturer, 'Unknown')                                 AS brand,
         COUNT(*)                                                          AS total,
-        SUM(CASE WHEN status = 'Online'  THEN 1 ELSE 0 END)             AS online,
-        SUM(CASE WHEN status = 'Offline' THEN 1 ELSE 0 END)             AS offline
+        SUM(CASE WHEN status = 'Online' THEN 1 ELSE 0 END)               AS online,
+        SUM(CASE WHEN status != 'Online' OR status IS NULL THEN 1 ELSE 0 END) AS offline
       FROM lab_machines
       ${labFilter}
       GROUP BY model, manufacturer
       ORDER BY total DESC
     `);
 
-    // Lab / Hospital-wise (omit for single-lab view)
+    // Lab / Hospital-wise (omit when scoped to specific lab(s))
     let labs = [];
-    if (!lab_id) {
+    if (!scopeIds) {
       [labs] = await db.query(`
         SELECT
           COALESCE(i.name, 'Unassigned')                                 AS lab_name,
           lm.lab_id,
           COUNT(lm.id)                                                    AS total,
-          SUM(CASE WHEN lm.status = 'Online'  THEN 1 ELSE 0 END)       AS online,
-          SUM(CASE WHEN lm.status = 'Offline' THEN 1 ELSE 0 END)       AS offline
+          SUM(CASE WHEN lm.status = 'Online' THEN 1 ELSE 0 END)         AS online,
+          SUM(CASE WHEN lm.status != 'Online' OR lm.status IS NULL THEN 1 ELSE 0 END) AS offline
         FROM lab_machines lm
         LEFT JOIN infrastructure i ON lm.lab_id = i.id
         GROUP BY lm.lab_id, i.name
@@ -328,7 +386,7 @@ export const getMachineStats = async (req, res) => {
         lm.serial_number,
         lm.interface_type,
         lm.port_ip,
-        COALESCE(lm.status, 'Unknown')         AS status,
+        CASE WHEN lm.status = 'Online' THEN 'Online' ELSE 'Offline' END AS status,
         lm.lab_id,
         COALESCE(i.name, 'Unassigned')         AS lab_name,
         (SELECT MAX(acl.created_at) FROM analyzer_connection_logs acl

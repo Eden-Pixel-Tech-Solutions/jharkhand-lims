@@ -15,7 +15,7 @@ import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
 import '../../assets/CSS/HospitalInfra.css';
 
-const INFRA_TYPES = ['Lab'];
+const INFRA_TYPES = ['Room', 'Lab', 'Ward', 'ICU', 'Operation Theater', 'Pharmacy'];
 const DEFAULT_STATUS = ['Available', 'Occupied', 'Maintenance'];
 
 function HospitalInfra() {
@@ -64,7 +64,7 @@ function HospitalInfra() {
         url += `&branch_id=${branchId}`;
       }
 
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('hims_token')}` } });
       const data = await res.json();
       if (data.success) setItems(data.items);
     } catch (err) {
@@ -112,7 +112,7 @@ function HospitalInfra() {
       const roleLevel = localStorage.getItem('role_level');
       const url = `${API_BASE}/api/infra/delete/${id}?branch_id=${branchId}&role_level=${roleLevel}`;
 
-      const res = await fetch(url, { method: 'DELETE' });
+      const res = await fetch(url, { method: 'DELETE', headers: { Authorization: `Bearer ${localStorage.getItem('hims_token')}` } });
       const data = await res.json();
       if (data.success) fetchInfra();
     } catch (err) { console.error(err); }
@@ -120,6 +120,7 @@ function HospitalInfra() {
 
   // ── Lab Machines Handlers ──
   const API_BASE = import.meta.env.VITE_API_URL || '';
+  const authHdr = () => ({ Authorization: `Bearer ${localStorage.getItem('hims_token')}` });
 
   const openMachinesModal = async (lab) => {
     setSelectedLab(lab);
@@ -130,7 +131,7 @@ function HospitalInfra() {
 
   const fetchLabMachines = async (labId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/lab/machines/${labId}`);
+      const res = await fetch(`${API_BASE}/api/lab/machines/${labId}`, { headers: authHdr() });
       const data = await res.json();
       if (data.success) setLabMachines(data.machines);
     } catch (err) { console.error('Error fetching machines:', err); }
@@ -141,7 +142,7 @@ function HospitalInfra() {
     try {
       const res = await fetch(`${API_BASE}/api/lab/machines`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
         body: JSON.stringify({
           lab_id: selectedLab.id,
           machine_id: machineForm.machine_id,
@@ -168,7 +169,7 @@ function HospitalInfra() {
     try {
       const res = await fetch(`${API_BASE}/api/lab/machines/${machineId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
         body: JSON.stringify({ status })
       });
       const data = await res.json();
@@ -179,7 +180,7 @@ function HospitalInfra() {
   const handleDeleteMachine = async (machineId) => {
     if (!window.confirm('Are you sure you want to delete this machine?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/lab/machines/${machineId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/api/lab/machines/${machineId}`, { method: 'DELETE', headers: authHdr() });
       const data = await res.json();
       if (data.success) {
         await fetchLabMachines(selectedLab.id);
@@ -208,7 +209,7 @@ function HospitalInfra() {
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('hims_token')}` },
         body: JSON.stringify(payload)
       });
       const data = await res.json();

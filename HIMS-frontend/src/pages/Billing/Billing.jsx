@@ -6,6 +6,7 @@ import JsBarcode from 'jsbarcode';
 import '../../assets/CSS/PatientRegistration.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
 
 
 
@@ -20,7 +21,7 @@ function Billing({ regNo, patientId, bookingData, onFinish }) {
   const [availableServices, setAvailableServices] = useState({ laboratory: [], appointments: [] });
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/billing/services/available`)
+    fetch(`${API_BASE}/api/billing/services/available`, { headers: { Authorization: `Bearer ${tok()}` } })
       .then(r => r.json())
       .then(d => {
         if (d.success) setAvailableServices(d.data);
@@ -42,7 +43,7 @@ function Billing({ regNo, patientId, bookingData, onFinish }) {
   const [regFee, setRegFee] = useState(15.00);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/settings`)
+    fetch(`${API_BASE}/api/settings`, { headers: { Authorization: `Bearer ${tok()}` } })
       .then(r => r.json())
       .then(d => {
         if (d.success && d.data && d.data.registration_fee !== undefined) {
@@ -62,7 +63,7 @@ function Billing({ regNo, patientId, bookingData, onFinish }) {
     }
     // Fall back: look up patient by regNo
     if (regNo) {
-      fetch(`${API_BASE}/api/billing/patients/list`)
+      fetch(`${API_BASE}/api/billing/patients/list`, { headers: { Authorization: `Bearer ${tok()}` } })
         .then(r => r.json())
         .then(d => {
           if (d.success) {
@@ -80,7 +81,7 @@ function Billing({ regNo, patientId, bookingData, onFinish }) {
   useEffect(() => {
     const branchId = localStorage.getItem('branch_id');
     // Fetch only the lab(s) that belong to the current user's branch
-    fetch(`${API_BASE}/api/infra?type=Lab${branchId ? `&branch_id=${branchId}` : ''}`)
+    fetch(`${API_BASE}/api/infra?type=Lab${branchId ? `&branch_id=${branchId}` : ''}`, { headers: { Authorization: `Bearer ${tok()}` } })
       .then(r => r.json())
       .then(d => {
         if (d.success && d.items) {
@@ -158,7 +159,7 @@ function Billing({ regNo, patientId, bookingData, onFinish }) {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/billing-packages?is_active=true`);
+        const res = await fetch(`${API_BASE}/api/billing-packages?is_active=true`, { headers: { Authorization: `Bearer ${tok()}` } });
         const data = await res.json();
         if (data.success) {
           setPackages(data.packages.map(pkg => ({
@@ -258,7 +259,7 @@ function Billing({ regNo, patientId, bookingData, onFinish }) {
       if (invoice && invoice.billingId && showModify) {
         res = await fetch(`${API_BASE}/api/billing/${invoice.billingId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok()}` },
           body: JSON.stringify({
             patient_id: resolvedPatientId,
             items: mappedItems,
@@ -274,7 +275,7 @@ function Billing({ regNo, patientId, bookingData, onFinish }) {
       } else {
         res = await fetch(`${API_BASE}/api/billing/create`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok()}` },
           body: JSON.stringify({
             patient_id: resolvedPatientId,
             patient_name: regNo,
@@ -285,7 +286,14 @@ function Billing({ regNo, patientId, bookingData, onFinish }) {
             paid_amount: effectivePaidAmount,
             notes: amountGiven ? `Amount Given: ₹${parseFloat(amountGiven).toFixed(2)}` : '',
             overwrite_duplicates: overwriteDuplicates,
-            user_id: userId
+            user_id: userId,
+            appointment_booking: bookingData?.appointment ? {
+              doctor: bookingData.appointment.doctor,
+              doctor_id: bookingData.appointment.doctor_id ?? null,
+              department: bookingData.appointment.department,
+              apptDate: bookingData.appointment.apptDate,
+              apptTime: bookingData.appointment.apptTime,
+            } : null,
           }),
         });
       }

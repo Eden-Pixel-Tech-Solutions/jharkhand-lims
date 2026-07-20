@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import DOMPurify from 'dompurify';
+import { useCaptcha } from '../../hooks/useCaptcha';
 
 const API = import.meta.env.VITE_API_URL || '';
 
@@ -9,19 +11,27 @@ export default function DeveloperLogin() {
   const [step, setStep]       = useState('email'); // 'email' | 'otp'
   const [email, setEmail]     = useState('');
   const [otp, setOtp]         = useState('');
+  const [captchaText, setCaptchaText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
   const [info, setInfo]       = useState('');
+  const { svg: captchaSvg, captchaId, refresh: refreshCaptcha, applyCaptcha } = useCaptcha();
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
+    if (!captchaText) {
+      setError('Please enter the captcha text.');
+      return;
+    }
     setError(''); setLoading(true);
     try {
-      await axios.post(`${API}/api/dev/send-otp`, { email });
+      await axios.post(`${API}/api/dev/send-otp`, { email, captchaId, captchaText });
       setInfo(`OTP sent to ${email}`);
       setStep('otp');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to send OTP');
+      setCaptchaText('');
+      applyCaptcha(err.response?.data?.captcha);
     } finally {
       setLoading(false);
     }
@@ -33,6 +43,7 @@ export default function DeveloperLogin() {
     try {
       const { data } = await axios.post(`${API}/api/dev/verify-otp`, { email, otp });
       localStorage.setItem('dev_token', data.token);
+      if (data.csrfToken) localStorage.setItem('dev_csrf', data.csrfToken);
       navigate('/developer/panel');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid OTP');
@@ -83,6 +94,34 @@ export default function DeveloperLogin() {
               required
               style={styles.input}
               autoFocus
+            />
+            <label style={styles.label}>Captcha</label>
+            <div style={styles.captchaRow}>
+              <div
+                style={styles.captchaImage}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(captchaSvg, { USE_PROFILES: { svg: true, svgFilters: true } }) }}
+              />
+              <button
+                type="button"
+                style={styles.captchaRefresh}
+                onClick={() => { setCaptchaText(''); refreshCaptcha(); }}
+                aria-label="Refresh captcha"
+                title="Refresh captcha"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M23 4v6h-6M1 20v-6h6" />
+                  <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                </svg>
+              </button>
+            </div>
+            <input
+              type="text"
+              value={captchaText}
+              onChange={e => setCaptchaText(e.target.value)}
+              placeholder="Enter the text shown above"
+              required
+              style={styles.input}
+              autoComplete="off"
             />
             <button type="submit" disabled={loading} style={styles.btn}>
               {loading ? 'Sending…' : 'Send OTP →'}
@@ -165,6 +204,18 @@ const styles = {
     background: '#0f172a', border: '1px solid #334155', borderRadius: '8px',
     color: '#f1f5f9', padding: '12px 14px', fontSize: '16px', outline: 'none',
     transition: 'border-color .2s',
+  },
+  captchaRow: { display: 'flex', alignItems: 'center', gap: '10px' },
+  captchaImage: {
+    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: '#f1f5f9', border: '1px solid #334155', borderRadius: '8px',
+    height: '52px', overflow: 'hidden',
+  },
+  captchaRefresh: {
+    flex: 'none', width: '42px', height: '42px', display: 'flex',
+    alignItems: 'center', justifyContent: 'center',
+    background: '#0f172a', border: '1px solid #334155', borderRadius: '8px',
+    color: '#94a3b8', cursor: 'pointer',
   },
   btn: {
     background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',

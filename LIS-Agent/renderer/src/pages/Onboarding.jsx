@@ -9,7 +9,8 @@ const ANALYZERS = [
   { brand: 'Sysmex', model: 'XP-100' },
   { brand: 'HDC India', model: 'HDC-LYTE PRO' },
   { brand: 'Erba Mannheim', model: 'LAURA Smart' },
-  { brand: 'Athenese Dx', model: 'ALTA Hematology' }
+  { brand: 'Athenese Dx', model: 'ALTA Hematology' },
+  { brand: 'Athenese Dx', model: 'ADX-AUTOCHEM-200' }
 ];
 
 const DIALOGUE = {

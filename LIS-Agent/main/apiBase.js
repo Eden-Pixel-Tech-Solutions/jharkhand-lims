@@ -1,14 +1,15 @@
 // Single source of truth for the HIMS-backend base URL used by the Electron main process.
-// Override via the LIS_API_BASE_URL environment variable for non-local deployments.
-const rawBase = process.env.LIS_API_BASE_URL || 'http://localhost:7005';
+// Override via the LIS_API_BASE_URL environment variable for non-production deployments.
+const PRODUCTION_API_BASE = 'https://lims.poxiatechnologies.com';
+const rawBase = process.env.LIS_API_BASE_URL || PRODUCTION_API_BASE;
 
 function resolve(url) {
   let parsed;
   try {
     parsed = new URL(url);
   } catch {
-    console.error(`Invalid LIS_API_BASE_URL "${url}" — falling back to http://localhost:7005`);
-    return 'http://localhost:7005';
+    console.error(`Invalid LIS_API_BASE_URL "${url}" — falling back to ${PRODUCTION_API_BASE}`);
+    return PRODUCTION_API_BASE;
   }
 
   const isLoopback = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname === '::1';

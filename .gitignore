@@ -10,6 +10,13 @@ node_modules/
 .env.test.local
 .env.production.local
 
+# Postman collections (may contain live tokens/API keys)
+*.postman_collection
+*.postman_environment
+
+# Integration spec docs with embedded live credentials
+CARE_HMIS.md
+
 # Build outputs
 dist/
 build/
@@ -36,9 +43,6 @@ yarn-error.log*
 /LIS-Agent/db/*.db-journal
 /LIS-Agent/lis-agent.sqlite
 
-# Electron build output (electron-builder release artifacts — large binaries)
-/LIS-Agent/release/
-
 # WhatsApp Bot specifics
 /WhatsApp-chat-bot/.wwebjs_auth/
 /WhatsApp-chat-bot/.wwebjs_cache/
@@ -55,3 +59,39 @@ venv/
 # Tender scraper runtime output
 putty-test/captcha_solver/Scrapper/tender_documents/
 putty-test/captcha_solver/Scrapper/row_data_cppp_states_diagno.csv
+
+# Stray venv left outside the standard venv/.venv names above
+py/venv311/
+
+# Claude Code local tool config — not application code
+.claude/
+
+# Confidential third-party security audit deliverables — the VAPT report
+# itself restricts distribution to its named recipient list, so these must
+# never land in version control (repo access != authorized recipient).
+VAPT.pdf
+Acunetix Report.pdf
+Burp Report.html
+Zap Report.html
+JH-LIMS-VAPT.zip
+JH-LIMS-VAPT/
+
+# Unrelated large/binary artifacts that don't belong in source control
+customerApp/
+LIS-Agent.zip
+app-release.apk
+GeM-Bidding-9559616.pdf
+
+# Electron build output (electron-builder release artifacts — large binaries).
+# Restoring this rule: it was dropped from .gitignore at some point, which
+# would otherwise let 337MB of Chromium license/binary output back into git.
+/LIS-Agent/release/
+
+# Android generated build output (gradle build/, native .cxx/, local SDK
+# path config) — android/app/build/ alone runs ~2.7GB and is fully
+# reproducible from android/app/src/, so it must never be committed.
+SampleCollector-App/android/app/build/
+SampleCollector-App/android/app/.cxx/
+SampleCollector-App/android/build/
+SampleCollector-App/android/.gradle/
+SampleCollector-App/android/local.properties

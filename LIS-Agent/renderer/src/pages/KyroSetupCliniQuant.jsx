@@ -139,19 +139,35 @@ const KyroSetupCliniQuant = () => {
     try {
       const uniqueId = await generateUniqueId();
       const lab = labs.find(l => l.id == labId);
+
+      // Sync first so the local record can honestly reflect whether it
+      // actually reached the backend, rather than always saving locally and
+      // assuming the cloud call succeeded (see Setup.jsx for the same fix).
+      let synced = false;
+      try {
+        await axios.post(`${API_BASE}/api/lab/machines/sync`, {
+          lab_id: lab.id, machine_id: uniqueId, name: uniqueId,
+          model: 'CliniQuant Micro', manufacturer: 'Meril',
+          serial_number: serialNumber.trim(), interface_type: 'USB',
+          port_ip: detectedPort.path, baud_rate: 9600,
+        });
+        synced = true;
+      } catch (syncErr) {
+        console.error('Cloud sync failed:', syncErr);
+      }
+
       await window.electronAPI.saveConfig({
         uniqueId, name: uniqueId, model: 'CliniQuant Micro',
         port: detectedPort.path, baud: 9600,
         labId: lab.id, labName: lab.name,
         manufacturer: 'Meril', serialNumber: serialNumber.trim(),
+        synced,
       });
-      await axios.post(`${API_BASE}/api/lab/machines/sync`, {
-        lab_id: lab.id, machine_id: uniqueId, name: uniqueId,
-        model: 'CliniQuant Micro', manufacturer: 'Meril',
-        serial_number: serialNumber.trim(), interface_type: 'USB',
-        port_ip: detectedPort.path, baud_rate: 9600,
-      });
-      setIsSynced(true);
+
+      setIsSynced(synced);
+      if (!synced) {
+        alert('Saved locally, but could NOT sync to the cloud — this machine will not appear on the web dashboard yet. Check your connection and try Save again.');
+      }
     } catch (err) {
       console.error('Save error:', err);
       alert('Error saving configuration.');

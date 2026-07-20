@@ -7,7 +7,7 @@ const API = import.meta.env.VITE_API_URL || '';
 
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('dev_token')}` });
 
-const ROLES = ['Admin', 'Doctor', 'Lab Technician', 'Lab Doctor', 'Lab Head', 'Receptionist', 'Pharmacist', 'Nurse', 'Lab Admin'];
+const ROLES = ['Admin', 'Doctor', 'Lab Technician', 'Lab Doctor', 'Lab Head', 'Receptionist', 'Pharmacist', 'Nurse'];
 const ROLE_LEVELS = ['Central', 'Sub-Central', 'Branch'];
 const BRANCH_LEVELS = ['Central', 'Sub-Central', 'Center'];
 const LAB_STATUSES = ['Available', 'Occupied', 'Maintenance'];
@@ -557,6 +557,7 @@ export default function DeveloperPanel() {
         const status = err.response?.status;
         if (status === 401 || status === 403) {
           localStorage.removeItem('dev_token');
+          localStorage.removeItem('dev_csrf');
           navigate('/developer');
         }
         // Any other error (500, network) — stay on the page, show empty stats
@@ -567,7 +568,7 @@ export default function DeveloperPanel() {
       .catch(() => {});
   }, [navigate]);
 
-  const logout = () => { localStorage.removeItem('dev_token'); navigate('/developer'); };
+  const logout = () => { localStorage.removeItem('dev_token'); localStorage.removeItem('dev_csrf'); navigate('/developer'); };
 
   const TABS = [
     { id: 'overview',   label: '📊 Overview' },

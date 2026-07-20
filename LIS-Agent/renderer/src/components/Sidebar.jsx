@@ -22,12 +22,13 @@ const Sidebar = () => {
     { name: 'Activity Logs', path: '/logs', icon: '📝' },
     { name: 'Inventory', path: '/inventory', icon: '📦' },
     { name: 'Machine Setup', path: '/setup', icon: '🛠️' },
+    { name: 'Master Sheet', path: '/master-sheet', icon: '📖' },
     { name: 'Demos', path: '/demos', icon: '📺' },
     { name: 'Settings', path: '/settings', icon: '⚙️' },
   ];
 
   return (
-    <div style={{
+    <div className="no-print" style={{
       width: '240px',
       height: '100vh',
       background: '#0f172a',
@@ -66,8 +67,16 @@ const Sidebar = () => {
       </nav>
 
       <div style={{ padding: '16px', borderTop: '1px solid #1e293b' }}>
-        <button 
-          onClick={() => navigate('/')}
+        <button
+          onClick={() => {
+            localStorage.removeItem('hims_token');
+            localStorage.removeItem('branch_id');
+            localStorage.removeItem('role');
+            localStorage.removeItem('role_level');
+            localStorage.removeItem('user');
+            window.electronAPI.saveSetting('authToken', '').catch(() => {});
+            navigate('/');
+          }}
           style={{
             width: '100%',
             padding: '10px',

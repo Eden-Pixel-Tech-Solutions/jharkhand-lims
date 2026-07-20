@@ -5,6 +5,7 @@ import '../../assets/CSS/PatientRegistration.css';
 import '../../assets/CSS/BillingPackages.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
 
 const DEFAULT_ITEMS = [
   { name: 'Consultation Fee', amount: 0 },
@@ -41,7 +42,7 @@ function BillingPackages() {
 
   const fetchDepartments = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/departments?is_active=true`);
+      const res = await fetch(`${API_BASE}/api/departments?is_active=true`, { headers: { Authorization: `Bearer ${tok()}` } });
       const data = await res.json();
       if (data.success && data.departments.length > 0) {
         setDepartments(data.departments.map(d => d.name));
@@ -54,7 +55,7 @@ function BillingPackages() {
 
   const fetchPackages = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/billing-packages?is_active=true`);
+      const res = await fetch(`${API_BASE}/api/billing-packages?is_active=true`, { headers: { Authorization: `Bearer ${tok()}` } });
       const data = await res.json();
       if (data.success) {
         const mapped = data.packages.map(pkg => ({
@@ -110,7 +111,7 @@ function BillingPackages() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this package?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/billing-packages/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/api/billing-packages/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${tok()}` } });
       const data = await res.json();
       if (data.success) {
         setPackages(prev => prev.filter(p => p.id !== id));
@@ -185,7 +186,7 @@ function BillingPackages() {
       if (editingPackage) {
         const res = await fetch(`${API_BASE}/api/billing-packages/${editingPackage.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok()}` },
           body: JSON.stringify(payload)
         });
         const data = await res.json();
@@ -200,7 +201,7 @@ function BillingPackages() {
         payload.package_id = 'PKG-' + Math.floor(1000 + Math.random() * 9000);
         const res = await fetch(`${API_BASE}/api/billing-packages`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok()}` },
           body: JSON.stringify(payload)
         });
         const data = await res.json();

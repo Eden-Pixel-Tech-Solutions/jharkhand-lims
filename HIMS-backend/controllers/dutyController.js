@@ -76,6 +76,56 @@ export const deleteDutySchedule = async (req, res) => {
   }
 };
 
+// GET /api/duty/slots?doctor_id=X&date=YYYY-MM-DD
+// Returns 15-min time slots within doctor's duty hours with per-slot booking counts
+export const getDutySlots = async (req, res) => {
+  try {
+    const { doctor_id, date } = req.query;
+    if (!doctor_id || !date) {
+      return res.status(400).json({ success: false, message: 'doctor_id and date required' });
+    }
+
+    const [[duty]] = await db.query(
+      `SELECT start_time, end_time FROM duty_schedules
+       WHERE doctor_id = ? AND duty_date = ? AND status != 'Cancelled'
+       ORDER BY id DESC LIMIT 1`,
+      [doctor_id, date]
+    );
+
+    const SLOT_MIN = 15;
+    let startMin = 9 * 60, endMin = 17 * 60;
+    if (duty) {
+      const [sh, sm] = duty.start_time.split(':').map(Number);
+      const [eh, em] = duty.end_time.split(':').map(Number);
+      startMin = sh * 60 + sm;
+      endMin   = eh * 60 + em;
+    }
+
+    const slotTimes = [];
+    for (let cur = startMin; cur < endMin; cur += SLOT_MIN) {
+      const h = String(Math.floor(cur / 60)).padStart(2, '0');
+      const m = String(cur % 60).padStart(2, '0');
+      slotTimes.push(`${h}:${m}`);
+    }
+
+    const [appts] = await db.query(
+      `SELECT TIME_FORMAT(appt_time, '%H:%i') as slot, COUNT(*) as cnt
+       FROM appointments
+       WHERE doctor_id = ? AND appt_date = ?
+       GROUP BY slot`,
+      [doctor_id, date]
+    );
+    const countMap = {};
+    appts.forEach(a => { countMap[a.slot] = Number(a.cnt); });
+
+    const slots = slotTimes.map(time => ({ time, booked: countMap[time] || 0 }));
+    res.json({ success: true, slots, hasDuty: !!duty });
+  } catch (error) {
+    console.error('Error fetching duty slots:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Get doctors on duty for a specific date and time — scoped to branch
 export const getAvailableDoctors = async (req, res) => {
   try {

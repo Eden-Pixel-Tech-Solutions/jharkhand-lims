@@ -11,6 +11,8 @@ import '../../assets/CSS/MachineNetwork.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 const POLL_MS  = 30_000;
+const tok = () => localStorage.getItem('hims_token');
+const authHdr = () => ({ Authorization: `Bearer ${tok()}` });
 const OFFLINE_ALERT_HOURS = 2;
 
 const BRAND_COLORS = ['#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#10b981','#ef4444','#ec4899'];
@@ -133,8 +135,8 @@ export default function MachineNetwork() {
   const fetchAll = async () => {
     try {
       const [sRes, lRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/lab/machine-stats`),
-        axios.get(`${API_BASE}/api/lab/analyzer-logs`, { params: { limit: 1000 } }),
+        axios.get(`${API_BASE}/api/lab/machine-stats`, { headers: authHdr() }),
+        axios.get(`${API_BASE}/api/lab/analyzer-logs`, { params: { limit: 1000 }, headers: authHdr() }),
       ]);
       if (sRes.data.success) setStats(sRes.data);
       if (lRes.data.success) setLogs(lRes.data.logs || []);

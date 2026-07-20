@@ -6,7 +6,9 @@ import {
   getOverallStock,
 } from '../controllers/inventoryNetworkController.js';
 
+import { authenticateToken } from '../middleware/auth.js';
 const router = express.Router();
+router.use(authenticateToken);
 
 router.get('/central',     getCentralInventoryStats);
 router.get('/sub-central', getSubCentralInventoryStats);

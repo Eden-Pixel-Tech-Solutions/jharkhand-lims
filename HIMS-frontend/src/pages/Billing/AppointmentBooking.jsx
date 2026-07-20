@@ -5,6 +5,7 @@ import { useAlert } from '../../hooks/useAlert';
 import '../../assets/CSS/PatientRegistration.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
 
 function AppointmentBooking({ regNo, onSaveSuccess }) {
   const { alert, showAlert, hideAlert } = useAlert();
@@ -16,8 +17,14 @@ function AppointmentBooking({ regNo, onSaveSuccess }) {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  const getLocalDate = () => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+  };
+
   const [searchFilters, setSearchFilters] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDate(),
     time: '10:00',
     department: ''
   });
@@ -25,12 +32,48 @@ function AppointmentBooking({ regNo, onSaveSuccess }) {
   const [data, setData] = useState({
     department: '',
     doctor: '',
-    apptDate: new Date().toISOString().split('T')[0],
+    apptDate: getLocalDate(),
     apptTime: '10:00',
     priority: 'Routine',
     reason: '',
     price: 0
   });
+
+  // Time slot picker state
+  const [slots, setSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [hasDuty, setHasDuty] = useState(null); // null=not fetched, true/false
+
+  const fetchSlots = async (doctorId, date) => {
+    if (!doctorId || !date) return;
+    setSlotsLoading(true);
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/duty/slots?doctor_id=${doctorId}&date=${date}`,
+        { headers: { Authorization: `Bearer ${tok()}` } }
+      );
+      const d = await res.json();
+      if (d.success) {
+        setSlots(d.slots);
+        setHasDuty(d.hasDuty);
+        // Auto-select first future free slot
+        const now = new Date();
+        const curMin = now.getHours() * 60 + now.getMinutes();
+        const isToday = date === getLocalDate();
+        const future = d.slots.filter(s => {
+          if (!isToday) return true;
+          const [h, m] = s.time.split(':').map(Number);
+          return h * 60 + m >= curMin;
+        });
+        const times = future.map(s => s.time);
+        if (!times.includes(data.apptTime) && times.length > 0) {
+          const firstFree = future.find(s => s.booked === 0) || future[0];
+          setData(p => ({ ...p, apptTime: firstFree.time }));
+        }
+      }
+    } catch { /* silent */ }
+    setSlotsLoading(false);
+  };
 
   // Lab test booking state
   const [services, setServices] = useState({ laboratory: [], appointments: [] });
@@ -42,7 +85,7 @@ function AppointmentBooking({ regNo, onSaveSuccess }) {
   // Fetch departments from backend
   const fetchDepartments = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/departments?is_active=true`);
+      const res = await fetch(`${API_BASE}/api/departments?is_active=true`, { headers: { Authorization: `Bearer ${tok()}` } });
       const data = await res.json();
       if (data.success) {
         setDepartments(data.departments.map(d => d.name));
@@ -63,10 +106,19 @@ function AppointmentBooking({ regNo, onSaveSuccess }) {
     }
   }, [data.apptDate, data.apptTime]);
 
+  useEffect(() => {
+    if (data.doctor_id && data.apptDate) {
+      fetchSlots(data.doctor_id, data.apptDate);
+    } else {
+      setSlots([]);
+      setHasDuty(null);
+    }
+  }, [data.doctor_id, data.apptDate]);
+
   const fetchAvailableDoctors = async (date, time) => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/api/duty/available?date=${date}&time=${time}`);
+      const res = await fetch(`${API_BASE}/api/duty/available?date=${date}&time=${time}`, { headers: { Authorization: `Bearer ${tok()}` } });
       const result = await res.json();
 
       if (result.success) {
@@ -106,7 +158,7 @@ function AppointmentBooking({ regNo, onSaveSuccess }) {
       let url = `${API_BASE}/api/duty/available?date=${date}&time=${time}`;
       if (department) url += `&department=${encodeURIComponent(department)}`;
 
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${tok()}` } });
       const result = await res.json();
 
       if (result.success) {
@@ -130,13 +182,13 @@ function AppointmentBooking({ regNo, onSaveSuccess }) {
     }
 
     if (name === 'doctor') {
-      // Look up matching doctor in doctorsData to get their price
+      // Look up matching doctor in doctorsData to get their price and ID
       const matched = doctorsData.find(
         d =>
           `Dr. ${d.first_name} ${d.last_name}` === value &&
           d.department === data.department
       );
-      setData(p => ({ ...p, doctor: value, price: matched?.price ?? 0 }));
+      setData(p => ({ ...p, doctor: value, doctor_id: matched?.id ?? null, price: matched?.price ?? 0 }));
       return;
     }
 
@@ -152,6 +204,7 @@ function AppointmentBooking({ regNo, onSaveSuccess }) {
       ...p,
       department: doc.department,
       doctor: fullName,
+      doctor_id: doc.id,
       apptDate: searchFilters.date,
       apptTime: searchFilters.time,
       price: doc.price ?? 0   // price comes directly from the API row
@@ -214,7 +267,7 @@ function AppointmentBooking({ regNo, onSaveSuccess }) {
   const fetchServices = async () => {
     try {
       setLabLoading(true);
-      const res = await fetch(`${API_BASE}/api/billing/services/available`);
+      const res = await fetch(`${API_BASE}/api/billing/services/available`, { headers: { Authorization: `Bearer ${tok()}` } });
       const result = await res.json();
       if (result.success) {
         setServices(result.data || { laboratory: [], appointments: [] });
@@ -427,12 +480,92 @@ function AppointmentBooking({ regNo, onSaveSuccess }) {
 
                 <div className="preg-field">
                   <label className="preg-label">Appointment Date *</label>
-                  <input className="preg-input" type="date" name="apptDate" value={data.apptDate} onChange={ch} min={new Date().toISOString().split('T')[0]} />
+                  <input className="preg-input" type="date" name="apptDate" value={data.apptDate} onChange={ch} min={getLocalDate()} />
                 </div>
 
-                <div className="preg-field">
-                  <label className="preg-label">Preferred Time</label>
-                  <input className="preg-input" type="time" name="apptTime" value={data.apptTime} onChange={ch} />
+                <div className="preg-field preg-col-span-2" style={{ gridColumn: '1 / -1' }}>
+                  <label className="preg-label">
+                    Time Slot
+                    {hasDuty === false && <span style={{ color: '#f59e0b', fontWeight: 400, marginLeft: 8, fontSize: 11 }}>⚠ No duty scheduled — showing default hours</span>}
+                    {data.apptTime && <span style={{ color: '#2563eb', fontWeight: 600, marginLeft: 8, fontSize: 12 }}>Selected: {data.apptTime}</span>}
+                  </label>
+                  {!data.doctor_id ? (
+                    <p style={{ fontSize: 12, color: '#94a3b8', margin: '6px 0 0' }}>Select a doctor above to see available slots</p>
+                  ) : slotsLoading ? (
+                    <p style={{ fontSize: 12, color: '#94a3b8', margin: '6px 0 0' }}>Loading slots…</p>
+                  ) : slots.length === 0 ? (
+                    <p style={{ fontSize: 12, color: '#ef4444', margin: '6px 0 0' }}>No slots available for this date</p>
+                  ) : (() => {
+                    const now = new Date();
+                    const curMin = now.getHours() * 60 + now.getMinutes();
+                    const isToday = data.apptDate === getLocalDate();
+                    const visibleSlots = isToday
+                      ? slots.filter(s => {
+                          const [h, m] = s.time.split(':').map(Number);
+                          return h * 60 + m >= curMin;
+                        })
+                      : slots;
+                    if (visibleSlots.length === 0) return (
+                      <p style={{ fontSize: 12, color: '#ef4444', margin: '6px 0 0' }}>All slots for today have passed</p>
+                    );
+                    return (
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+                      gap: '6px',
+                      marginTop: '8px',
+                      maxHeight: '180px',
+                      overflowY: 'auto',
+                      padding: '4px 2px'
+                    }}>
+                      {visibleSlots.map(slot => {
+                        const isSelected = data.apptTime === slot.time;
+                        const load = slot.booked === 0 ? 'free' : slot.booked <= 2 ? 'busy' : 'full';
+                        const colors = {
+                          free: { bg: '#f0fdf4', border: '#86efac', text: '#166534', badge: '#dcfce7', badgeText: '#15803d' },
+                          busy: { bg: '#fffbeb', border: '#fcd34d', text: '#92400e', badge: '#fef3c7', badgeText: '#b45309' },
+                          full: { bg: '#fef2f2', border: '#fca5a5', text: '#991b1b', badge: '#fee2e2', badgeText: '#b91c1c' },
+                        }[load];
+                        return (
+                          <button
+                            key={slot.time}
+                            type="button"
+                            onClick={() => setData(p => ({ ...p, apptTime: slot.time }))}
+                            style={{
+                              padding: '6px 4px',
+                              borderRadius: '8px',
+                              border: `2px solid ${isSelected ? '#2563eb' : colors.border}`,
+                              background: isSelected ? '#2563eb' : colors.bg,
+                              color: isSelected ? '#fff' : colors.text,
+                              cursor: 'pointer',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: '3px',
+                              transition: 'all 0.15s',
+                              outline: isSelected ? '2px solid #93c5fd' : 'none',
+                              outlineOffset: '1px',
+                            }}
+                          >
+                            <span style={{ fontSize: '12px', letterSpacing: '0.5px' }}>{slot.time}</span>
+                            <span style={{
+                              fontSize: '9px',
+                              padding: '1px 5px',
+                              borderRadius: '10px',
+                              background: isSelected ? 'rgba(255,255,255,0.25)' : colors.badge,
+                              color: isSelected ? '#fff' : colors.badgeText,
+                              fontWeight: 500,
+                            }}>
+                              {slot.booked === 0 ? 'Free' : `${slot.booked} booked`}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    );
+                  })()}
                 </div>
 
                 <div className="preg-field preg-col-span-3">

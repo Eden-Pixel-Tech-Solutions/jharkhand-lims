@@ -6,6 +6,7 @@ import '../../assets/CSS/DutyScheduler.css';
 import '../../assets/CSS/ScheduleDutyModal.css';                          // ← new styles
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
 
 const DutyScheduler = () => {
   const { alert, showAlert, hideAlert } = useAlert();
@@ -30,9 +31,9 @@ const DutyScheduler = () => {
       const staffUrl = userRoleLevel === 'Central' ? '/api/staff/list' : `/api/staff/list?branch_id=${userBranchId}`;
 
       const [staffRes, infraRes, dutyRes] = await Promise.all([
-        fetch(`${API_BASE}${staffUrl}`),
-        fetch(`${API_BASE}/api/infra?type=Room`),
-        fetch(`${API_BASE}/api/duty`),
+        fetch(`${API_BASE}${staffUrl}`, { headers: { Authorization: `Bearer ${tok()}` } }),
+        fetch(`${API_BASE}/api/infra?type=Room`, { headers: { Authorization: `Bearer ${tok()}` } }),
+        fetch(`${API_BASE}/api/duty`, { headers: { Authorization: `Bearer ${tok()}` } }),
       ]);
       const staffData = await staffRes.json();
       const infraData = await infraRes.json();
@@ -49,7 +50,7 @@ const DutyScheduler = () => {
 
         return matchRole && matchBranch;
       }));
-      setLabs(infraData.items.filter(i => i.type === 'Laboratory' || i.name.toLowerCase().includes('lab')));
+      setLabs(infraData.items.filter(i => ['Laboratory', 'Room', 'Lab', 'Ward', 'Operation Theater', 'ICU'].includes(i.type) || i.name.toLowerCase().includes('lab') || i.name.toLowerCase().includes('room')));
       setSchedules(dutyData.schedules);
     } catch (err) {
       console.error(err);
@@ -65,7 +66,7 @@ const DutyScheduler = () => {
     try {
       const res = await fetch(`${API_BASE}/api/duty/add`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok()}` },
         body: JSON.stringify(formData),
       });
       const data = await res.json();
@@ -84,7 +85,7 @@ const DutyScheduler = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this schedule?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/duty/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/api/duty/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${tok()}` } });
       const data = await res.json();
       if (data.success) fetchData();
     } catch (err) { console.error(err); }
@@ -135,14 +136,14 @@ const DutyScheduler = () => {
         {/* Header */}
         <div className="staff-header">
           <div>
-            <h1>Laboratory Duty Scheduler</h1>
-            <p>Manage and assign weekly duties for Lab Technicians and Lab Doctors</p>
+            <h1>Staff & Doctor Duty Scheduler</h1>
+            <p>Manage and assign weekly duties for Doctors and Staff</p>
           </div>
           <button className="btn-primary" onClick={() => setShowModal(true)}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Schedule New Lab Duty
+            Schedule New Duty
           </button>
         </div>
 
@@ -229,7 +230,7 @@ const DutyScheduler = () => {
           <table className="staff-table">
             <thead>
               <tr>
-                <th>Personnel</th><th>Laboratory Assignment</th><th>Date</th>
+                <th>Personnel</th><th>Room / Facility</th><th>Date</th>
                 <th>Time Slot</th><th>Status</th><th>Action</th>
               </tr>
             </thead>

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import '../../assets/CSS/Billings.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
 
 function Billings({ regNo, bookingData, onFinish }) {
   const [patients, setPatients] = useState([]);
@@ -74,7 +75,7 @@ function Billings({ regNo, bookingData, onFinish }) {
 
   const fetchPatients = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/billing/patients/list`);
+      const res = await fetch(`${API_BASE}/api/billing/patients/list`, { headers: { Authorization: `Bearer ${tok()}` } });
       const data = await res.json();
       if (data.success) {
         setPatients(data.data || []);
@@ -86,7 +87,7 @@ function Billings({ regNo, bookingData, onFinish }) {
 
   const fetchServices = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/billing/services/available`);
+      const res = await fetch(`${API_BASE}/api/billing/services/available`, { headers: { Authorization: `Bearer ${tok()}` } });
       const data = await res.json();
       if (data.success) {
         setServices(data.data || { laboratory: [], appointments: [] });
@@ -116,7 +117,7 @@ function Billings({ regNo, bookingData, onFinish }) {
 
   const fetchBills = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/billing/all`);
+      const res = await fetch(`${API_BASE}/api/billing/all`, { headers: { Authorization: `Bearer ${tok()}` } });
       const data = await res.json();
       if (data.success) {
         setBills(data.data || []);
@@ -214,7 +215,7 @@ function Billings({ regNo, bookingData, onFinish }) {
     try {
       const res = await fetch(`${API_BASE}/api/billing/create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok()}` },
         body: JSON.stringify({
           patient_id: selectedPatient.id,
           patient_name: selectedPatient.name || selectedPatient.patient_name,
@@ -234,7 +235,7 @@ function Billings({ regNo, bookingData, onFinish }) {
           try {
             await fetch(`${API_BASE}/api/billing/${data.data.bill_id}/payment`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok()}` },
               body: JSON.stringify({ paid_amount: net, payment_method: 'Cash' })
             });
           } catch { /* non-critical */ }
@@ -260,7 +261,7 @@ function Billings({ regNo, bookingData, onFinish }) {
     try {
       const res = await fetch(`${API_BASE}/api/billing/${currentBill.bill_id}/payment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok()}` },
         body: JSON.stringify({
           paid_amount: parseFloat(paymentAmount),
           payment_method: paymentMethod
@@ -323,7 +324,7 @@ function Billings({ regNo, bookingData, onFinish }) {
 
   const viewBill = async (billId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/billing/${billId}`);
+      const res = await fetch(`${API_BASE}/api/billing/${billId}`, { headers: { Authorization: `Bearer ${tok()}` } });
       const data = await res.json();
       if (data.success) {
         setCurrentBill(data.data);

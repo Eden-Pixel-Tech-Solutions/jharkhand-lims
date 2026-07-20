@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } = require
 const path = require("path");
 const os = require("os");
 const { SerialPort } = require('serialport');
-const axios = require('axios');
+const axios = require('./apiClient');
 const db = require(path.join(__dirname, "../db/sqlite.js"));
 const serialManager = require("./serialManager");
 const tcpManager = require("./tcpManager");
@@ -80,7 +80,6 @@ function createTray() {
 }
 
 async function syncMachines() {
-  const API_BASE = 'https://lims.poxiatechnologies.com';
   try {
     const labId = await db.getSetting('labId');
     if (!labId) {
@@ -89,7 +88,7 @@ async function syncMachines() {
     }
 
     console.log(`🔄 Syncing machines from backend for Lab ID: ${labId}...`);
-    const response = await axios.get(`${API_BASE}/api/lab/machines/${labId}`);
+    const response = await axios.get(`/api/lab/machines/${labId}`);
 
     if (response.data.success && response.data.machines) {
       const machines = response.data.machines;
@@ -108,6 +107,7 @@ async function syncMachines() {
           manufacturer: m.manufacturer,
           portType: m.interface_type || 'USB',
           serialNumber: m.serial_number || '',
+          synced: true, // came straight from the backend, so it's confirmed present there
         };
 
         // Get existing local config to preserve the COM port if it was set manually
@@ -228,6 +228,61 @@ if (!gotTheLock) {
     const serialPorts = Array.from(serialManager.activePorts.keys());
     const tcpPorts = Array.from(tcpManager.activeClients.keys());
     return [...serialPorts, ...tcpPorts];
+  });
+
+  // Master Sheet: read-only reference of "code -> parameter name" per machine,
+  // so lab staff know which numbers to program into a physical analyzer.
+  ipcMain.handle('get-master-sheet', async () => {
+    const objectMapToRows = (map) =>
+      Object.entries(map || {}).map(([code, name]) => ({ code, name }));
+
+    const sheet = {};
+
+    // Meril hematology machines — do not change these mappings.
+    const merilMaps = {
+      'ALTA Hematology': tcpManager.parameter_map,
+      'CelQuant Edge': serialManager.CODE_MAP,
+    };
+    for (const [label, map] of Object.entries(merilMaps)) {
+      try {
+        sheet[label] = objectMapToRows(map);
+      } catch (err) {
+        console.warn(`⚠️  Could not read master sheet map for ${label}:`, err.message);
+        sheet[label] = [];
+      }
+    }
+
+    // Universal numbering standard for non-Meril, numeric-code biochemistry
+    // machines — any new machine of this kind should be configured to send
+    // these exact numbers, rather than getting its own one-off mapping.
+    try {
+      sheet['Universal Standard (Biochemistry Machines, e.g. ADX-AUTOCHEM-200)'] =
+        objectMapToRows(tcpManager.adx_parameter_map);
+    } catch (err) {
+      console.warn('⚠️  Could not read universal biochemistry master sheet map:', err.message);
+      sheet['Universal Standard (Biochemistry Machines, e.g. ADX-AUTOCHEM-200)'] = [];
+    }
+
+    // Machines whose numeric codes live in the backend's protocol JSON files,
+    // rather than hardcoded here — fetch and normalize those too.
+    const backendModels = [
+      { label: 'Cliniquant Micro', model: 'cliniquant micro' },
+      { label: 'CelQuant 5plus', model: 'celquant 5plus' },
+    ];
+
+    for (const { label, model } of backendModels) {
+      try {
+        const res = await axios.get(`/api/lab/machine-protocol/${encodeURIComponent(model)}`, { timeout: 5000 });
+        const protocol = res.data?.protocol;
+        const tests = protocol?.tests || protocol?.frame_structure?.['2']?.tests || [];
+        sheet[label] = tests.map((t) => ({ code: String(t.id), name: t.name }));
+      } catch (err) {
+        console.warn(`⚠️  Could not fetch master sheet protocol for ${label}:`, err.message);
+        sheet[label] = [];
+      }
+    }
+
+    return sheet;
   });
 
   ipcMain.handle('get-local-ip', async () => {

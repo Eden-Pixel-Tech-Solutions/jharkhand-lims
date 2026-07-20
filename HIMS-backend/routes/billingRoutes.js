@@ -10,27 +10,32 @@ import {
   deleteBill,
   generateInvoice,
   sendWhatsApp,
-  downloadInvoicePdf
+  downloadInvoicePdf,
+  getPatientBills
 } from '../controllers/billingController.js';
+import { authenticateToken, authorizeRole } from '../middleware/auth.js';
 
 const router = express.Router();
+router.use(authenticateToken);
 
-// Bill CRUD operations
-router.post('/create', createBill);
-router.put('/:id', updateBill);
+// Day-to-day billing/collection work — front desk plus admin oversight.
+const BILLING_ROLES = authorizeRole(['Admin', 'Super Admin', 'Receptionist']);
+// Deleting a bill is destructive and auditable — restricted further than creating/updating one.
+const ADMIN_ONLY = authorizeRole(['Admin', 'Super Admin']);
+
+// Specific routes before wildcards
+router.post('/create', BILLING_ROLES, createBill);
 router.get('/all', getAllBills);
-router.get('/:id', getBillById);
-router.delete('/:id', deleteBill);
-router.get('/:id/pdf', downloadInvoicePdf);
-
-// Payment processing
-router.post('/:id/payment', processPayment);
-
-// Services and patients
 router.get('/services/available', getAvailableServices);
 router.get('/patients/list', getPatients);
+router.get('/patient/:regNo', getPatientBills);
+router.post('/send-whatsapp', BILLING_ROLES, sendWhatsApp);
 
-// WhatsApp notification
-router.post('/send-whatsapp', sendWhatsApp);
+// Wildcard bill routes
+router.put('/:id', BILLING_ROLES, updateBill);
+router.get('/:id/pdf', downloadInvoicePdf);
+router.post('/:id/payment', BILLING_ROLES, processPayment);
+router.delete('/:id', ADMIN_ONLY, deleteBill);
+router.get('/:id', getBillById);
 
 export default router;

@@ -15,11 +15,14 @@ import {
   Printer,
   X,
   MapPin,
-  Clock
+  Clock,
+  Download
 } from 'lucide-react';
 import '../../assets/CSS/LabWorklist.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
+const authHdr = () => ({ Authorization: `Bearer ${tok()}` });
 
 const DEPARTMENTS = [
   { id: 'all', name: 'All Departments', icon: <LayoutGrid size={18} /> },
@@ -34,7 +37,8 @@ const STATUS_COLORS = {
   'Collected': '#3b82f6',
   'In Progress': '#8b5cf6',
   'Test Done': '#06b6d4',
-  'Completed': '#22c55e'
+  'Completed': '#22c55e',
+  'Rerun Requested': '#f59e0b'
 };
 
 export default function SampleList() {
@@ -51,10 +55,13 @@ export default function SampleList() {
   const [selectedBranch, setSelectedBranch] = useState(localStorage.getItem('branch_id') || '1');
   const userRole = localStorage.getItem('role_level') || 'Branch';
 
+  const [cdacCrNo, setCdacCrNo] = useState('');
+  const [cdacPulling, setCdacPulling] = useState(false);
+
   // Fetch branches for Central users
   useEffect(() => {
     if (userRole === 'Central' || userRole === 'Sub-Central') {
-      fetch(`${API_BASE}/api/branches`)
+      fetch(`${API_BASE}/api/branches`, { headers: authHdr() })
         .then(res => res.json())
         .then(data => {
           if (data.success) {
@@ -76,7 +83,7 @@ export default function SampleList() {
       setLoading(true);
       try {
         const role_level = userRole;
-        const res = await fetch(`${API_BASE}/api/lab/worklist?department=${selectedDepartment}&branch_id=${selectedBranch}&role_level=${role_level}`);
+        const res = await fetch(`${API_BASE}/api/lab/worklist?department=${selectedDepartment}&branch_id=${selectedBranch}&role_level=${role_level}`, { headers: authHdr() });
         const data = await res.json();
         if (data.success) {
           setWorklist(data.worklist || []);
@@ -116,7 +123,7 @@ export default function SampleList() {
     setLoading(true);
     try {
       const role_level = userRole;
-      const res = await fetch(`${API_BASE}/api/lab/worklist?department=${selectedDepartment}&branch_id=${selectedBranch}&role_level=${role_level}`);
+      const res = await fetch(`${API_BASE}/api/lab/worklist?department=${selectedDepartment}&branch_id=${selectedBranch}&role_level=${role_level}`, { headers: authHdr() });
       const data = await res.json();
       if (data.success) {
         setWorklist(data.worklist || []);
@@ -137,7 +144,7 @@ export default function SampleList() {
       // Get next sequence number for today
       const res = await fetch(`${API_BASE}/api/lab/generate-sample-id`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
         body: JSON.stringify({ branch_id: localStorage.getItem('branch_id'), department: item.department })
       });
       const data = await res.json();
@@ -148,7 +155,7 @@ export default function SampleList() {
         // Update status to Collected
         const updateRes = await fetch(`${API_BASE}/api/lab/acknowledge-test`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHdr() },
           body: JSON.stringify({
             bill_item_id: item.bill_item_id,
             sample_id: sampleId,
@@ -179,9 +186,42 @@ export default function SampleList() {
     }
   };
 
+  // Pulls a patient's CDAC-ordered investigations (API1) and materializes
+  // them as a local bill, ready for the normal worklist/acknowledge flow.
+  // Only applies to branches configured for CDAC (see branch_hmis_config).
+  const handlePullCdacOrder = async () => {
+    if (!cdacCrNo.trim()) {
+      alert('Enter a CDAC patient CR number first');
+      return;
+    }
+    setCdacPulling(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/cdac/pull-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
+        body: JSON.stringify({ branch_id: selectedBranch, hmis_patCrNo: cdacCrNo.trim() })
+      });
+      const data = await res.json();
+      let message = data.message || (data.success ? `Pulled ${data.items?.length || 0} test(s) from CDAC` : 'Failed to pull CDAC order');
+      if (data.invalidItems?.length) {
+        message += '\n\nSkipped (missing data from CDAC): ' + data.invalidItems.map((i) => `${i.hmis_test_name || i.hmis_req_dno || 'unknown'} (${i.reason})`).join(', ');
+      }
+      alert(message);
+      if (data.success) {
+        setCdacCrNo('');
+        refreshWorklist();
+      }
+    } catch (error) {
+      console.error('Error pulling CDAC order:', error);
+      alert('Failed to pull CDAC order. Please try again.');
+    } finally {
+      setCdacPulling(false);
+    }
+  };
+
   const handleViewResults = async (item) => {
     try {
-      const res = await fetch(`${API_BASE}/api/lab/test-results/${item.sample_id}`);
+      const res = await fetch(`${API_BASE}/api/lab/test-results/${item.sample_id}`, { headers: authHdr() });
       const data = await res.json();
       if (data.success) {
         setTestResults(data.results || []);
@@ -199,7 +239,7 @@ export default function SampleList() {
     try {
       const res = await fetch(`${API_BASE}/api/lab/update-test-status`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
         body: JSON.stringify({
           bill_item_id: item.bill_item_id,
           status: 'Completed'
@@ -329,7 +369,23 @@ export default function SampleList() {
             {getDepartmentName(selectedDepartment)} Worklist
             <span className="count-badge">{worklist.length} pending</span>
           </h3>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <input
+              type="text"
+              placeholder="CDAC CR Number"
+              value={cdacCrNo}
+              onChange={(e) => setCdacCrNo(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handlePullCdacOrder()}
+              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', width: '150px' }}
+            />
+            <button
+              className="btn-primary"
+              disabled={cdacPulling}
+              onClick={handlePullCdacOrder}
+              style={{ background: '#0369a1', borderColor: '#0369a1', display: 'flex', alignItems: 'center', gap: '8px', opacity: cdacPulling ? 0.6 : 1 }}
+            >
+              <Download size={16} /> {cdacPulling ? 'Fetching...' : 'Fetch CDAC Order'}
+            </button>
             <button
               className="btn-primary"
               style={{ background: '#10b981', borderColor: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -393,6 +449,11 @@ export default function SampleList() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: '#64748b', fontWeight: '600', maxWidth: '120px' }}>
                             <Clock size={10} />
                             Waiting for: {item.pending_params.join(', ')}
+                          </div>
+                        )}
+                        {item.status === 'Rerun Requested' && item.rerun_reason && (
+                          <div style={{ fontSize: '10px', color: '#b45309', fontWeight: '600', maxWidth: '160px' }}>
+                            Doctor: "{item.rerun_reason}" — redo via LIS Agent
                           </div>
                         )}
                       </div>

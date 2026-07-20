@@ -4,6 +4,8 @@ import { useAlert } from '../../hooks/useAlert';
 import '../../assets/CSS/InventoryMaster.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://172.16.11.160:5000';
+const tok = () => localStorage.getItem('hims_token');
+const authHdr = () => ({ Authorization: `Bearer ${tok()}` });
 
 const TABS = [
   { id: 'stock', label: 'Current Stock', num: '1' },
@@ -34,7 +36,7 @@ function StockManagement() {
 
   const fetchDepartments = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/infra?type=Lab`);
+      const response = await fetch(`${API_URL}/api/infra?type=Lab`, { headers: authHdr() });
       const data = await response.json();
       if (data.success) setDepartments(data.data);
     } catch {
@@ -44,7 +46,7 @@ function StockManagement() {
 
   const fetchInventoryItems = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/inventory/items?status=Active`);
+      const response = await fetch(`${API_URL}/api/inventory/items?status=Active`, { headers: authHdr() });
       const data = await response.json();
       if (data.success) setInventoryItems(data.data);
     } catch {
@@ -61,7 +63,7 @@ function StockManagement() {
       else if (activeTab === 'transfers') endpoint = '/api/inventory/transfers';
       else if (activeTab === 'qc') endpoint = '/api/inventory/qc-inventory';
 
-      const response = await fetch(`${API_URL}${endpoint}`);
+      const response = await fetch(`${API_URL}${endpoint}`, { headers: authHdr() });
       const data = await response.json();
       if (data.success) setItems(data.data);
     } catch {
@@ -102,7 +104,7 @@ function StockManagement() {
       if (modalType === 'adjust') {
         const response = await fetch(`${API_URL}/api/inventory/stock/adjust`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHdr() },
           body: JSON.stringify({
             item_id: formData.item_id,
             batch_id: formData.batch_id || null,
@@ -120,7 +122,7 @@ function StockManagement() {
       } else if (modalType === 'transfer') {
         const response = await fetch(`${API_URL}/api/inventory/transfers`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHdr() },
           body: JSON.stringify({
             from_department: formData.from_department,
             to_department: formData.to_department,
@@ -138,7 +140,7 @@ function StockManagement() {
       } else if (modalType === 'openvial' && selectedBatch) {
         const response = await fetch(`${API_URL}/api/inventory/batches/${selectedBatch.id}/open-vial`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHdr() },
           body: JSON.stringify({
             open_vial_date: formData.open_vial_date,
             stability_days: formData.stability_days

@@ -1,6 +1,8 @@
 import db from '../config/db.js';
 import jwt from 'jsonwebtoken';
 import { generateLabReportPDFStream } from '../utils/pdfGenerator.js';
+import { createCaptcha, verifyCaptcha } from '../utils/captchaStore.js';
+import { getBlockedUntil, recordLoginFailure, recordLoginSuccess } from '../utils/bruteForceGuard.js';
 
 // Generate patient token
 const generatePatientToken = (id, phone) => {
@@ -11,13 +13,33 @@ const generatePatientToken = (id, phone) => {
 
 // Patient Portal: Login by Phone + DOB
 export const loginByPhone = async (req, res) => {
+  const clientIp = req.ip;
+
+  const blockedUntil = getBlockedUntil(clientIp);
+  if (blockedUntil) {
+    res.setHeader('Retry-After', Math.ceil((blockedUntil - Date.now()) / 1000));
+    return res.status(429).json({
+      success: false,
+      message: 'Too many failed login attempts from this network. Try again in 24 hours.',
+      blockedUntil: new Date(blockedUntil).toISOString(),
+    });
+  }
+
   try {
-    const { phone, dob } = req.body;
+    const { phone, dob, captchaId, captchaText } = req.body;
 
     if (!phone || !dob) {
       return res.status(400).json({
         success: false,
         message: 'Phone number and date of birth are required'
+      });
+    }
+
+    if (!verifyCaptcha(captchaId, captchaText)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired captcha',
+        captcha: createCaptcha()
       });
     }
 
@@ -27,13 +49,16 @@ export const loginByPhone = async (req, res) => {
     );
 
     if (patients.length === 0) {
+      recordLoginFailure(clientIp);
       return res.status(401).json({
         success: false,
-        message: 'Invalid phone number or date of birth'
+        message: 'Invalid phone number or date of birth',
+        captcha: createCaptcha()
       });
     }
 
     const patient = patients[0];
+    recordLoginSuccess(clientIp);
 
     res.json({
       success: true,
@@ -55,7 +80,8 @@ export const loginByPhone = async (req, res) => {
     console.error('Error during patient login:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during login'
+      message: 'Server error during login',
+      captcha: createCaptcha()
     });
   }
 };
@@ -264,11 +290,13 @@ export const downloadPatientReportPDF = async (req, res) => {
         p.dob,
         CONCAT(ut.first_name, ' ', ut.last_name) as tested_by_name,
         CONCAT(uv.first_name, ' ', uv.last_name) as verified_by_name,
-        i.name as lab_name
+        i.name as lab_name,
+        br.branch_name, br.address as branch_address, br.contact_number as branch_contact
       FROM lab_test_result tr
       JOIN bill_items bi ON tr.sample_id = bi.sample_id
       JOIN bills b ON bi.bill_id = b.id
       JOIN patients p ON b.patient_id = p.id
+      LEFT JOIN branches br ON b.branch_id = br.id
       LEFT JOIN users ut ON tr.tested_by = ut.id
       LEFT JOIN users uv ON tr.verified_by = uv.id
       LEFT JOIN infrastructure i ON bi.lab_id = i.id
@@ -324,13 +352,16 @@ export const downloadPatientReportPDF = async (req, res) => {
 
     // Transform to PDF format
     const reportData = {
+      branch_name: report.branch_name,
+      branch_address: report.branch_address,
+      branch_contact: report.branch_contact,
       patient_name: report.patient_name || 'Unknown',
       patient_reg_no: report.patient_reg_no || 'N/A',
       sample_id: report.sample_id,
       gender: report.gender || 'N/A',
       age: age,
       referred_by: 'Self',
-      centre: report.lab_name || 'MERIL HIMS',
+      centre: report.lab_name || report.branch_name || 'MERIL HIMS',
       registration_date: formatDate(report.tested_at),
       tested_by_name: report.tested_by_name || 'N/A',
       tested_at: formatDate(report.tested_at),

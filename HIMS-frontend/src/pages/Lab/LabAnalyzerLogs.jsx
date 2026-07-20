@@ -3,6 +3,8 @@ import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 const POLL_MS  = 30_000;
+const tok = () => localStorage.getItem('hims_token');
+const authHdr = () => ({ Authorization: `Bearer ${tok()}` });
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 function fmtDuration(ms) {
@@ -112,7 +114,13 @@ function Sparkline({ events }) {
 
 // ─── main ─────────────────────────────────────────────────────────────────────
 export default function LabAnalyzerLogs() {
-  const labId = localStorage.getItem('branch_id');
+  // This is a branches.id, NOT a lab_machines.lab_id (which is actually an
+  // infrastructure.id — a specific lab/department, and a branch can have
+  // zero, one, or several). Sent as branch_id below; the backend resolves it
+  // to the right infrastructure records rather than filtering lab_id against
+  // it directly, which would silently match nothing (or the wrong lab) for
+  // any branch whose id doesn't coincidentally equal a real infrastructure.id.
+  const branchId = localStorage.getItem('branch_id');
   const labName = (() => {
     try { return JSON.parse(localStorage.getItem('user') || '{}').branch_name || 'This Lab'; } catch { return 'This Lab'; }
   })();
@@ -126,11 +134,11 @@ export default function LabAnalyzerLogs() {
   const fetchAll = async () => {
     try {
       const params = { limit: 500 };
-      if (labId) params.lab_id = labId;
+      if (branchId) params.branch_id = branchId;
 
       const [sRes, lRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/lab/machine-stats`, { params: labId ? { lab_id: labId } : {} }),
-        axios.get(`${API_BASE}/api/lab/analyzer-logs`, { params }),
+        axios.get(`${API_BASE}/api/lab/machine-stats`, { params: branchId ? { branch_id: branchId } : {}, headers: authHdr() }),
+        axios.get(`${API_BASE}/api/lab/analyzer-logs`, { params, headers: authHdr() }),
       ]);
       if (sRes.data.success) setStats(sRes.data);
       if (lRes.data.success) setLogs(lRes.data.logs || []);

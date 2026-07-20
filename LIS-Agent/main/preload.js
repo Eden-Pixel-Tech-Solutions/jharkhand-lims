@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   stopListening: () => ipcRenderer.invoke('stop-listening'),
   getActivePorts: () => ipcRenderer.invoke('get-active-ports'),
   getLocalIp: () => ipcRenderer.invoke('get-local-ip'),
+  getMasterSheet: () => ipcRenderer.invoke('get-master-sheet'),
   onTestCompleted: (callback) => {
     const listener = (event, data) => callback(data);
     ipcRenderer.on('test-completed', listener);

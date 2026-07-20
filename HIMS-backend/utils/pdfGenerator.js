@@ -136,9 +136,12 @@ function rectStroke(doc, x, y, w, h, color, lw = 0.5) {
 function drawHospitalHeader(doc, report) {
   const y = MARGIN;
   const settings = report.hospital_settings || {};
-  const hospitalName = settings.hospital_name || 'MERIL HIMS HOSPITAL';
-  const address = settings.address || '123 Healthcare Avenue, Medical District';
-  const contact = `${settings.phone || '+91-1234567890'}  |  ${settings.email || 'lab@merilhims.com'}`;
+  // Branch (the actual facility this sample was collected at, from /hospitals)
+  // takes priority over the global hospital_settings row, which is shared
+  // across every branch and was showing the same name/address for all of them.
+  const hospitalName = report.branch_name || settings.hospital_name || 'MERIL HIMS HOSPITAL';
+  const address = report.branch_address || settings.address || '123 Healthcare Avenue, Medical District';
+  const contact = `${report.branch_contact || settings.phone || '+91-1234567890'}  |  ${settings.email || 'lab@merilhims.com'}`;
 
   // ── Logo (left side) ─────────────────────────────────────────────────────
   const LOGO_H  = 55; // actual rendered height for logo image
@@ -220,7 +223,7 @@ function drawHospitalHeader(doc, report) {
 function drawContinuationHeader(doc, report) {
   const y = MARGIN;
   const settings = report.hospital_settings || {};
-  const hospitalName = settings.hospital_name || 'MERIL HIMS HOSPITAL';
+  const hospitalName = report.branch_name || settings.hospital_name || 'MERIL HIMS HOSPITAL';
 
   const LOGO_H = 32;
   const LOGO_W = 36;
@@ -272,12 +275,8 @@ async function drawPatientInfo(doc, report, startY) {
   const QR_SIZE     = 64;
   const QR_LABEL_H  = 16;
   const BLOCK_PAD   = 10;
-  const ROW_H       = 16;
-  const NUM_ROWS    = 2;
-
-  const fieldsNeeded = BLOCK_PAD + ROW_H * NUM_ROWS + BLOCK_PAD;
-  const qrNeeded     = BLOCK_PAD + QR_SIZE + QR_LABEL_H + BLOCK_PAD;
-  const blockH       = Math.max(fieldsNeeded, qrNeeded);
+  const ROW_GAP     = 7;
+  const VALUE_OFFSET = 8; // value baseline sits this far below the row's label
 
   const fields = [
     { label: 'Patient Name',    value: report.patient_name },
@@ -288,12 +287,35 @@ async function drawPatientInfo(doc, report, startY) {
     { label: 'Referred By',     value: report.referred_by },
     { label: 'Centre',          value: report.centre },
   ];
+  const rows = [fields.slice(0, 4), fields.slice(4)];
+
+  // Column width has to be known before we can measure how tall a wrapped
+  // value (e.g. a long Lab No / sample_id) will be.
+  const qrX     = PAGE_W - MARGIN - QR_SIZE - BLOCK_PAD;
+  const divX    = qrX - BLOCK_PAD - 4;
+  const fieldsW = divX - MARGIN - 10;
+  const colW    = fieldsW / 4;
+
+  // Measure each row's real height from its longest wrapped value, so a long
+  // Lab No/sample_id can never overlap the row below it (previously a fixed
+  // ROW_H assumed every value fit on one line, which sample IDs often don't).
+  doc.font('Helvetica-Bold').fontSize(8);
+  const rowHeights = rows.map((row) =>
+    VALUE_OFFSET + Math.max(
+      ...row.map(({ value }) => doc.heightOfString(value || '—', { width: colW - 4 })),
+      10
+    )
+  );
+  const totalFieldsH = rowHeights.reduce((a, b) => a + b, 0) + ROW_GAP * (rows.length - 1);
+
+  const fieldsNeeded = BLOCK_PAD + totalFieldsH + BLOCK_PAD;
+  const qrNeeded     = BLOCK_PAD + QR_SIZE + QR_LABEL_H + BLOCK_PAD;
+  const blockH       = Math.max(fieldsNeeded, qrNeeded);
 
   rect(doc, MARGIN, startY, CONTENT_W, blockH, C.patientBg);
   rectStroke(doc, MARGIN, startY, CONTENT_W, blockH, C.borderLight, 0.5);
   rect(doc, MARGIN, startY, 3, blockH, C.red);
 
-  const qrX     = PAGE_W - MARGIN - QR_SIZE - BLOCK_PAD;
   const qrAreaH = QR_SIZE + QR_LABEL_H;
   const qrY     = startY + (blockH - qrAreaH) / 2;
   const labelY  = qrY + QR_SIZE + 4;
@@ -311,24 +333,18 @@ async function drawPatientInfo(doc, report, startY) {
     } catch (_) {}
   }
 
-  const divX = qrX - BLOCK_PAD - 4;
   doc.moveTo(divX, startY + 6).lineTo(divX, startY + blockH - 6).lineWidth(0.4).stroke(C.borderLight);
 
-  const totalFieldsH = ROW_H * NUM_ROWS + 7 * (NUM_ROWS - 1);
-  const fieldsW      = divX - MARGIN - 10;
-  const colW         = fieldsW / 4;
-  const firstRowY    = startY + (blockH - totalFieldsH) / 2;
-
-  const rows = [fields.slice(0, 4), fields.slice(4)];
+  let rowY = startY + (blockH - totalFieldsH) / 2;
   rows.forEach((row, ri) => {
-    const rowY = firstRowY + ri * (ROW_H + 7);
     row.forEach(({ label, value }, ci) => {
       const fx = MARGIN + 8 + ci * colW;
       doc.font('Helvetica').fontSize(6.5).fillColor(C.labelColor);
       doc.text(label.toUpperCase(), fx, rowY, { width: colW - 4, lineBreak: false });
       doc.font('Helvetica-Bold').fontSize(8).fillColor(C.colHeader);
-      doc.text(value || '—', fx, rowY + 8, { width: colW - 4, lineBreak: false });
+      doc.text(value || '—', fx, rowY + VALUE_OFFSET, { width: colW - 4 });
     });
+    rowY += rowHeights[ri] + ROW_GAP;
   });
 
   const afterY = startY + blockH;
@@ -465,19 +481,9 @@ function drawPageFooter(doc, report, pageNum, totalPages) {
   doc.moveTo(MARGIN, fY).lineTo(PAGE_W - MARGIN, fY).lineWidth(0.5).stroke(C.borderLight);
 
   const midX = PAGE_W / 2;
-
-  // Left: Tested By
-  doc.font('Helvetica-Bold').fontSize(8).fillColor(C.footerGray);
-  doc.text(`Tested By: ${report.tested_by_name || 'N/A'}`, MARGIN, fY + 6, { width: midX - MARGIN - 10 });
-  doc.font('Helvetica').fontSize(7.5).fillColor(C.lightGray);
-  doc.text(`Date: ${report.tested_at || ''}`, MARGIN, fY + 17, { width: midX - MARGIN - 10 });
-
   const sigY = fY + 30;
-  doc.moveTo(MARGIN, sigY).lineTo(MARGIN + 120, sigY).lineWidth(0.5).stroke(C.borderLight);
-  doc.font('Helvetica').fontSize(7).fillColor(C.lightGray);
-  doc.text('Lab Technician', MARGIN, sigY + 3, { width: 120 });
 
-  // Right: Verified By
+  // Verified & Approved By (centered — the "Tested By" column was removed)
   doc.font('Helvetica-Bold').fontSize(8).fillColor(C.red);
   doc.text(`Verified & Approved By: ${report.verified_by_name || 'N/A'}`, midX, fY + 6, { width: midX - MARGIN - 10 });
   doc.font('Helvetica').fontSize(7.5).fillColor(C.lightGray);

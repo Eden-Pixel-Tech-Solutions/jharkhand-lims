@@ -7,7 +7,7 @@ const SampleList = () => {
   const [worklist, setWorklist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedBranch, setSelectedBranch] = useState('1');
+  const [selectedBranch, setSelectedBranch] = useState(localStorage.getItem('branch_id') || '1');
   const [printLabel, setPrintLabel] = useState(null);
   const [machines, setMachines] = useState([]);
   const [showAnalyzerPicker, setShowAnalyzerPicker] = useState(false);
@@ -18,6 +18,7 @@ const SampleList = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [isFetchingParams, setIsFetchingParams] = useState(false);
+  const [selectedParams, setSelectedParams] = useState([]);
   const barcodeRef = useRef(null);
 
   useEffect(() => {

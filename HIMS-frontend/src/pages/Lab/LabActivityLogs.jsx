@@ -5,6 +5,7 @@ import { useAlert } from '../../hooks/useAlert';
 import '../../assets/CSS/InventoryVendors.css'; // Reusing glassmorphic CSS
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
 
 function LabActivityLogs() {
   const { alert, showAlert, hideAlert } = useAlert();
@@ -16,7 +17,8 @@ function LabActivityLogs() {
     setLoading(true);
     try {
       const res = await axios.get(`${API_BASE}/api/lab/activity-logs`, {
-        params: { search }
+        params: { search },
+        headers: { Authorization: `Bearer ${tok()}` }
       });
       if (res.data.success) {
         setLogs(res.data.logs || []);

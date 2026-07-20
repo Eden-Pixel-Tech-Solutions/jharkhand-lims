@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import '../../assets/CSS/LabVerification.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
+const authHdr = () => ({ Authorization: `Bearer ${tok()}` });
 
 const toLocalDate = (dateStr) => {
   if (!dateStr) return '';
@@ -17,6 +19,8 @@ const LabVerification = () => {
   const [error, setError]               = useState(null);
   const [selectedTest, setSelectedTest] = useState(null);
   const [approveTest, setApproveTest]   = useState(null);
+  const [rerunTest, setRerunTest]       = useState(null);
+  const [rerunReason, setRerunReason]   = useState('');
   const [verificationNote, setVerificationNote] = useState('');
   const [approveNote, setApproveNote]   = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -35,7 +39,7 @@ const LabVerification = () => {
       setLoading(true);
       setError(null);
       const url = `${API_BASE}/api/lab/pending-verifications${filterStatus !== 'all' ? `?status=${filterStatus}` : ''}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: authHdr() });
       const data = await res.json();
       if (data.success) {
         setTests(data.tests || []);
@@ -79,7 +83,7 @@ const LabVerification = () => {
     try {
       const res = await fetch(`${API_BASE}/api/lab/verify-test`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
         body: JSON.stringify({
           test_result_id: testId,
           sample_id: sampleId,
@@ -108,7 +112,7 @@ const LabVerification = () => {
     try {
       const res = await fetch(`${API_BASE}/api/lab/verify-test`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
         body: JSON.stringify({
           test_result_id: approveTest.id,
           sample_id: approveTest.sample_id,
@@ -132,6 +136,40 @@ const LabVerification = () => {
     }
   };
 
+  // Sends a result back to the lab tech instead of verifying/approving it —
+  // shows up as an actionable "Rerun" item on the lab worklist once submitted.
+  const handleRequestRerun = async () => {
+    if (!rerunTest) return;
+    if (!rerunReason.trim()) {
+      alert('Please enter a reason for the rerun so the lab tech knows what to check.');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/lab/request-rerun`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
+        body: JSON.stringify({
+          test_result_id: rerunTest.id,
+          sample_id: rerunTest.sample_id,
+          requested_by: getDoctorId(),
+          reason: rerunReason.trim()
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Rerun requested — sent back to the lab.');
+        setRerunTest(null);
+        setRerunReason('');
+        fetchPendingVerifications();
+      } else {
+        alert(data.message || 'Failed to request rerun');
+      }
+    } catch (error) {
+      console.error('Error requesting rerun:', error);
+      alert('Network error while requesting rerun. Please try again.');
+    }
+  };
+
   const handleVerifyAll = async () => {
     setBulkConfirm(null);
     const total = verifiableTests.length;
@@ -142,7 +180,7 @@ const LabVerification = () => {
       try {
         await fetch(`${API_BASE}/api/lab/verify-test`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHdr() },
           body: JSON.stringify({
             test_result_id: t.id,
             sample_id: t.sample_id,
@@ -168,7 +206,7 @@ const LabVerification = () => {
       try {
         await fetch(`${API_BASE}/api/lab/verify-test`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHdr() },
           body: JSON.stringify({
             test_result_id: t.id,
             sample_id: t.sample_id,
@@ -194,10 +232,11 @@ const LabVerification = () => {
 
   const getStatusBadge = (status) => {
     const colors = {
-      'Test Done':  '#06b6d4',
-      'Completed':  '#22c55e',
-      'Verified':   '#8b5cf6',
-      'Approved':   '#22c55e'
+      'Test Done':       '#06b6d4',
+      'Completed':       '#22c55e',
+      'Verified':        '#8b5cf6',
+      'Approved':        '#22c55e',
+      'Rerun Requested': '#f59e0b'
     };
     return (
       <span className="status-badge" style={{ background: colors[status] || '#6b7280' }}>
@@ -345,7 +384,7 @@ const LabVerification = () => {
                     <td>{test.machine_no || 'N/A'}</td>
                     <td>{formatDateTime(test.tested_at)}</td>
                     <td>{getStatusBadge(test.status)}</td>
-                    <td>
+                    <td style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       {(test.status === 'Test Done' || test.status === 'Completed') && (
                         <button className="verify-btn" onClick={() => setSelectedTest(test)}>
                           ✓ Verify
@@ -361,6 +400,15 @@ const LabVerification = () => {
                       )}
                       {test.status === 'Approved' && (
                         <span className="approved-text">Approved ✓</span>
+                      )}
+                      {(test.status === 'Test Done' || test.status === 'Completed' || test.status === 'Verified') && (
+                        <button
+                          className="reject-btn"
+                          style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontWeight: 700 }}
+                          onClick={() => { setRerunTest(test); setRerunReason(''); }}
+                        >
+                          ↻ Request Rerun
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -478,6 +526,62 @@ const LabVerification = () => {
                 onClick={() => handleVerify(selectedTest.id, selectedTest.sample_id)}
               >
                 ✓ Mark as Verified
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Request Rerun Modal ── */}
+      {rerunTest && (
+        <div className="modal-overlay" onClick={() => setRerunTest(null)}>
+          <div className="verification-modal" onClick={e => e.stopPropagation()}>
+            <h2>Request Rerun</h2>
+            <div className="test-details">
+              <p><strong>Sample ID:</strong> {rerunTest.sample_id}</p>
+              <p><strong>Patient:</strong> {rerunTest.patient_name}</p>
+              <p><strong>Test:</strong> {rerunTest.test_name}</p>
+              <p><strong>Machine:</strong> {rerunTest.machine_no || 'N/A'}</p>
+            </div>
+            <div className="results-section">
+              <h3>Test Results</h3>
+              <table className="results-table">
+                <thead>
+                  <tr>
+                    <th>Parameter</th><th>Result</th><th>Unit</th>
+                    <th>Reference Range</th><th>Flag</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rerunTest.results?.map((result, idx) => (
+                    <tr key={idx} className={`flag-${result.result_flag}`}>
+                      <td>{result.parameter_name}</td>
+                      <td className="result-value">{result.result_value}</td>
+                      <td>{result.unit}</td>
+                      <td>{result.reference_range}</td>
+                      <td><span className={`flag-badge ${result.result_flag}`}>{result.result_flag}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="verification-notes">
+              <label>Reason for Rerun (required):</label>
+              <textarea
+                value={rerunReason}
+                onChange={e => setRerunReason(e.target.value)}
+                placeholder="e.g. Result inconsistent with clinical picture, suspected sample/analyzer error…"
+                rows="3"
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="btn-modal-cancel" onClick={() => setRerunTest(null)}>Cancel</button>
+              <button
+                className="reject-btn"
+                style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 24px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}
+                onClick={handleRequestRerun}
+              >
+                ↻ Send Back for Rerun
               </button>
             </div>
           </div>

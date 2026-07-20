@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
 
 const statusColors = {
   Paid: { bg: '#dcfce7', color: '#166534', dot: '#16a34a' },
@@ -47,7 +48,7 @@ function BillingOverview() {
   const fetchBills = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/billing/all`);
+      const res = await fetch(`${API_BASE}/api/billing/all`, { headers: { Authorization: `Bearer ${tok()}` } });
       const data = await res.json();
       if (data.success) {
         setBills(data.data || []);
@@ -87,7 +88,7 @@ function BillingOverview() {
     setSelectedBill(bill);
     setDetailLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/billing/${bill.id}`);
+      const res = await fetch(`${API_BASE}/api/billing/${bill.id}`, { headers: { Authorization: `Bearer ${tok()}` } });
       const data = await res.json();
       if (data.success) setBillDetail(data.data);
     } catch { /* silent */ }
@@ -108,7 +109,7 @@ function BillingOverview() {
     try {
       const res = await fetch(`${API_BASE}/api/billing/${selectedBill.id}/payment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok()}` },
         body: JSON.stringify({ paid_amount: parseFloat(payAmount), payment_method: payMethod }),
       });
       const data = await res.json();
@@ -200,7 +201,7 @@ function BillingOverview() {
       showToast('Sending WhatsApp message...', 'info');
       const res = await fetch(`${API_BASE}/api/billing/send-whatsapp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok()}` },
         body: JSON.stringify({
           phone: targetPhone,
           message: msg

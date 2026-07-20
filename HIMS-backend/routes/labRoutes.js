@@ -28,6 +28,7 @@ import {
   getTestResultsBySampleId,
   getPendingVerifications,
   verifyTest,
+  requestRerun,
   getApprovedReports,
   getReportDetails,
   generateLabReportPDF,
@@ -40,6 +41,8 @@ import {
   createUnsolicitedWorklist,
   mapUnmappedTest,
   getKioskReports,
+  getKioskQueue,
+  sendKioskReportWhatsApp,
   getGeneralTests
 } from '../controllers/labController.js';
 import {
@@ -55,30 +58,44 @@ import {
   getMachineStats,
 } from '../controllers/labMachineController.js';
 import { generateTestParameters } from '../controllers/aiController.js';
-import { sendWhatsAppMessage } from '../services/whatsappService.js';
-import { authenticateToken } from '../middleware/auth.js';
-import { publicLookupLimiter } from '../middleware/rateLimiter.js';
+import { authenticateToken, authorizeRole } from '../middleware/auth.js';
+import { publicLookupLimiter, otpLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
+
+// ── Public lobby-kiosk routes — deliberately registered BEFORE
+// router.use(authenticateToken) below, so they're reachable with no login.
+// Each returns only patient-self-service-safe data (see the controllers for
+// exactly what's excluded) — never the full staff-facing worklist/report detail.
+router.get('/kiosk-queue', publicLookupLimiter, getKioskQueue);
+router.get('/kiosk-reports', publicLookupLimiter, getKioskReports);
+router.post('/whatsapp-send-report', otpLimiter, sendKioskReportWhatsApp);
+
 router.use(authenticateToken);
+
+// Lab configuration, the test menu, and verification are restricted to the
+// roles that own those decisions — Lab Technicians run the routine
+// worklist/results flow below, unrestricted, but don't define the test menu
+// or sign off on results (maker/checker separation for verify-test/rerun).
+const LAB_MANAGE_ROLES = authorizeRole(['Admin', 'Super Admin', 'Lab Head']);
 
 // Lab Categories Routes
 router.get('/categories', getLabCategories);
-router.post('/categories', addLabCategory);
-router.put('/categories/:id', updateLabCategory);
-router.delete('/categories/:id', deleteLabCategory);
+router.post('/categories', LAB_MANAGE_ROLES, addLabCategory);
+router.put('/categories/:id', LAB_MANAGE_ROLES, updateLabCategory);
+router.delete('/categories/:id', LAB_MANAGE_ROLES, deleteLabCategory);
 
 // Sample Containers Routes
 router.get('/containers', getSampleContainers);
-router.post('/containers', addSampleContainer);
-router.put('/containers/:id', updateSampleContainer);
-router.delete('/containers/:id', deleteSampleContainer);
+router.post('/containers', LAB_MANAGE_ROLES, addSampleContainer);
+router.put('/containers/:id', LAB_MANAGE_ROLES, updateSampleContainer);
+router.delete('/containers/:id', LAB_MANAGE_ROLES, deleteSampleContainer);
 
 // Sample Types Routes
 router.get('/sample-types', getSampleTypes);
-router.post('/sample-types', addSampleType);
-router.put('/sample-types/:id', updateSampleType);
-router.delete('/sample-types/:id', deleteSampleType);
+router.post('/sample-types', LAB_MANAGE_ROLES, addSampleType);
+router.put('/sample-types/:id', LAB_MANAGE_ROLES, updateSampleType);
+router.delete('/sample-types/:id', LAB_MANAGE_ROLES, deleteSampleType);
 
 // Labs Routes (from infrastructure)
 router.get('/labs', getLabs);
@@ -87,13 +104,14 @@ router.get('/suggested-lab', getSuggestedLab);
 // Lab Tests Routes
 router.get('/tests', getLabTests);
 router.get('/tests/:id', getLabTestById);
-router.post('/tests', addLabTest);
-router.put('/tests/:id', updateLabTest);
-router.delete('/tests/:id', deleteLabTest);
-router.post('/map-analyzer-tests', mapAnalyzerTests);
+router.post('/tests', LAB_MANAGE_ROLES, addLabTest);
+router.put('/tests/:id', LAB_MANAGE_ROLES, updateLabTest);
+router.delete('/tests/:id', LAB_MANAGE_ROLES, deleteLabTest);
+router.post('/map-analyzer-tests', LAB_MANAGE_ROLES, mapAnalyzerTests);
 
-// AI Parameter Generation Route
-router.post('/generate-parameters', generateTestParameters);
+// AI Parameter Generation Route — only useful while creating/editing a test
+// definition above, so it carries the same restriction.
+router.post('/generate-parameters', LAB_MANAGE_ROLES, generateTestParameters);
 
 // Lab Worklist & Sample Collection Routes
 router.get('/worklist', getWorklist);
@@ -114,9 +132,12 @@ router.get('/track/:referenceNumber', publicLookupLimiter, trackTestStatus);
 router.post('/save-test-results', saveTestResults);
 router.get('/test-results/:sampleId', getTestResultsBySampleId);
 
-// Lab Head Doctor Verification Routes
+// Lab Head Doctor Verification Routes — viewing the queue is fine for any
+// staff, but the actual sign-off/rerun decision is Lab Head/Admin only, so a
+// Lab Technician can't verify their own result.
 router.get('/pending-verifications', getPendingVerifications);
-router.post('/verify-test', verifyTest);
+router.post('/verify-test', LAB_MANAGE_ROLES, verifyTest);
+router.post('/request-rerun', LAB_MANAGE_ROLES, requestRerun);
 
 // Report Download Routes
 router.get('/approved-reports', getApprovedReports);
@@ -124,63 +145,23 @@ router.get('/report-details/:sampleId', getReportDetails);
 router.get('/generate-report-pdf/:sampleId', generateLabReportPDF);
 router.get('/activity-logs', getActivityLogs);
 
-// WhatsApp Report Share Route
-router.post('/whatsapp-send-report', async (req, res) => {
-  const { sampleId, phone, patientName, testName } = req.body;
-
-  if (!sampleId || !phone) {
-    return res.status(400).json({ success: false, message: 'sampleId and phone are required' });
-  }
-
-  try {
-    // Normalize phone number
-    let normalizedPhone = phone.replace(/[\s\-\+]/g, '');
-    if (normalizedPhone.length === 10) normalizedPhone = '91' + normalizedPhone;
-
-    // Fetch PDF from own generate endpoint (internal call)
-    const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || 'http://localhost:7005';
-    const pdfRes = await fetch(`${BACKEND_URL}/api/lab/generate-report-pdf/${sampleId}`);
-    if (!pdfRes.ok) throw new Error('Failed to generate PDF for WhatsApp');
-
-    const pdfBuffer = await pdfRes.arrayBuffer();
-    const base64 = Buffer.from(pdfBuffer).toString('base64');
-
-    const caption = [
-      `🏥 *JHARKHAND STATE DIAGNOSTIC SERVICES*`,
-      `Powered by *Merilyzer LIS*`,
-      ``,
-      `✅ *Report Ready!*`,
-      `👤 *Patient:* ${patientName || 'Patient'}`,
-      `🔬 *Test:* ${testName || 'Lab Test'}`,
-      `🆔 *Sample ID:* ${sampleId}`,
-      ``,
-      `_Please find your lab report attached as PDF._`,
-      `_Thank you for choosing Meril HIMS._`
-    ].join('\n');
-
-    await sendWhatsAppMessage(normalizedPhone, caption, base64, `lab-report-${sampleId}.pdf`);
-
-    res.json({ success: true, message: 'Report sent on WhatsApp successfully' });
-  } catch (err) {
-    console.error('WhatsApp send report error:', err.message);
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// Kiosk: lookup reports by phone number
-router.get('/kiosk-reports', getKioskReports);
+// Note: /whatsapp-send-report and /kiosk-reports are registered as public
+// routes above, before the authenticateToken gate — kept there since they're
+// used by the unauthenticated lobby kiosk (LabTVMode.jsx), not from here.
 
 // Hospital Code for Machine ID
 router.get('/hospital-code/:userId', getHospitalCode);
 
-// Lab Machines Routes
+// Lab Machines Routes — /machines/sync is left open since it may be called
+// by the LIS-Agent (see analyzer-event below) as a routine heartbeat/status
+// sync, not a human config change; add/update/delete are real config edits.
 router.get('/network-machines', getNetworkMachines);
 router.get('/machines/:labId', getLabMachines);
 router.get('/machine-by-serial/:serialNumber', getMachineBySerial);
-router.post('/machines', addLabMachine);
+router.post('/machines', LAB_MANAGE_ROLES, addLabMachine);
 router.post('/machines/sync', syncLabMachine);
-router.put('/machines/:id', updateLabMachine);
-router.delete('/machines/:id', deleteLabMachine);
+router.put('/machines/:id', LAB_MANAGE_ROLES, updateLabMachine);
+router.delete('/machines/:id', LAB_MANAGE_ROLES, deleteLabMachine);
 
 // Analyzer Connection Event Logging (called by LIS-Agent)
 router.post('/analyzer-event', logAnalyzerEvent);

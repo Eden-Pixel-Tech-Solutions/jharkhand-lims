@@ -8,10 +8,12 @@ export const getBranches = async (req, res) => {
     const branch_id = req.user?.branch_id;
 
     let query = `
-      SELECT b.*, d.name as district_name, p.branch_name as parent_branch_name
+      SELECT b.*, d.name as district_name, p.branch_name as parent_branch_name,
+             bhc.hmis_hosp_mapping_code, bhc.integration_type as cdac_integration_type
       FROM branches b
       LEFT JOIN districts d ON b.district_id = d.id
       LEFT JOIN branches p ON b.parent_branch_id = p.id
+      LEFT JOIN branch_hmis_config bhc ON bhc.branch_id = b.id
       WHERE 1=1
     `;
     const params = [];
@@ -122,19 +124,32 @@ export const patchBranchBlock = async (req, res) => {
 // 3. Create Center (Lab/Branch)
 export const createCenter = async (req, res) => {
   try {
-    const { district_id, branch_name, category = 'General Lab', hospital_code, address, contact_number, branch_level = 'Center', parent_branch_id = null } = req.body;
+    const { district_id, branch_name, category = 'General Lab', hospital_code, address, contact_number, branch_level = 'Center', parent_branch_id = null, hmis_hosp_mapping_code } = req.body;
 
     if (!district_id || !branch_name || !hospital_code) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
     const [result] = await db.query(
-      `INSERT INTO branches (district_id, branch_name, category, branch_level, parent_branch_id, hospital_code, address, contact_number, status) 
+      `INSERT INTO branches (district_id, branch_name, category, branch_level, parent_branch_id, hospital_code, address, contact_number, status)
        VALUES (?, ?, ?, ?, ?, UPPER(?), ?, ?, 'Active')`,
       [district_id, branch_name, category, branch_level, parent_branch_id || null, hospital_code, address, contact_number]
     );
+    const branchId = result.insertId;
 
-    res.json({ success: true, message: 'Center created successfully', branch_id: result.insertId });
+    // Route to CDAC or Care HIMS same as the original seed rule (Ramgarh ->
+    // Care HIMS, everything else -> CDAC), and record whatever
+    // hmis_hosp_mapping_code was entered so it doesn't need a separate step.
+    const [[district]] = await db.query('SELECT name FROM districts WHERE id = ?', [district_id]);
+    const integrationType = district?.name === 'Ramgarh' ? 'CARE' : 'CDAC';
+    await db.query(
+      `INSERT INTO branch_hmis_config (branch_id, integration_type, hmis_hosp_mapping_code, is_active)
+       VALUES (?, ?, ?, 1)
+       ON DUPLICATE KEY UPDATE integration_type = VALUES(integration_type), hmis_hosp_mapping_code = VALUES(hmis_hosp_mapping_code), updated_at = NOW()`,
+      [branchId, integrationType, hmis_hosp_mapping_code || null]
+    );
+
+    res.json({ success: true, message: 'Center created successfully', branch_id: branchId });
   } catch (error) {
     if (error.code === '23505') {
       return res.status(400).json({ success: false, message: 'Hospital Code already exists' });
@@ -148,18 +163,36 @@ export const createCenter = async (req, res) => {
 export const updateCenter = async (req, res) => {
   try {
     const { id } = req.params;
-    const { district_id, branch_name, category, hospital_code, address, contact_number, branch_level, parent_branch_id } = req.body;
+    const { district_id, branch_name, category, hospital_code, address, contact_number, branch_level, parent_branch_id, hmis_hosp_mapping_code } = req.body;
 
     if (!district_id || !branch_name || !hospital_code) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
     await db.query(
-      `UPDATE branches 
+      `UPDATE branches
        SET district_id = ?, branch_name = ?, category = ?, branch_level = ?, parent_branch_id = ?, hospital_code = UPPER(?), address = ?, contact_number = ?
        WHERE id = ?`,
       [district_id, branch_name, category, branch_level, parent_branch_id || null, hospital_code, address, contact_number, id]
     );
+
+    if (hmis_hosp_mapping_code !== undefined) {
+      // Preserve an existing integration_type if one's already set (e.g. an
+      // admin manually overrode it on the CDAC Mapping page) — only fall
+      // back to the district-based default for a branch with no config yet.
+      const [[existing]] = await db.query('SELECT integration_type FROM branch_hmis_config WHERE branch_id = ?', [id]);
+      let integrationType = existing?.integration_type;
+      if (!integrationType) {
+        const [[district]] = await db.query('SELECT name FROM districts WHERE id = ?', [district_id]);
+        integrationType = district?.name === 'Ramgarh' ? 'CARE' : 'CDAC';
+      }
+      await db.query(
+        `INSERT INTO branch_hmis_config (branch_id, integration_type, hmis_hosp_mapping_code, is_active)
+         VALUES (?, ?, ?, 1)
+         ON DUPLICATE KEY UPDATE hmis_hosp_mapping_code = VALUES(hmis_hosp_mapping_code), updated_at = NOW()`,
+        [id, integrationType, hmis_hosp_mapping_code || null]
+      );
+    }
 
     res.json({ success: true, message: 'Center updated successfully' });
   } catch (error) {

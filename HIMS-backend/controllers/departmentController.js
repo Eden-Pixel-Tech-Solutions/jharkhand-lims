@@ -1,16 +1,10 @@
 import db from '../config/db.js';
 
-// Get departments — scoped to branch; falls back to all if no branch_id provided
 const getAllDepartments = async (req, res) => {
   try {
-    const { is_active, branch_id } = req.query;
+    const { is_active } = req.query;
     let query = 'SELECT * FROM departments WHERE 1=1';
     const params = [];
-
-    if (branch_id) {
-      query += ' AND branch_id = ?';
-      params.push(branch_id);
-    }
 
     if (is_active !== undefined) {
       query += ' AND is_active = ?';
@@ -93,7 +87,7 @@ const createDepartment = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating department:', error);
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505') {
       return res.status(409).json({ success: false, message: 'Department with this name already exists' });
     }
     res.status(500).json({ success: false, message: 'Error creating department' });
@@ -131,7 +125,7 @@ const updateDepartment = async (req, res) => {
     res.json({ success: true, message: 'Department updated successfully' });
   } catch (error) {
     console.error('Error updating department:', error);
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === '23505') {
       return res.status(409).json({ success: false, message: 'Department with this name already exists' });
     }
     res.status(500).json({ success: false, message: 'Error updating department' });

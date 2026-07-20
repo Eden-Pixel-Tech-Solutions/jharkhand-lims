@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import '../../assets/CSS/LabTrack.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
 
 function LabTrack() {
   const [searchParams] = useSearchParams();
@@ -23,7 +24,7 @@ function LabTrack() {
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE}/api/lab/track/${encodeURIComponent(referenceNumber)}`);
+      const res = await fetch(`${API_BASE}/api/lab/track/${encodeURIComponent(referenceNumber)}`, { headers: { Authorization: `Bearer ${tok()}` } });
       const data = await res.json();
 
       if (data.success) {

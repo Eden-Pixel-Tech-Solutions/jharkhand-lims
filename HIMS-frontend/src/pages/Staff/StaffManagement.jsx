@@ -1,169 +1,189 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Alert from '../../components/Alert';
 import { useAlert } from '../../hooks/useAlert';
 import '../../assets/CSS/StaffManagement.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
+const hdr = () => ({ Authorization: `Bearer ${tok()}`, 'Content-Type': 'application/json' });
 
-const ROLES = ['Doctor', 'Receptionist', 'HR', 'Admin', 'Lab Head', 'Lab Technician', 'Lab Admin'];
+const ROLES = ['Doctor', 'Receptionist', 'HR', 'Admin', 'Lab Head', 'Lab Doctor', 'Lab Technician'];
+const ROLE_LEVELS = ['Branch', 'Sub-Central', 'Central'];
+
+const emptyForm = (user) => ({
+  firstName: '', lastName: '',
+  email: '', phone: '',
+  role: 'Doctor', role_level: 'Branch',
+  department: '',
+  staffId: 'STF-' + Math.floor(1000 + Math.random() * 9000),
+  password: 'password123',
+  branch_id: user.branch_id || '',
+});
 
 function StaffManagement() {
   const { alert, showAlert, hideAlert } = useAlert();
-  const [stats, setStats] = useState({});
-  const [staff, setStaff] = useState([]);
+  const user       = JSON.parse(localStorage.getItem('user') || '{}');
+  const isCentral  = user.role_level === 'Central';
+  const isBranch   = !isCentral;
+  // Lab Head can only manage Lab Technician staff
+  const isLabHead  = (user.role || '').toLowerCase() === 'lab head';
+  const assignableRoles = isLabHead ? ['Lab Technician'] : ROLES;
+
+  const [stats, setStats]           = useState({});
+  const [staff, setStaff]           = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [search, setSearch] = useState('');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const userRole = user.role || '';
-  const canAddStaff = ['Admin', 'Lab Head', 'Doctor', 'Lab Admin'].includes(userRole);
-  const isSuperAdmin = user.role_level === 'State' || user.role_level === 'District';
-  const [branches, setBranches] = useState([]);
+  const [branches, setBranches]     = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
+  const [filterBranch, setFilterBranch] = useState('');
 
-  // Form State
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    role: 'Doctor',
-    department: '',
-    staffId: 'STF-' + Math.floor(1000 + Math.random() * 9000),
-    password: 'password123',
-    branch_id: user.branch_id || ''
-  });
+  const [showAddModal, setShowAddModal]   = useState(false);
+  const [editingStaff, setEditingStaff]   = useState(null);
+  const [formData, setFormData]           = useState(() => emptyForm(user));
 
-  // Fetch departments from backend
-  const fetchDepartments = async () => {
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/departments?is_active=true`);
-      const data = await res.json();
-      if (data.success) {
-        const deptNames = data.departments.map(d => d.name);
-        setDepartments(deptNames);
-        // Set default department to first one
-        setFormData(prev => ({ ...prev, department: deptNames[0] || '' }));
+      const branchParam = isBranch ? `?branch_id=${user.branch_id}` : (filterBranch ? `?branch_id=${filterBranch}` : '');
+      const [statsRes, staffRes, deptRes] = await Promise.all([
+        fetch(`${API_BASE}/api/staff/stats`, { headers: hdr() }),
+        fetch(`${API_BASE}/api/staff/list${branchParam}`, { headers: hdr() }),
+        fetch(`${API_BASE}/api/departments?is_active=true`, { headers: hdr() }),
+      ]);
+      const [statsD, staffD, deptD] = await Promise.all([statsRes.json(), staffRes.json(), deptRes.json()]);
+      if (statsD.success) setStats(statsD.stats || {});
+      if (staffD.success) setStaff(staffD.staff || []);
+      if (deptD.success) {
+        const names = deptD.departments.map(d => d.name);
+        setDepartments(names);
+        setFormData(prev => ({ ...prev, department: prev.department || names[0] || '' }));
       }
-    } catch (error) {
-      console.error('Error fetching departments:', error);
-    }
-  };
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }, [filterBranch, isBranch, user.branch_id]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   useEffect(() => {
-    fetchDepartments();
-    fetchStats();
-    fetchStaff();
-    if (isSuperAdmin) fetchBranches();
-  }, []);
+    if (isCentral) {
+      fetch(`${API_BASE}/api/branches`, { headers: hdr() })
+        .then(r => r.json())
+        .then(d => { if (d.success) setBranches(d.branches || []); })
+        .catch(() => {});
+    }
+  }, [isCentral]);
 
-  const fetchBranches = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/branches`);
-      const data = await res.json();
-      if (data.success) setBranches(data.branches);
-    } catch (err) { console.error('Error fetching branches:', err); }
+  const openAdd = () => {
+    setEditingStaff(null);
+    setFormData({ ...emptyForm(user), role: isLabHead ? 'Lab Technician' : 'Doctor' });
+    setShowAddModal(true);
   };
 
-  const fetchStats = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/staff/stats`);
-      const data = await res.json();
-      if (data.success) setStats(data.stats);
-    } catch (err) { console.error('Error fetching stats:', err); }
+  const openEdit = (s) => {
+    setEditingStaff(s);
+    setFormData({
+      firstName: s.first_name, lastName: s.last_name,
+      email: s.email, phone: s.phone || '',
+      role: s.role, role_level: s.role_level || 'Branch',
+      department: s.department || '',
+      staffId: s.staff_id || '',
+      password: '',
+      branch_id: s.branch_id || user.branch_id || '',
+    });
+    setShowAddModal(true);
   };
 
-  const fetchStaff = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/staff/list`);
-      const data = await res.json();
-      if (data.success) setStaff(data.staff);
-    } catch (err) { console.error('Error fetching staff list:', err); }
-    finally { setLoading(false); }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddStaff = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    const url    = editingStaff ? `${API_BASE}/api/staff/${editingStaff.id}` : `${API_BASE}/api/staff/add`;
+    const method = editingStaff ? 'PUT' : 'POST';
     try {
-      const res = await fetch(`${API_BASE}/api/staff/add`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}`
-        },
-        body: JSON.stringify(formData)
-      });
+      const res  = await fetch(url, { method, headers: hdr(), body: JSON.stringify(formData) });
       const data = await res.json();
       if (data.success) {
-        showAlert('Staff member added successfully!', 'success');
+        showAlert(editingStaff ? 'Staff updated' : 'Staff member added successfully!', 'success');
         setShowAddModal(false);
-        setFormData({
-          firstName: '', lastName: '', email: '', phone: '',
-          role: 'Doctor', department: departments[0] || '',
-          staffId: 'STF-' + Math.floor(1000 + Math.random() * 9000),
-          password: 'password123'
-        });
-        fetchStats();
-        fetchStaff();
+        fetchAll();
       } else {
-        showAlert(data.message || 'Error adding staff', 'error');
+        showAlert(data.message || 'Error', 'error');
       }
-    } catch (err) {
-      console.error('Error:', err);
-      showAlert('Network error adding staff.', 'error');
-    }
+    } catch { showAlert('Network error', 'error'); }
   };
 
-  const filteredStaff = staff.filter(s =>
-    `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
-    s.email.toLowerCase().includes(search.toLowerCase()) ||
-    s.staff_id.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return;
+    try {
+      const res  = await fetch(`${API_BASE}/api/staff/${id}`, { method: 'DELETE', headers: hdr() });
+      const data = await res.json();
+      if (data.success) { showAlert('Deleted', 'success'); fetchAll(); }
+      else showAlert(data.message || 'Error', 'error');
+    } catch { showAlert('Network error', 'error'); }
+  };
+
+  const set = (field, value) => setFormData(p => ({ ...p, [field]: value }));
+
+  const filteredStaff = staff.filter(s => {
+    if (isLabHead && s.role !== 'Lab Technician') return false;
+    const q = search.toLowerCase();
+    return (
+      `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) ||
+      (s.email || '').toLowerCase().includes(q) ||
+      (s.staff_id || '').toLowerCase().includes(q) ||
+      (s.branch_name || '').toLowerCase().includes(q)
+    );
+  });
+
+  const inp = { padding: '8px 10px', border: '1.5px solid #e2e8f0', borderRadius: 7, fontSize: 13, width: '100%', outline: 'none', boxSizing: 'border-box' };
 
   return (
     <>
-      {alert && (
-        <Alert
-          message={alert.message}
-          type={alert.type}
-          onClose={hideAlert}
-          duration={4000}
-        />
-      )}
+      {alert && <Alert message={alert.message} type={alert.type} onClose={hideAlert} duration={4000} />}
+
       <div className="staff-page">
         <div className="staff-header">
           <div>
             <h1>Employee Management</h1>
-            <p>Manage hospital personnel and monitor role distribution</p>
+            <p>
+              {isBranch
+                ? `Managing staff for ${user.branch_name || 'your facility'}`
+                : 'Manage personnel across the health network'}
+            </p>
           </div>
-          <button className="btn-primary" onClick={() => setShowAddModal(true)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Add New Staff
-          </button>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            {isCentral && (
+              <select
+                style={{ ...inp, width: 'auto' }}
+                value={filterBranch}
+                onChange={e => setFilterBranch(e.target.value)}
+              >
+                <option value="">All Facilities</option>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.branch_name}</option>)}
+              </select>
+            )}
+            <button className="btn-primary" onClick={openAdd}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add Employee
+            </button>
+          </div>
         </div>
 
-        {/* Stats Section */}
+        {/* Stats */}
         <div className="stats-grid">
           <div className="stat-card">
             <span className="stat-label">Total Staff</span>
             <span className="stat-value">{staff.length}</span>
           </div>
-          {ROLES.map(role => (
-            <div className="stat-card" key={role}>
-              <span className="stat-label">{role}s</span>
-              <span className="stat-value">{stats[role] || 0}</span>
+          {ROLES.map(r => (
+            <div className="stat-card" key={r}>
+              <span className="stat-label">{r}s</span>
+              <span className="stat-value">{stats[r] || 0}</span>
             </div>
           ))}
         </div>
 
-        {/* Staff Directory Table */}
+        {/* Table */}
         <div className="staff-table-card">
           <div className="table-toolbar">
             <div className="search-input-wrapper">
@@ -175,7 +195,7 @@ function StaffManagement() {
                 className="preg-input"
                 placeholder="Search by name, email or ID..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={e => setSearch(e.target.value)}
               />
             </div>
           </div>
@@ -187,43 +207,58 @@ function StaffManagement() {
                 <th>Full Name</th>
                 <th>Role</th>
                 <th>Department</th>
+                <th>Facility</th>
                 <th>Email</th>
-                <th>Joined Date</th>
+                <th>Joined</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px' }}>Loading staff records...</td></tr>
+                <tr><td colSpan="8" style={{ textAlign: 'center', padding: 40 }}>Loading staff records...</td></tr>
               ) : filteredStaff.length > 0 ? (
-                filteredStaff.map((s) => (
+                filteredStaff.map(s => (
                   <tr key={s.id}>
                     <td style={{ fontWeight: 600, color: 'var(--brand-blue)' }}>{s.staff_id}</td>
                     <td>{s.first_name} {s.last_name}</td>
                     <td>
-                      <span className={`role-badge role-${s.role.toLowerCase().replace(' ', '-')}`}>
-                        {s.role}
-                      </span>
+                      <span className={`role-badge role-${s.role.toLowerCase().replace(' ', '-')}`}>{s.role}</span>
                     </td>
-                    <td>{s.department}</td>
+                    <td>{s.department || '—'}</td>
+                    <td style={{ fontSize: 12, color: '#64748b' }}>{s.branch_name || '—'}</td>
                     <td>{s.email}</td>
-                    <td>{new Date(s.created_at).toLocaleDateString()}</td>
+                    <td>{new Date(s.created_at).toLocaleDateString('en-IN')}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          onClick={() => openEdit(s)}
+                          style={{ padding: '3px 10px', border: '1px solid #e2e8f0', background: '#fff', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}
+                        >Edit</button>
+                        {s.id !== user.id && (
+                          <button
+                            onClick={() => handleDelete(s.id, `${s.first_name} ${s.last_name}`)}
+                            style={{ padding: '3px 10px', border: '1px solid #fca5a5', background: '#fff', color: '#dc2626', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}
+                          >Delete</button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px' }}>No staff members found matching your search.</td></tr>
+                <tr><td colSpan="8" style={{ textAlign: 'center', padding: 40 }}>No staff members found.</td></tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Add Staff Modal */}
+        {/* Add / Edit Modal */}
         {showAddModal && (
           <div className="modal-overlay">
-            <div className="modal-content">
+            <div className="modal-content" style={{ maxWidth: 560 }}>
               <div className="modal-header">
                 <div className="modal-header-info">
-                  <h3>Create New Staff Member</h3>
-                  <p>Fill in the details to register a new employee in the system.</p>
+                  <h3>{editingStaff ? 'Edit Staff Member' : 'Create New Employee'}</h3>
+                  <p>{editingStaff ? `Editing ${editingStaff.first_name} ${editingStaff.last_name}` : 'Register a new employee in the system'}</p>
                 </div>
                 <button className="close-btn" onClick={() => setShowAddModal(false)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -232,125 +267,102 @@ function StaffManagement() {
                 </button>
               </div>
 
-              <form onSubmit={handleAddStaff}>
+              <form onSubmit={handleSubmit}>
                 <div className="modal-body">
+
+                  {/* Facility assignment — always visible */}
+                  <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 9, padding: '12px 14px', marginBottom: 16 }}>
+                    {isCentral ? (
+                      <div className="preg-field">
+                        <label className="preg-label">Assign to Facility</label>
+                        <select
+                          className="preg-select"
+                          value={formData.branch_id}
+                          onChange={e => set('branch_id', e.target.value)}
+                          required
+                        >
+                          <option value="">Select facility…</option>
+                          {branches.map(b => <option key={b.id} value={b.id}>{b.branch_name} ({b.hospital_code})</option>)}
+                        </select>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 13, color: '#166534', fontWeight: 600 }}>
+                        Facility: {user.branch_name || `Branch #${user.branch_id}`}
+                        <div style={{ fontSize: 11, color: '#4ade80', fontWeight: 400 }}>Staff will be assigned to your facility automatically</div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="form-row">
                     <div className="preg-field">
-                      <label className="preg-label">First Name</label>
-                      <div className="input-with-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                        </svg>
-                        <input type="text" className="preg-input" name="firstName" value={formData.firstName} onChange={handleInputChange} placeholder="John" required />
-                      </div>
+                      <label className="preg-label">First Name *</label>
+                      <input className="preg-input" value={formData.firstName} onChange={e => set('firstName', e.target.value)} placeholder="John" required />
                     </div>
                     <div className="preg-field">
-                      <label className="preg-label">Last Name</label>
-                      <div className="input-with-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                        </svg>
-                        <input type="text" className="preg-input" name="lastName" value={formData.lastName} onChange={handleInputChange} placeholder="Doe" required />
-                      </div>
+                      <label className="preg-label">Last Name *</label>
+                      <input className="preg-input" value={formData.lastName} onChange={e => set('lastName', e.target.value)} placeholder="Doe" required />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="preg-field">
+                      <label className="preg-label">Official Email *</label>
+                      <input type="email" className="preg-input" value={formData.email} onChange={e => set('email', e.target.value)} placeholder="john@hospital.com" required disabled={!!editingStaff} />
+                    </div>
+                    <div className="preg-field">
+                      <label className="preg-label">Phone</label>
+                      <input type="tel" className="preg-input" value={formData.phone} onChange={e => set('phone', e.target.value)} placeholder="9876543210" />
                     </div>
                   </div>
 
                   <div className="form-row">
                     <div className="preg-field">
                       <label className="preg-label">Staff ID</label>
-                      <div className="input-with-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 8h10M7 12h10M7 16h10" />
-                        </svg>
-                        <input type="text" className="preg-input" name="staffId" value={formData.staffId} onChange={handleInputChange} required />
-                      </div>
+                      <input className="preg-input" value={formData.staffId} onChange={e => set('staffId', e.target.value)} />
                     </div>
                     <div className="preg-field">
-                      <label className="preg-label">Official Email</label>
-                      <div className="input-with-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="m3 7 9 6 9-6M21 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                        </svg>
-                        <input type="email" className="preg-input" name="email" value={formData.email} onChange={handleInputChange} placeholder="john.doe@hospital.com" required />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="preg-field">
-                      <label className="preg-label">Phone Number</label>
-                      <div className="input-with-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                        </svg>
-                        <input type="tel" className="preg-input" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="1234567890" required />
-                      </div>
-                    </div>
-                    <div className="preg-field" style={{ visibility: 'hidden' }}>
-                      {/* Empty field to maintain layout balance */}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="preg-field">
-                      <label className="preg-label">Designation / Role</label>
-                      <select className="preg-select" name="role" value={formData.role} onChange={handleInputChange}>
-                        {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                      <label className="preg-label">Department</label>
+                      <select className="preg-select" value={formData.department} onChange={e => set('department', e.target.value)}>
+                        <option value="">None</option>
+                        {departments.map(d => <option key={d} value={d}>{d}</option>)}
                       </select>
                     </div>
-                    {isSuperAdmin ? (
+                  </div>
+
+                  <div className="form-row">
+                    <div className="preg-field">
+                      <label className="preg-label">Role / Designation *</label>
+                      <select className="preg-select" value={formData.role} onChange={e => set('role', e.target.value)} disabled={isLabHead}>
+                        {assignableRoles.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                    {/* role_level only makes sense for Admin — and only Central admins can set it */}
+                    {formData.role === 'Admin' && isCentral && (
                       <div className="preg-field">
-                        <label className="preg-label">Assign to Facility/Branch</label>
-                        <select className="preg-select" name="branch_id" value={formData.branch_id} onChange={handleInputChange} required>
-                          <option value="">Select Branch</option>
-                          {branches.map(b => <option key={b.id} value={b.id}>{b.branch_name}</option>)}
-                        </select>
-                      </div>
-                    ) : (
-                      <div className="preg-field">
-                        <label className="preg-label">Department</label>
-                        <select className="preg-select" name="department" value={formData.department} onChange={handleInputChange}>
-                          {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                        <label className="preg-label">Admin Scope</label>
+                        <select className="preg-select" value={formData.role_level} onChange={e => set('role_level', e.target.value)}>
+                          {ROLE_LEVELS.map(l => <option key={l} value={l}>{l === 'Branch' ? 'Branch (single facility)' : l === 'Sub-Central' ? 'Sub-Central (district)' : 'Central (all facilities)'}</option>)}
                         </select>
                       </div>
                     )}
                   </div>
 
-                  {!isSuperAdmin && (
+                  {!editingStaff && (
                     <div className="preg-field">
-                      <label className="preg-label">Initial Password</label>
-                      <div className="input-with-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg>
-                        <input type="text" className="preg-input" name="password" value={formData.password} onChange={handleInputChange} required />
-                      </div>
-                    </div>
-                  )}
-
-                  {isSuperAdmin && (
-                    <div className="form-row">
-                      <div className="preg-field">
-                        <label className="preg-label">Department</label>
-                        <select className="preg-select" name="department" value={formData.department} onChange={handleInputChange}>
-                          {departments.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                      </div>
-                      <div className="preg-field">
-                        <label className="preg-label">Initial Password</label>
-                        <input type="text" className="preg-input" name="password" value={formData.password} onChange={handleInputChange} required />
-                      </div>
+                      <label className="preg-label">Initial Password *</label>
+                      <input type="text" className="preg-input" value={formData.password} onChange={e => set('password', e.target.value)} required />
                     </div>
                   )}
                 </div>
 
                 <div className="modal-footer">
-                  <button type="button" className="btn-ghost" onClick={() => setShowAddModal(false)}>Discard</button>
+                  <button type="button" className="btn-ghost" onClick={() => setShowAddModal(false)}>Cancel</button>
                   <button type="submit" className="btn-primary">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" />
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" />
+                      <line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" />
                     </svg>
-                    Register Staff
+                    {editingStaff ? 'Save Changes' : 'Register Employee'}
                   </button>
                 </div>
               </form>

@@ -1,9 +1,10 @@
 import express from 'express';
-import { 
-  getBranches, 
-  createDistrict, 
+import {
+  getBranches,
+  createDistrict,
   updateDistrict,
   deleteDistrict,
+  patchBranchBlock,
   createCenter,
   updateCenter,
   deleteCenter,
@@ -11,20 +12,25 @@ import {
   updateFacilityCategory,
   deleteFacilityCategory
 } from '../controllers/branchController.js';
+import { authenticateToken, authorizeRole } from '../middleware/auth.js';
 
 const router = express.Router();
+router.use(authenticateToken);
+
+const ADMIN_ONLY = authorizeRole(['Admin', 'Super Admin']);
 
 router.get('/', getBranches);
-router.post('/district', createDistrict);
-router.put('/district/:id', updateDistrict);
-router.delete('/district/:id', deleteDistrict);
+router.post('/district', ADMIN_ONLY, createDistrict);
+router.put('/district/:id', ADMIN_ONLY, updateDistrict);
+router.delete('/district/:id', ADMIN_ONLY, deleteDistrict);
 
-router.post('/center', createCenter);
-router.put('/center/:id', updateCenter);
-router.delete('/center/:id', deleteCenter);
+router.patch('/center/:id/block', ADMIN_ONLY, patchBranchBlock);
+router.post('/center', ADMIN_ONLY, createCenter);
+router.put('/center/:id', ADMIN_ONLY, updateCenter);
+router.delete('/center/:id', ADMIN_ONLY, deleteCenter);
 
-router.post('/categories', createFacilityCategory);
-router.put('/categories/:id', updateFacilityCategory);
-router.delete('/categories/:id', deleteFacilityCategory);
+router.post('/categories', ADMIN_ONLY, createFacilityCategory);
+router.put('/categories/:id', ADMIN_ONLY, updateFacilityCategory);
+router.delete('/categories/:id', ADMIN_ONLY, deleteFacilityCategory);
 
 export default router;

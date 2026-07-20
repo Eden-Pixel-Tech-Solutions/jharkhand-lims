@@ -31,7 +31,9 @@ function PatientRegistration() {
   const fetchLabName = async () => {
     try {
       const API_BASE = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${API_BASE}/api/infra?type=Lab&branch_id=${branchId}`);
+      const res = await fetch(`${API_BASE}/api/infra?type=Lab&branch_id=${branchId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('hims_token')}` }
+      });
       const data = await res.json();
       if (data.success && data.items.length > 0) {
         setLabName(data.items[0].name);
@@ -90,7 +92,7 @@ function PatientRegistration() {
     setIsSearching(true);
     try {
       const API_BASE = import.meta.env.VITE_API_URL || '';
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('hims_token');
       const res = await fetch(`${API_BASE}/api/patients/search?q=${encodeURIComponent(searchQuery)}`, {
         headers: {
           'Authorization': `Bearer ${token}`

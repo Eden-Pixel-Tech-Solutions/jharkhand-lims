@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import '../../assets/CSS/Login.css';
+import { useCaptcha } from '../../hooks/useCaptcha';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function PatientLogin() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ phone: '', dob: '' });
+  const [captchaText, setCaptchaText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [blocked, setBlocked] = useState(false);
   const [focused, setFocused] = useState('');
+  const { svg: captchaSvg, captchaId, refresh: refreshCaptcha, applyCaptcha } = useCaptcha();
 
   const handleChange = (e) => {
     setError('');
@@ -22,6 +27,10 @@ function PatientLogin() {
       setError('Please enter both phone number and date of birth.');
       return;
     }
+    if (!captchaText) {
+      setError('Please enter the captcha text.');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -30,14 +39,19 @@ function PatientLogin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: formData.phone,
-          dob: formData.dob
+          dob: formData.dob,
+          captchaId,
+          captchaText
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Login failed');
+        const err = new Error(data.message || 'Login failed');
+        err.status = response.status;
+        err.captcha = data.captcha;
+        throw err;
       }
 
       // Store patient token and data
@@ -47,6 +61,14 @@ function PatientLogin() {
       navigate('/patient-portal/profile');
     } catch (err) {
       setError(err.message);
+      if (err.status === 429) {
+        // IP is locked out for 24h — nothing left to retry, no captcha comes
+        // back with this response, so just lock the form.
+        setBlocked(true);
+      } else {
+        setCaptchaText('');
+        applyCaptcha(err.captcha);
+      }
     } finally {
       setLoading(false);
     }
@@ -126,7 +148,39 @@ function PatientLogin() {
               </div>
             </div>
 
-            <button type="submit" className="btn-primary" disabled={loading}>
+            <div className="form-group">
+              <label className="field-label">Captcha</label>
+              <div className="captcha-row">
+                <div
+                  className="captcha-image"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(captchaSvg, { USE_PROFILES: { svg: true, svgFilters: true } }) }}
+                />
+                <button
+                  type="button"
+                  className="captcha-refresh"
+                  onClick={() => { setCaptchaText(''); refreshCaptcha(); }}
+                  aria-label="Refresh captcha"
+                  title="Refresh captcha"
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M23 4v6h-6M1 20v-6h6" />
+                    <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                  </svg>
+                </button>
+              </div>
+              <input
+                type="text"
+                name="captchaText"
+                className="field-input"
+                placeholder="Enter the text shown above"
+                value={captchaText}
+                onChange={(e) => setCaptchaText(e.target.value)}
+                autoComplete="off"
+                required
+              />
+            </div>
+
+            <button type="submit" className="btn-primary" disabled={loading || blocked}>
               {loading ? (
                 <span className="spinner">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -136,6 +190,8 @@ function PatientLogin() {
                   </svg>
                   Signing in...
                 </span>
+              ) : blocked ? (
+                'Temporarily blocked'
               ) : (
                 'Sign In'
               )}

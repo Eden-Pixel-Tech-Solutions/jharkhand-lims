@@ -16,6 +16,8 @@ import {
 import '../../assets/CSS/LabReportDownload.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const tok = () => localStorage.getItem('hims_token');
+const authHdr = () => ({ Authorization: `Bearer ${tok()}` });
 
 const LabReportDownload = () => {
   const [reports, setReports] = useState([]);
@@ -39,7 +41,7 @@ const LabReportDownload = () => {
   const fetchApprovedReports = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/api/lab/approved-reports`);
+      const res = await fetch(`${API_BASE}/api/lab/approved-reports`, { headers: authHdr() });
       const data = await res.json();
       if (data.success) setReports(data.reports || []);
     } catch (error) {
@@ -58,7 +60,7 @@ const LabReportDownload = () => {
       if (dateRange.from) params.append('from', dateRange.from);
       if (dateRange.to) params.append('to', dateRange.to);
       if (params.toString()) url += `?${params.toString()}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: authHdr() });
       const data = await res.json();
       if (data.success) setReports(data.reports || []);
     } catch (error) {
@@ -70,7 +72,7 @@ const LabReportDownload = () => {
 
   const handleViewReport = async (report) => {
     try {
-      const res = await fetch(`${API_BASE}/api/lab/report-details/${report.sample_id}`);
+      const res = await fetch(`${API_BASE}/api/lab/report-details/${report.sample_id}`, { headers: authHdr() });
       const data = await res.json();
       if (data.success) {
         setReportDetails(data);
@@ -135,7 +137,7 @@ const LabReportDownload = () => {
 
   const handleDownloadPDF = async (sampleId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/lab/generate-report-pdf/${sampleId}`);
+      const res = await fetch(`${API_BASE}/api/lab/generate-report-pdf/${sampleId}`, { headers: authHdr() });
       if (!res.ok) throw new Error('Failed to generate PDF');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -154,7 +156,7 @@ const LabReportDownload = () => {
 
   const handlePrintRealPDF = async (sampleId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/lab/generate-report-pdf/${sampleId}`);
+      const res = await fetch(`${API_BASE}/api/lab/generate-report-pdf/${sampleId}`, { headers: authHdr() });
       if (!res.ok) throw new Error('Failed to generate PDF');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -208,7 +210,7 @@ const LabReportDownload = () => {
       // Call backend — backend handles PDF fetch + WhatsApp send internally
       const sendRes = await fetch(`${API_BASE}/api/lab/whatsapp-send-report`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHdr() },
         body: JSON.stringify({
           sampleId: waModal.sampleId,
           phone,

@@ -1,13 +1,18 @@
 import db from '../config/db.js';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import bcrypt from 'bcryptjs';
 import fs from 'fs/promises';
 import path from 'path';
+import { createCaptcha, verifyCaptcha } from '../utils/captchaStore.js';
+import { issueCsrfToken, verifyAndRotateCsrfToken } from '../utils/csrfStore.js';
 
 // ── In-memory OTP store ──────────────────────────────────────────────────────
 // { email: { otp, expiry, attempts } }
 const otpStore = new Map();
+
+const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 const DEV_EMAIL  = process.env.DEVELOPER_EMAIL;
 const DEV_SECRET = process.env.DEVELOPER_JWT_SECRET;
@@ -26,10 +31,13 @@ const randomOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 // ── AUTH: Send OTP ───────────────────────────────────────────────────────────
 export const sendOTP = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, captchaId, captchaText } = req.body;
     if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+    if (!verifyCaptcha(captchaId, captchaText)) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired captcha', captcha: createCaptcha() });
+    }
     if (email.toLowerCase() !== DEV_EMAIL.toLowerCase()) {
-      return res.status(403).json({ success: false, message: 'Unauthorized' });
+      return res.status(403).json({ success: false, message: 'Unauthorized', captcha: createCaptcha() });
     }
 
     const otp    = randomOTP();
@@ -52,7 +60,7 @@ export const sendOTP = async (req, res) => {
     res.json({ success: true, message: 'OTP sent to developer email' });
   } catch (err) {
     console.error('sendOTP error:', err);
-    res.status(500).json({ success: false, message: 'Failed to send OTP' });
+    res.status(500).json({ success: false, message: 'Failed to send OTP', captcha: createCaptcha() });
   }
 };
 
@@ -83,8 +91,9 @@ export const verifyOTP = async (req, res) => {
 
     otpStore.delete(key);
 
-    const token = jwt.sign({ dev: true, email: key }, DEV_SECRET, { expiresIn: '8h' });
-    res.json({ success: true, token });
+    const sid = crypto.randomUUID();
+    const token = jwt.sign({ dev: true, email: key, sid }, DEV_SECRET, { expiresIn: '8h' });
+    res.json({ success: true, token, csrfToken: issueCsrfToken(sid) });
   } catch (err) {
     console.error('verifyOTP error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -95,14 +104,26 @@ export const verifyOTP = async (req, res) => {
 export const devAuth = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(401).json({ success: false, message: 'No token' });
+
+  let decoded;
   try {
-    const decoded = jwt.verify(token, DEV_SECRET, { algorithms: ['HS256'] });
+    decoded = jwt.verify(token, DEV_SECRET, { algorithms: ['HS256'] });
     if (!decoded.dev) throw new Error('Not a dev token');
-    req.dev = decoded;
-    next();
   } catch {
-    res.status(403).json({ success: false, message: 'Invalid or expired developer session' });
+    return res.status(403).json({ success: false, message: 'Invalid or expired developer session' });
   }
+
+  req.dev = decoded;
+
+  if (MUTATING_METHODS.has(req.method)) {
+    const rotated = verifyAndRotateCsrfToken(decoded.sid, req.headers['x-csrf-token']);
+    if (!rotated) {
+      return res.status(403).json({ success: false, message: 'Invalid or missing CSRF token' });
+    }
+    res.setHeader('X-CSRF-Token', rotated);
+  }
+
+  next();
 };
 
 // ── STATS ────────────────────────────────────────────────────────────────────

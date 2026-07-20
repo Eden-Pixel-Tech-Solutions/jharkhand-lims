@@ -203,7 +203,7 @@ const ScheduleDutyModal = ({ doctors = [], rooms = [], onClose, onSubmit }) => {
         {/* ── Header ── */}
         <div className="sdm-header">
           <div className="sdm-header-accent" />
-          <h2 id="sdm-title" className="sdm-title">Schedule New Lab Duty</h2>
+          <h2 id="sdm-title" className="sdm-title">Schedule New Duty</h2>
           <button className="sdm-close" onClick={onClose} aria-label="Close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -227,13 +227,13 @@ const ScheduleDutyModal = ({ doctors = [], rooms = [], onClose, onSubmit }) => {
             {/* Personnel */}
             <div className="sdm-field">
               <label className="sdm-label">
-                Select Lab Personnel <span className="sdm-required">*</span>
+                Select Personnel <span className="sdm-required">*</span>
               </label>
               <SearchableSelect
                 options={doctorOptions}
                 value={form.doctorId}
                 onChange={v => set('doctorId', v)}
-                placeholder="— Choose Lab Technician or Doctor —"
+                placeholder="— Choose Doctor or Staff —"
                 searchPlaceholder="Search by name or role…"
               />
             </div>
@@ -241,14 +241,14 @@ const ScheduleDutyModal = ({ doctors = [], rooms = [], onClose, onSubmit }) => {
             {/* Laboratory */}
             <div className="sdm-field">
               <label className="sdm-label">
-                Assign Laboratory <span className="sdm-required">*</span>
+                Assign Room / Facility <span className="sdm-required">*</span>
               </label>
               <SearchableSelect
                 options={roomOptions}
                 value={form.roomId}
                 onChange={v => set('roomId', v)}
-                placeholder="— Choose a laboratory —"
-                searchPlaceholder="Search by lab name or block…"
+                placeholder="— Choose a room —"
+                searchPlaceholder="Search by room name or block…"
               />
             </div>
 
@@ -307,7 +307,7 @@ const ScheduleDutyModal = ({ doctors = [], rooms = [], onClose, onSubmit }) => {
 
             {/* Notes */}
             <div className="sdm-field">
-              <label className="sdm-label">Lab Instructions <span className="sdm-optional">(optional)</span></label>
+              <label className="sdm-label">Duty Instructions <span className="sdm-optional">(optional)</span></label>
               <textarea
                 className="sdm-input sdm-textarea"
                 rows={3}
@@ -328,7 +328,7 @@ const ScheduleDutyModal = ({ doctors = [], rooms = [], onClose, onSubmit }) => {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
-              Confirm Lab Schedule
+              Confirm Schedule
             </button>
           </div>
         </form>
