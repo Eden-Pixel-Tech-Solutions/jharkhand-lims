@@ -47,13 +47,16 @@ import PrescriptionScan from './pages/Prescriptions/PrescriptionScan';
 import OrgManagement from './pages/Settings/OrgManagement';
 import CdacMapping from './pages/Settings/CdacMapping';
 import ChangePassword from './pages/ChangePassword';
+import { hasStaffToken } from './utils/session';
 
-// Redirects to login if no token is present; forces a password change first
-// if the account was flagged for one (VAPT #16) — everything else in the app
-// is unreachable until that's cleared.
+// Redirects to login if no session is present; forces a password change
+// first if the account was flagged for one (VAPT #16) — everything else in
+// the app is unreachable until that's cleared. This is a UI convenience
+// only (VAPT #9: the real token is an HttpOnly cookie, not readable here) —
+// the actual access control is enforced server-side on every request.
 function RequireAuth() {
   const location = useLocation();
-  if (!localStorage.getItem('hims_token')) return <Navigate to="/" replace />;
+  if (!hasStaffToken()) return <Navigate to="/" replace />;
   if (localStorage.getItem('password_change_required') === '1' && location.pathname !== '/change-password') {
     return <Navigate to="/change-password" replace />;
   }
@@ -62,7 +65,7 @@ function RequireAuth() {
 
 // Restricts a route to Doctor role only; other roles go to /dashboard
 function RequireDoctor() {
-  if (!localStorage.getItem('hims_token')) return <Navigate to="/" replace />;
+  if (!hasStaffToken()) return <Navigate to="/" replace />;
   return localStorage.getItem('role') === 'Doctor' ? <Outlet /> : <Navigate to="/dashboard" replace />;
 }
 

@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
 import developerRoutes from './routes/developerRoutes.js';
@@ -79,6 +80,11 @@ app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  // VAPT #17: helmet's default max-age (180 days) is below the report's
+  // required 31536000s/1yr — the frontend's nginx config already sets the
+  // stronger value; match it here in case the API's own origin is scanned
+  // separately from the frontend's.
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
 }));
 // VAPT #18: helmet sets X-XSS-Protection to "0" by default (the modern,
 // correct advice — the old browser XSS auditor is deprecated and could
@@ -91,6 +97,19 @@ app.use((req, res, next) => {
 });
 // VAPT #25: don't let clients fingerprint/diff exact response revisions.
 app.set('etag', false);
+
+// Needed to read the HttpOnly session cookie set by authController.login
+// (VAPT #9) before any route/middleware that calls authenticateToken.
+app.use(cookieParser());
+
+// VAPT #10 (Cache Header Not Implemented): this is a pure JSON/file API —
+// every response is either user-specific or state-changing, so none of it
+// should ever be cached by a shared proxy or left in browser disk cache.
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  next();
+});
 
 app.use(cors({
   origin: (origin, callback) => {

@@ -17,6 +17,26 @@ const generateToken = (id, role, branch_id, role_level) => {
   return { token, csrfToken: issueCsrfToken(sid) };
 };
 
+// VAPT #9 (Cookie Header Not Implemented): the session token lives only in
+// an HttpOnly cookie now — never in a JS-readable response field or
+// localStorage — so an XSS on any page can no longer read it out. Secure is
+// forced in production (the only environment actually served over HTTPS);
+// SameSite=None is required for it to survive the frontend/API being on
+// different origins there. COOKIE_DOMAIN is optional — omitting Domain
+// makes the cookie host-only, which is already the most restrictive scope,
+// so it's only needed if the API and frontend share a parent domain and the
+// cookie must be sent to both.
+const isProd = process.env.NODE_ENV === 'production';
+const AUTH_COOKIE_NAME = 'hims_token';
+const authCookieOptions = () => ({
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? 'none' : 'lax',
+  path: '/',
+  maxAge: 30 * 24 * 60 * 60 * 1000, // matches the JWT's 30d expiry
+  ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
+});
+
 export const register = async (req, res) => {
   const { firstName, lastName, email, phone, role, department, staffId, password, role_level = 'Branch', newBranchName, newHospitalCode, newDistrictId } = req.body;
   let { branch_id = 1 } = req.body;
@@ -58,7 +78,10 @@ export const register = async (req, res) => {
     const [result] = await db.query(query, values);
 
     if (result.insertId) {
-      const { token, csrfToken } = generateToken(result.insertId, role, branch_id, role_level);
+      // This endpoint requires an already-authenticated Admin/Lab Head/Doctor
+      // (see authRoutes.js) creating another user's account — it must not
+      // also log the caller in as that new user, so no token/cookie is
+      // issued here. The new user gets their own session on their own login.
       res.status(201).json({
         id: result.insertId,
         firstName,
@@ -67,8 +90,6 @@ export const register = async (req, res) => {
         role,
         branch_id,
         role_level,
-        token,
-        csrfToken,
       });
     } else {
       res.status(400).json({ message: 'Invalid user data' });
@@ -157,6 +178,7 @@ export const login = async (req, res) => {
       [user.id]
     );
     const { token, csrfToken } = generateToken(user.id, user.role, user.branch_id, user.role_level);
+    res.cookie(AUTH_COOKIE_NAME, token, authCookieOptions());
     res.json({
       id: user.id,
       firstName: user.first_name,
@@ -169,7 +191,6 @@ export const login = async (req, res) => {
       district_id: user.district_id,
       branch_name: user.branch_name,
       passwordChangeRequired: !!user.password_change_required,
-      token,
       csrfToken,
     });
   } catch (error) {
@@ -220,4 +241,18 @@ export const changePassword = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Server error during password change' });
   }
+};
+
+// VAPT #9/#5: logout must actually invalidate the session server-side, not
+// just rely on the client discarding it — clearCookie's options (path/
+// domain/sameSite/secure) have to match what the cookie was set with or the
+// browser won't recognize it as the same cookie to remove. Always succeeds:
+// a client with no/expired cookie still gets a clean 200.
+export const logout = (req, res) => {
+  // clearCookie sets its own past Expires to delete the cookie — passing our
+  // maxAge alongside it would add a future Max-Age, which browsers prefer
+  // over Expires when both are present, silently keeping the cookie alive.
+  const { maxAge, ...clearOptions } = authCookieOptions();
+  res.clearCookie(AUTH_COOKIE_NAME, clearOptions);
+  res.json({ success: true, message: 'Logged out' });
 };

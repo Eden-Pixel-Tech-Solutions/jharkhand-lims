@@ -31,19 +31,30 @@ const csrfKeyForUrl = (url) => {
   }
 };
 
+// VAPT #9: the staff session now lives in an HttpOnly cookie instead of a
+// header built from localStorage, so it only reaches the API if the request
+// opts in to sending credentials cross-origin — true for every /api/ call
+// this app makes, never for arbitrary third-party fetches, so gate on that
+// rather than flipping it on globally.
+const isOwnApiPath = (pathname) => pathname.startsWith('/api/');
+
 const installFetchInterceptor = () => {
   const originalFetch = window.fetch.bind(window);
 
   window.fetch = async (input, init = {}) => {
     const url = typeof input === 'string' || input instanceof URL ? String(input) : input.url;
     const method = (init.method || (typeof input === 'object' && input.method) || 'GET').toUpperCase();
-    const csrfKey = MUTATING_METHODS.has(method) ? csrfKeyForUrl(url) : null;
+    const pathname = (() => { try { return new URL(url, window.location.origin).pathname; } catch { return ''; } })();
+    const csrfKey = MUTATING_METHODS.has(method) ? csrfKeyForPath(pathname) : null;
 
     let finalInit = init;
+    if (isOwnApiPath(pathname) && finalInit.credentials === undefined) {
+      finalInit = { ...finalInit, credentials: 'include' };
+    }
     if (csrfKey) {
       const token = localStorage.getItem(csrfKey);
       if (token) {
-        finalInit = { ...init, headers: { ...(init.headers || {}), 'X-CSRF-Token': token } };
+        finalInit = { ...finalInit, headers: { ...(finalInit.headers || {}), 'X-CSRF-Token': token } };
       }
     }
 
@@ -61,8 +72,13 @@ const installFetchInterceptor = () => {
 const installAxiosInterceptor = () => {
   axios.interceptors.request.use((config) => {
     const method = (config.method || 'get').toUpperCase();
+    let pathname = '';
+    try { pathname = new URL(axios.getUri(config), window.location.origin).pathname; } catch { /* relative/malformed URL, leave blank */ }
+    if (isOwnApiPath(pathname) && config.withCredentials === undefined) {
+      config.withCredentials = true;
+    }
     if (MUTATING_METHODS.has(method)) {
-      const csrfKey = csrfKeyForUrl(axios.getUri(config));
+      const csrfKey = csrfKeyForPath(pathname);
       const token = csrfKey && localStorage.getItem(csrfKey);
       if (token) config.headers['X-CSRF-Token'] = token;
     }

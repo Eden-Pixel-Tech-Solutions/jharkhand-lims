@@ -29,8 +29,11 @@ export const getSettings = async (req, res) => {
       res.json({ success: true, data: null });
     }
   } catch (error) {
+    // VAPT #8 (Improper Error Handling): log the real error server-side only
+    // — the client shouldn't see raw DB/driver error text (table/column
+    // names, SQL fragments) that error.message can carry.
     console.error('Error fetching settings:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error while fetching settings' });
   }
 };
 
@@ -71,6 +74,6 @@ export const updateSettings = async (req, res) => {
     res.json({ success: true, message: 'Settings updated successfully' });
   } catch (error) {
     console.error('Error updating settings:', error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: 'Server error while updating settings' });
   }
 };

@@ -59,6 +59,10 @@ function Login() {
       const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // VAPT #9: the server sets the session token as an HttpOnly cookie
+        // on this response — the browser only stores/sends it if the
+        // request opts in to credentials.
+        credentials: 'include',
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
@@ -77,12 +81,16 @@ function Login() {
       }
 
       // Clear any stale session data from a previous user before writing new values
-      ['hims_token', 'hims_csrf', 'branch_id', 'hospital_code', 'role_level', 'role', 'district_id', 'password_change_required'].forEach(
+      ['hims_authed', 'hims_csrf', 'branch_id', 'hospital_code', 'role_level', 'role', 'district_id', 'password_change_required'].forEach(
         key => localStorage.removeItem(key)
       );
 
-      // Store fresh session context
-      if (data.token) localStorage.setItem('hims_token', data.token);
+      // Store fresh session context. VAPT #9: the actual session token is
+      // never stored here — it arrived as an HttpOnly cookie on this
+      // response, invisible to JS. `hims_authed` is just a UI flag so
+      // RequireAuth/hasStaffToken know a session exists to redirect around;
+      // it grants nothing by itself.
+      localStorage.setItem('hims_authed', '1');
       if (data.csrfToken) localStorage.setItem('hims_csrf', data.csrfToken);
       if (data.id) localStorage.setItem('user_id', data.id);
       if (data.branch_id !== undefined && data.branch_id !== null) localStorage.setItem('branch_id', data.branch_id);

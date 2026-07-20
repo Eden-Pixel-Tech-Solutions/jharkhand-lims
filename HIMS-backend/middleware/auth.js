@@ -17,8 +17,15 @@ export const normalizeRole = (role = '') =>
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 export const authenticateToken = (req, res, next) => {
+  // VAPT #9 (Cookie Header Not Implemented): the staff session token now
+  // lives in an HttpOnly cookie set by authController.login, not in
+  // localStorage — a page that reads it into a JS variable could hand it to
+  // any XSS. The cookie takes priority; the Authorization header stays as a
+  // fallback for non-browser API clients (Postman/scripts) that can't rely
+  // on a cookie jar.
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const headerToken = authHeader && authHeader.split(' ')[1];
+  const token = req.cookies?.hims_token || headerToken;
 
   if (!token) {
     return res.status(401).json({ message: 'Access denied. No token provided.' });
