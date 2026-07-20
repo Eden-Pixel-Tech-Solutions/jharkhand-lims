@@ -15,8 +15,13 @@ RUN npm run build
 
 FROM nginx:alpine
 
-# Copy the custom Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# VAPT #22 (CSP): connect-src for the API origin is filled in at container
+# start (not build time) via the official nginx image's envsubst-on-templates
+# entrypoint step, since the same built image can be deployed against
+# different API hosts. Must be a value nginx's env var syntax can substitute,
+# e.g. "https://api.example.com" — defaults to empty (same-origin API only).
+ENV CSP_CONNECT_SRC=""
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
 # Copy the built app to Nginx's web root
 COPY --from=build /app/dist /usr/share/nginx/html
