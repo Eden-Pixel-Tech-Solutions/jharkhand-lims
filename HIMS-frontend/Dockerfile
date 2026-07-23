@@ -22,6 +22,7 @@ FROM nginx:alpine
 # e.g. "https://api.example.com" — defaults to empty (same-origin API only).
 ENV CSP_CONNECT_SRC=""
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY security-headers.inc.template /etc/nginx/templates/security-headers.inc.template
 
 # Copy the built app to Nginx's web root
 COPY --from=build /app/dist /usr/share/nginx/html

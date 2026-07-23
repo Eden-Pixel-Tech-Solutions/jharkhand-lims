@@ -11,34 +11,22 @@ server {
     # can't be fingerprinted/diffed across requests.
     etag off;
 
-    # Baseline security headers.
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    # VAPT #22: full CSP. script-src has no 'unsafe-inline' — the one inline
-    # script this app needed (the Google Translate init callback) was moved
-    # to /translate-init.js so it qualifies as same-origin ('self'). style-src
-    # keeps 'unsafe-inline' because React's `style` prop and the Translate
-    # widget both set inline style attributes at runtime; there's no
-    # same-origin-only way to allowlist those short of a nonce per render,
-    # which a static SPA build can't generate. connect-src is templated
-    # ($CSP_CONNECT_SRC, set via the container's env, defaults to same-origin
-    # only) because the backend API lives on a different origin than this
-    # frontend in production — see README/Dockerfile for how to set it.
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://translate.google.com https://translate.googleapis.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com; img-src 'self' data: https://www.gstatic.com; font-src 'self' data:; connect-src 'self' https://translate.googleapis.com ${CSP_CONNECT_SRC}; frame-src https://translate.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';" always;
-    # Legacy header the scanner still checks for; modern browsers ignore it
-    # (some even treat "1" as an XSS vector), but it's inert here either way.
-    add_header X-XSS-Protection "1; mode=block" always;
-    # Only takes effect once served over HTTPS (the production domain) —
-    # harmless no-op over plain HTTP, which is how the TLS-terminating proxy
-    # in front of this container reaches it.
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    # Baseline security headers, factored into an include file so every
+    # location block below can pull in the same set. nginx's add_header does
+    # NOT inherit into a nested block once that block declares its own add_header (e.g.
+    # the Cache-Control overrides below) — repeating literal add_header lines
+    # per-location silently dropped every header here for the `/` and hashed
+    # asset responses (VAPT #12/#13/#17/#18/#19/#21/#22 regression caught on
+    # the 2026-07-23 retest deploy). Centralizing them in an include avoids
+    # that trap recurring the next time a location needs its own add_header.
+    include /etc/nginx/conf.d/security-headers.inc;
 
     # VAPT #5/#10 (Browser Refresh Attack / Cache Header Not Implemented):
     # the SPA shell renders whatever page state was in memory (dashboard,
     # settings, etc.) at logout time, so it must never be served from cache —
     # every navigation/back/refresh has to re-run the RequireAuth check.
     location = /index.html {
+        include /etc/nginx/conf.d/security-headers.inc;
         add_header Cache-Control "no-store, no-cache, must-revalidate, private" always;
         add_header Pragma "no-cache" always;
         root   /usr/share/nginx/html;
@@ -53,6 +41,7 @@ server {
     # Hashed build assets (JS/CSS/images) are safe to cache aggressively —
     # a new deploy ships a new filename, so staleness isn't a risk.
     location ~* \.(?:js|css|png|jpg|jpeg|gif|svg|woff2?|ttf|ico)$ {
+        include /etc/nginx/conf.d/security-headers.inc;
         root   /usr/share/nginx/html;
         add_header Cache-Control "public, max-age=31536000, immutable" always;
     }
