@@ -29,3 +29,7 @@ add_header X-XSS-Protection "1; mode=block" always;
 # harmless no-op over plain HTTP, which is how the TLS-terminating proxy
 # in front of this container reaches it.
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+# camera/microphone stay same-origin-only for AmbientScribe (mic) and the
+# patient-photo capture flow (camera); everything else this app doesn't use
+# is denied outright.
+add_header Permissions-Policy "camera=(self), microphone=(self), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()" always;
