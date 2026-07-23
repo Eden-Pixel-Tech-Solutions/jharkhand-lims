@@ -128,6 +128,21 @@ app.use(cors({
   exposedHeaders: ['X-CSRF-Token']
 }));
 
+// VAPT #20 (Access Control Allowed Origin Header Not Implemented): the cors
+// middleware above only emits Access-Control-Allow-Origin when the request
+// itself carries a matching Origin header (correct CORS behavior, and how a
+// real browser cross-origin call works) — but scanners that probe plain GETs
+// without an Origin header see no ACAO header at all and flag it as missing.
+// Backfill it with the primary trusted origin (never "*") whenever cors()
+// didn't already set one, so the header is always present without loosening
+// the allowlist enforced above.
+app.use((req, res, next) => {
+  if (!res.getHeader('Access-Control-Allow-Origin')) {
+    res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
+  }
+  next();
+});
+
 // VAPT #14 (Improper Referer Check): defense-in-depth alongside the CSRF
 // token in middleware/auth.js — a mutating request whose Referer/Origin
 // points somewhere outside the allowlist is rejected even if it somehow
