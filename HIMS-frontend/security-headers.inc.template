@@ -11,17 +11,22 @@
 add_header X-Content-Type-Options "nosniff" always;
 add_header X-Frame-Options "SAMEORIGIN" always;
 add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-# VAPT #22: full CSP. script-src has no 'unsafe-inline' — the one inline
-# script this app needed (the Google Translate init callback) was moved
-# to /translate-init.js so it qualifies as same-origin ('self'). style-src
-# keeps 'unsafe-inline' because React's `style` prop and the Translate
-# widget both set inline style attributes at runtime; there's no
-# same-origin-only way to allowlist those short of a nonce per render,
-# which a static SPA build can't generate. connect-src is templated
+# VAPT #22: full CSP. default-src is 'none' rather than 'self' — every
+# resource type this app actually loads (script/style/img/font/connect/
+# frame/object) is listed explicitly below, and there's no manifest, service
+# worker, or media-src usage (the one <video> element uses getUserMedia's
+# MediaStream via srcObject, not a src URL, so it isn't gated by media-src)
+# to fall back on default-src for. script-src has no 'unsafe-inline' — the
+# one inline script this app needed (the Google Translate init callback) was
+# moved to /translate-init.js so it qualifies as same-origin ('self').
+# style-src keeps 'unsafe-inline' because React's `style` prop and the
+# Translate widget both set inline style attributes at runtime; there's no
+# same-origin-only way to allowlist those short of a nonce per render, which
+# a static SPA build can't generate. connect-src is templated
 # ($CSP_CONNECT_SRC, set via the container's env, defaults to same-origin
 # only) because the backend API lives on a different origin than this
 # frontend in production — see README/Dockerfile for how to set it.
-add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://translate.google.com https://translate.googleapis.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com; img-src 'self' data: https://www.gstatic.com; font-src 'self' data:; connect-src 'self' https://translate.googleapis.com ${CSP_CONNECT_SRC}; frame-src https://translate.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';" always;
+add_header Content-Security-Policy "default-src 'none'; script-src 'self' https://translate.google.com https://translate.googleapis.com; style-src 'self' 'unsafe-inline' https://www.gstatic.com; img-src 'self' data: https://www.gstatic.com; font-src 'self' data:; connect-src 'self' https://translate.googleapis.com ${CSP_CONNECT_SRC}; frame-src https://translate.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';" always;
 # Legacy header the scanner still checks for; modern browsers ignore it
 # (some even treat "1" as an XSS vector), but it's inert here either way.
 add_header X-XSS-Protection "1; mode=block" always;
